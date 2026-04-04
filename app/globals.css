@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-cormorant: "Cormorant Garamond", Georgia, serif;
+    --font-inter: "Inter", system-ui, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-beige text-ink font-sans;
+  }
+
+  ::selection {
+    @apply bg-forest text-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-beige;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-stone rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted;
+  }
+}
+
+@layer components {
+  .container-px {
+    @apply px-4 sm:px-6 lg:px-10 xl:px-16;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-forest text-white font-sans text-sm font-medium tracking-wide px-6 py-3 transition-colors duration-200 hover:bg-forest-dark active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 border border-ink text-ink font-sans text-sm font-medium tracking-wide px-6 py-3 transition-colors duration-200 hover:bg-ink hover:text-white active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-ink font-sans text-sm font-medium tracking-wide px-4 py-2 transition-colors duration-200 hover:bg-stone/50;
+  }
+
+  .input-base {
+    @apply w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none transition-colors duration-150 focus:border-ink placeholder:text-muted;
+  }
+
+  .label-base {
+    @apply block text-xs font-medium tracking-widest uppercase text-muted mb-2;
+  }
+
+  .section-title {
+    @apply font-serif text-display-lg text-ink leading-tight;
+  }
+
+  .tag {
+    @apply inline-block text-[10px] font-sans font-semibold tracking-[0.15em] uppercase px-2.5 py-1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

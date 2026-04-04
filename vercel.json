@@ -1,0 +1,27 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "MPESA_CONSUMER_KEY": "@mpesa_consumer_key",
+    "MPESA_CONSUMER_SECRET": "@mpesa_consumer_secret",
+    "MPESA_SHORTCODE": "@mpesa_shortcode",
+    "MPESA_PASSKEY": "@mpesa_passkey",
+    "MPESA_CALLBACK_URL": "@mpesa_callback_url",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+    "RESEND_API_KEY": "@resend_api_key",
+    "AT_API_KEY": "@at_api_key",
+    "AT_USERNAME": "@at_username",
+    "AT_SENDER_ID": "@at_sender_id",
+    "ADMIN_PASSWORD": "@admin_password",
+    "ADMIN_SECRET_TOKEN": "@admin_secret_token",
+    "CLOUDINARY_CLOUD_NAME": "@cloudinary_cloud_name",
+    "CLOUDINARY_API_KEY": "@cloudinary_api_key",
+    "CLOUDINARY_API_SECRET": "@cloudinary_api_secret"
+  }
+}
