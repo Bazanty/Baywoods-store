@@ -56,7 +56,6 @@ export async function POST(req: Request) {
           cache_control: { type: "ephemeral" },
         },
       ],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       messages: messages as any,
     });
 
