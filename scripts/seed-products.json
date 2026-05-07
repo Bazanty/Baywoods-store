@@ -1,0 +1,461 @@
+{
+  "cloudinaryFolder": "baywoodstore",
+  "sourceDir": "C:\\Users\\Admin\\OneDrive\\Baywoods images",
+  "defaultSizes": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+  "defaultStockPerProduct": 10,
+  "products": [
+    {
+      "brand": "Nike",
+      "model": "Air Jordan 1 Low",
+      "colorway": "Panda",
+      "shortDescription": "Iconic AJ1 Low in the classic black-on-white Panda colorway.",
+      "description": "Air Jordan 1 Low in the iconic Panda colorway — crisp white leather paired with bold black overlays and a matching Swoosh. Understated enough to pair with anything, bold enough to stand on its own. Padded collar, Nike Air cushioning, rubber cupsole for grip and durability.",
+      "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }],
+      "price": 6500,
+      "comparePrice": 8500,
+      "isFeatured": true,
+      "files": ["IMG-20250713-WA0108.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Jordan 1 Low",
+      "colorway": "Bred Patent",
+      "shortDescription": "Glossy patent-leather AJ1 Low in black with a red outsole.",
+      "description": "Bred Patent takes the low-top Jordan 1 and wraps it in a glossy, mirror-finish patent leather. Jet-black upper, red rubber outsole, and a clean black Jumpman on the heel. A head-turner on and off the court.",
+      "colors": [{ "name": "Black", "hex": "#0A0A0A" }, { "name": "Red", "hex": "#C8102E" }],
+      "price": 7200,
+      "comparePrice": 9500,
+      "isFeatured": true,
+      "files": ["IMG-20250730-WA0024.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Jordan 3",
+      "colorway": "Desert Elephant",
+      "shortDescription": "AJ3 retro in desert tan suede with pine-green accents.",
+      "description": "Air Jordan 3 in an earthy Desert Elephant makeup — premium sand suede upper, classic elephant-print overlays on the toe and heel, and a pop of pine green on the tongue and Jumpman. Visible Air unit in the heel, branded leather lining. A new take on one of the most recognisable silhouettes in sneaker history.",
+      "colors": [{ "name": "Tan", "hex": "#C9A781" }, { "name": "Green", "hex": "#3B5B3B" }],
+      "price": 8800,
+      "comparePrice": 11500,
+      "isFeatured": false,
+      "files": ["IMG-20251002-WA0122.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Jordan 11",
+      "colorway": "Cap and Gown",
+      "shortDescription": "Triple-black AJ11 — tonal patent leather, stealth look.",
+      "description": "Air Jordan 11 Cap and Gown — an all-black execution of MJ's most celebrated silhouette. Ballistic mesh upper, tonal patent-leather mudguard, and a translucent outsole. Perfect for dressing up a fit without missing a beat.",
+      "colors": [{ "name": "Black", "hex": "#050505" }],
+      "price": 8800,
+      "comparePrice": 11500,
+      "isFeatured": true,
+      "files": ["IMG-20250911-WA0058.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Jordan 11",
+      "colorway": "Concord",
+      "shortDescription": "The legendary Concord AJ11 — white mesh with patent-leather mudguard.",
+      "description": "Air Jordan 11 Concord — arguably the most recognisable Jordan ever made. White ballistic mesh upper wrapped in black patent-leather mudguard, icy translucent outsole, and the unmistakable carbon-fibre spring plate. A grail-tier silhouette available now.",
+      "colors": [{ "name": "White", "hex": "#F5F5F0" }, { "name": "Black", "hex": "#111111" }],
+      "price": 9200,
+      "comparePrice": 12000,
+      "isFeatured": true,
+      "files": ["IMG-20250911-WA0060.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Force 1 Low",
+      "colorway": "Burgundy",
+      "shortDescription": "Tonal burgundy AF1 Low — rich, moody, classic.",
+      "description": "Air Force 1 Low in a full burgundy execution. Deep wine leather from toe to heel, tonal swoosh, and the unmistakable AF1 cupsole. Dresses up or down — a year-round rotation piece.",
+      "colors": [{ "name": "Burgundy", "hex": "#5C1A1B" }],
+      "price": 5800,
+      "comparePrice": 7500,
+      "isFeatured": false,
+      "files": ["IMG-20250904-WA0026.jpg", "IMG-20250904-WA0027.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Force 1 Low",
+      "colorway": "University Red",
+      "shortDescription": "All-red AF1 Low — bold, clean, confident.",
+      "description": "Air Force 1 Low in Triple Red. Full University Red leather upper, matching midsole, and red outsole. One of the loudest AF1s in the rotation.",
+      "colors": [{ "name": "Red", "hex": "#C8102E" }],
+      "price": 5800,
+      "comparePrice": 7500,
+      "isFeatured": false,
+      "files": ["IMG-20250928-WA0073.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Max 97",
+      "colorway": "Silver Bullet",
+      "shortDescription": "The original Air Max 97 — Silver Bullet metallic.",
+      "description": "Air Max 97 Silver Bullet — the OG that started it all. Reflective silver upper with the iconic red accent line, full-length visible Air cushioning, and the wavy lines inspired by Japanese bullet trains. An everyday icon.",
+      "colors": [{ "name": "Silver", "hex": "#C0C0C0" }, { "name": "Red", "hex": "#C8102E" }],
+      "price": 7500,
+      "comparePrice": 9800,
+      "isFeatured": true,
+      "files": ["IMG-20250923-WA0042.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Max 97",
+      "colorway": "Triple White",
+      "shortDescription": "All-white AM97 — clean, minimal, summer-ready.",
+      "description": "Air Max 97 in a full-white execution. Tonal upper, white midsole, and the signature full-length Air unit. A fresh, minimal spin on the classic wave-line silhouette.",
+      "colors": [{ "name": "White", "hex": "#FFFFFF" }],
+      "price": 7500,
+      "comparePrice": 9500,
+      "isFeatured": false,
+      "files": ["IMG-20250928-WA0051.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Max Plus TN",
+      "colorway": "White / Grey",
+      "shortDescription": "AM Plus TN in a clean white-and-grey makeup.",
+      "description": "Air Max Plus TN — the cult Tuned Air classic — in a crisp white and light-grey execution. Shark-tooth TPU overlays, full-length Max Air cushioning, and the unmistakable profile that put the TN on the map.",
+      "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Grey", "hex": "#C9C9C9" }],
+      "price": 7000,
+      "comparePrice": 9000,
+      "isFeatured": false,
+      "files": ["IMG-20250922-WA0010.jpg"]
+    },
+    {
+      "brand": "Nike",
+      "model": "Air Max Plus TN 3",
+      "colorway": "Grey / Yellow",
+      "shortDescription": "AM Plus TN 3 — Tuned Air with a punch of yellow.",
+      "description": "Air Max Plus TN 3 in a cool grey upper with contrasting yellow Swoosh and sole accents. Extra cushioning, extra attitude — one of the boldest TN colorways going.",
+      "colors": [{ "name": "Grey", "hex": "#8E9094" }, { "name": "Yellow", "hex": "#F2C200" }],
+      "price": 7500,
+      "comparePrice": 9500,
+      "isFeatured": false,
+      "files": ["IMG-20250904-WA0038.jpg"]
+    },
+
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Grey Corduroy",
+      "shortDescription": "Chunky Knu Skool with ribbed grey corduroy sidewall.",
+      "description": "Vans Knu Skool — a thick, exaggerated take on the Old Skool. Grey ribbed corduroy side panels, black suede toe and heel, oversized foxing strip, and a pillowy footbed. Retro, bulky, and unmistakably Vans.",
+      "colors": [{ "name": "Grey", "hex": "#808080" }, { "name": "Black", "hex": "#111111" }],
+      "price": 4800,
+      "comparePrice": 6200,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0006.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Brown Corduroy",
+      "shortDescription": "Warm brown ribbed corduroy Knu Skool.",
+      "description": "Vans Knu Skool in a rich brown corduroy finish. Black suede mudguard, oversized foxing tape, and a chunky cupsole. A retro-inspired take on a Vans classic.",
+      "colors": [{ "name": "Brown", "hex": "#6B3F1D" }, { "name": "Black", "hex": "#111111" }],
+      "price": 4800,
+      "comparePrice": 6200,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0007.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Blue Corduroy",
+      "shortDescription": "Knu Skool with cobalt-blue corduroy sidewall.",
+      "description": "The Knu Skool silhouette in a standout blue corduroy panel paired with a black suede cage. Oversized foxing tape, pillow collar, and a thick cupsole for all-day wear.",
+      "colors": [{ "name": "Blue", "hex": "#1F4FA3" }, { "name": "Black", "hex": "#111111" }],
+      "price": 4800,
+      "comparePrice": 6200,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0008.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Triple Black Corduroy",
+      "shortDescription": "Blacked-out Knu Skool with black corduroy panel.",
+      "description": "Vans Knu Skool in a full triple-black makeup — tonal corduroy side panel, black suede cage, blackened sidewall and outsole. A stealth take on the chunky Vans silhouette.",
+      "colors": [{ "name": "Black", "hex": "#050505" }],
+      "price": 4800,
+      "comparePrice": 6200,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0009.jpg", "IMG-20250905-WA0027.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Black / White Corduroy",
+      "shortDescription": "Knu Skool in black suede with a white-ribbed side stripe.",
+      "description": "The classic Knu Skool contrast — black suede upper with a wide white corduroy side stripe, chunky foxing tape, and the signature padded collar. A versatile everyday silhouette.",
+      "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }],
+      "price": 4800,
+      "comparePrice": 6200,
+      "isFeatured": true,
+      "files": ["IMG-20250905-WA0005.jpg", "IMG-20250905-WA0022.jpg", "IMG-20250905-WA0025.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Bandana",
+      "shortDescription": "Knu Skool in a black-and-white paisley bandana print.",
+      "description": "Vans Knu Skool in an all-over black-and-white bandana paisley print. Black suede toe and heel counter, contrasting white laces, and the chunky Knu Skool cupsole. A standout print on a streetwear staple.",
+      "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }],
+      "price": 5000,
+      "comparePrice": 6500,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0023.jpg"]
+    },
+    {
+      "brand": "Vans",
+      "model": "Knu Skool",
+      "colorway": "Black / Red Plaid",
+      "shortDescription": "Knu Skool with a red-and-black tartan plaid panel.",
+      "description": "Knu Skool dressed in a bold red tartan plaid sidewall paired with black canvas toe and heel. Chunky white cupsole, oversized foxing tape. A statement colourway with real attitude.",
+      "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Red", "hex": "#9A1B1E" }],
+      "price": 5000,
+      "comparePrice": 6500,
+      "isFeatured": false,
+      "files": ["IMG-20250905-WA0028.jpg"]
+    },
+
+    {
+      "brand": "New Balance",
+      "model": "530",
+      "colorway": "White / Pink / Silver",
+      "shortDescription": "NB 530 in white mesh with pink and silver accents.",
+      "description": "New Balance 530 — the early-2000s running silhouette reborn for everyday wear. White leather and mesh upper, pink overlays, reflective silver detailing, and a pillowy ABZORB midsole. Retro running comfort in a modern colourway.",
+      "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Pink", "hex": "#E8A7B6" }, { "name": "Silver", "hex": "#C0C0C0" }],
+      "price": 5500,
+      "comparePrice": 7200,
+      "isFeatured": true,
+      "files": ["IMG-20251011-WA0045.jpg"]
+    },
+    {
+      "brand": "New Balance",
+      "model": "9060",
+      "colorway": "Light Pink / Cream",
+      "shortDescription": "NB 9060 in a soft pink and cream makeup.",
+      "description": "New Balance 9060 — a Y2K-inspired chunky silhouette with a layered mesh and suede upper. Soft cream base with light pink overlays, wavy abzorb foam midsole, and the signature oversized N logo.",
+      "colors": [{ "name": "Pink", "hex": "#E9C5C8" }, { "name": "Cream", "hex": "#F1E9DC" }],
+      "price": 8500,
+      "comparePrice": 11000,
+      "isFeatured": true,
+      "files": ["IMG-20251006-WA0020.jpg"]
+    },
+    {
+      "brand": "New Balance",
+      "model": "9060",
+      "colorway": "Grey",
+      "shortDescription": "NB 9060 in a tonal grey — the most versatile 9060 colorway.",
+      "description": "9060 in full grey — layered mesh upper, suede overlays, oversized wavy foam midsole. Pairs with literally everything in your rotation.",
+      "colors": [{ "name": "Grey", "hex": "#8B8B8B" }],
+      "price": 8500,
+      "comparePrice": 11000,
+      "isFeatured": false,
+      "files": ["IMG-20251006-WA0021.jpg"]
+    },
+    {
+      "brand": "New Balance",
+      "model": "9060",
+      "colorway": "Black / White",
+      "shortDescription": "9060 in a striking black-and-white chunky colourway.",
+      "description": "New Balance 9060 in a bold panda-style execution — black suede overlays on a white mesh base, chunky wavy midsole, and reflective N logo. High contrast, high attitude.",
+      "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }],
+      "price": 8500,
+      "comparePrice": 11000,
+      "isFeatured": true,
+      "files": ["IMG-20251006-WA0022.jpg"]
+    },
+    {
+      "brand": "New Balance",
+      "model": "9060",
+      "colorway": "Beige / Tan",
+      "shortDescription": "9060 in a warm beige and tan colourway.",
+      "description": "9060 in earthy beige and tan tones — suede and mesh layers in warm neutrals on the classic wavy midsole. Works year-round.",
+      "colors": [{ "name": "Beige", "hex": "#D8C4A3" }, { "name": "Tan", "hex": "#B89B70" }],
+      "price": 8500,
+      "comparePrice": 11000,
+      "isFeatured": false,
+      "files": ["IMG-20251006-WA0023.jpg"]
+    },
+    {
+      "brand": "New Balance",
+      "model": "9060",
+      "colorway": "Pink / Blue / White",
+      "shortDescription": "9060 with bold pink and royal-blue blocking.",
+      "description": "NB 9060 in a playful pink-and-blue colour-block. White mesh base, hot-pink and royal-blue suede overlays, and the signature chunky sole. A head-turning modern classic.",
+      "colors": [{ "name": "Pink", "hex": "#D93C80" }, { "name": "Blue", "hex": "#1F2E91" }, { "name": "White", "hex": "#FFFFFF" }],
+      "price": 8500,
+      "comparePrice": 11000,
+      "isFeatured": false,
+      "files": ["IMG-20251006-WA0024.jpg"]
+    },
+
+    {
+      "brand": "Adidas",
+      "model": "Sambarose",
+      "colorway": "White / Black / Gum",
+      "shortDescription": "Platform Samba in white leather with classic black stripes.",
+      "description": "Adidas Sambarose — the platform take on the legendary Samba. White leather upper, black 3-Stripes, gold foil branding, and a stacked gum outsole for a little extra height. All the Samba DNA with a boost.",
+      "colors": [{ "name": "White", "hex": "#F8F8F0" }, { "name": "Black", "hex": "#111111" }],
+      "price": 5800,
+      "comparePrice": 7500,
+      "isFeatured": true,
+      "files": ["IMG-20251003-WA0054.jpg", "IMG-20251003-WA0055.jpg"]
+    },
+    {
+      "brand": "Adidas",
+      "model": "Sambarose",
+      "colorway": "White / Pink",
+      "shortDescription": "Sambarose in white leather with soft pink 3-Stripes.",
+      "description": "Adidas Sambarose in a summery white-and-pink makeup. White leather base, pastel pink 3-Stripes and heel patch, gum outsole. Platform sole adds lift without losing the retro Samba profile.",
+      "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Pink", "hex": "#F4B8C4" }],
+      "price": 5800,
+      "comparePrice": 7500,
+      "isFeatured": false,
+      "files": ["IMG-20251003-WA0056.jpg", "IMG-20251003-WA0057.jpg"]
+    },
+
+    {
+      "brand": "Asics",
+      "model": "Gel-Kayano 14",
+      "colorway": "Blue / Silver",
+      "shortDescription": "Gel-Kayano 14 in a clean blue and silver runner look.",
+      "description": "Asics Gel-Kayano 14 — the Y2K-coded chunky runner that broke into streetwear. Silver mesh and leather upper with royal-blue panels, GEL cushioning in the heel, and a stability-tuned midsole. Comfort-first, tech-forward.",
+      "colors": [{ "name": "Blue", "hex": "#1E3FA0" }, { "name": "Silver", "hex": "#BFC1C4" }],
+      "price": 6500,
+      "comparePrice": 8500,
+      "isFeatured": true,
+      "files": ["IMG-20250722-WA0093.jpg"]
+    },
+
+    {
+      "brand": "Birkenstock",
+      "model": "Milano",
+      "colorway": "Pink",
+      "shortDescription": "Birkenstock Milano sandals in soft pink with adjustable straps.",
+      "description": "Birkenstock Milano — the three-strap sandal with an added heel strap for extra support. Soft pink upper, contoured cork footbed, and buckle closures for a custom fit. Easy, breezy, and built to last.",
+      "colors": [{ "name": "Pink", "hex": "#F4B8C4" }],
+      "price": 4500,
+      "comparePrice": 6000,
+      "isFeatured": false,
+      "files": ["IMG-20251002-WA0067.jpg", "IMG-20251011-WA0037.jpg"]
+    },
+
+    { "brand": "Vans", "model": "Knu Skool", "colorway": "Olive Corduroy", "shortDescription": "Knu Skool with olive green corduroy and gum sole.", "description": "The chunky Knu Skool silhouette dressed in olive-green ribbed corduroy with black suede cage and a warm gum-brown outsole. Earthy, retro, one-of-one.", "colors": [{ "name": "Olive", "hex": "#5B6233" }, { "name": "Black", "hex": "#111111" }], "price": 5000, "comparePrice": 6500, "isFeatured": false, "files": ["IMG-20250905-WA0002.jpg"] },
+
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Aztec Tapestry", "shortDescription": "Old Skool in black suede with a woven aztec tapestry side panel.", "description": "A bold reinterpretation of the Old Skool — black suede toe and heel paired with a rich southwestern-aztec woven side panel. White foxing tape and chunky laces complete the look.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Multi", "hex": "#8B5E3C" }], "price": 5200, "comparePrice": 6800, "isFeatured": true, "files": ["IMG-20251006-WA0067.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Olive Canvas", "shortDescription": "Old Skool in olive green canvas with black suede heel and toe.", "description": "Classic Old Skool profile in army-green canvas with black suede overlays. White jazz stripe, waffle sole, and a cleanable canvas upper. Versatile year-round.", "colors": [{ "name": "Olive", "hex": "#5B6233" }, { "name": "Black", "hex": "#111111" }], "price": 4800, "comparePrice": 6200, "isFeatured": false, "files": ["IMG-20251006-WA0068.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Newspaper Print", "shortDescription": "Old Skool with an all-over newspaper print sidewall.", "description": "Black suede Old Skool featuring an all-over comic-style newspaper print along the sidewall. A conversation starter and a skate classic — iconic waffle outsole, padded collar, and jazz stripe.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 5200, "comparePrice": 6800, "isFeatured": false, "files": ["IMG-20251006-WA0069.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Triple Black", "shortDescription": "Fully blacked-out Old Skool — tonal canvas, suede and sidewall.", "description": "The Old Skool in a stealth all-black execution. Tonal canvas side panels, black suede overlays, black jazz stripe, and a blackened waffle outsole. Pure rotation filler.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 4800, "comparePrice": 6200, "isFeatured": false, "files": ["IMG-20251006-WA0070.jpg", "IMG-20251006-WA0071.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Black / White", "shortDescription": "The OG Old Skool — black canvas with white jazz stripe.", "description": "The Old Skool that started it all. Black canvas and suede upper, iconic white jazz stripe on the sidewall, padded collar, and waffle outsole. A true forever shoe.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 4800, "comparePrice": 6200, "isFeatured": true, "files": ["IMG-20251006-WA0072.jpg", "IMG-20251006-WA0074.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "Bandana", "shortDescription": "Old Skool in a black-and-white paisley bandana print.", "description": "Old Skool silhouette wrapped in a black-and-white bandana paisley print. Black suede toe and heel, white jazz stripe, and the classic waffle outsole. Standout print on a streetwear staple.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 5000, "comparePrice": 6500, "isFeatured": false, "files": ["IMG-20251006-WA0073.jpg"] },
+    { "brand": "Vans", "model": "Old Skool", "colorway": "White / Navy / Red", "shortDescription": "Americana Old Skool in white canvas with navy and red hits.", "description": "Old Skool in a classic red-white-and-blue colour-block. Navy canvas and suede overlays on a white base, red foxing strip, and the signature jazz stripe. Summer-ready Americana energy.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Navy", "hex": "#1A2B5E" }, { "name": "Red", "hex": "#C8102E" }], "price": 4800, "comparePrice": 6200, "isFeatured": false, "files": ["IMG-20251006-WA0075.jpg"] },
+
+    { "brand": "Nike", "model": "Air Force 1 Low", "colorway": "Black Camo", "shortDescription": "AF1 Low with a tonal black camo overlay.", "description": "Air Force 1 Low done in a stealth black-on-black camouflage. Tonal leather and suede overlays, blackout Swoosh, and the classic AF1 cupsole. Quiet heat for daily rotation.", "colors": [{ "name": "Black", "hex": "#111111" }], "price": 6200, "comparePrice": 8000, "isFeatured": false, "files": ["IMG-20251007-WA0060.jpg"] },
+    { "brand": "Nike", "model": "Air Force 1 Low", "colorway": "Tan Camo", "shortDescription": "AF1 Low in a sand-and-tan camo execution.", "description": "AF1 Low wrapped in an earthy desert-camo makeup. Cream leather base with tan suede overlays, tonal Swoosh, and a matching midsole. A neutral take on the classic.", "colors": [{ "name": "Tan", "hex": "#C9A781" }, { "name": "Cream", "hex": "#EFE4CF" }], "price": 6200, "comparePrice": 8000, "isFeatured": false, "files": ["IMG-20251007-WA0061.jpg"] },
+    { "brand": "Nike", "model": "Air Force 1 Low", "colorway": "Grey Camo", "shortDescription": "AF1 Low with cool grey camo overlays.", "description": "AF1 Low in a grey-on-grey camouflage. Layered suede and leather overlays in shades of cool grey, matching Swoosh and sole. Rotation-ready neutral.", "colors": [{ "name": "Grey", "hex": "#8E9094" }], "price": 6200, "comparePrice": 8000, "isFeatured": false, "files": ["IMG-20251007-WA0062.jpg"] },
+    { "brand": "Nike", "model": "Air Force 1 Low", "colorway": "Olive Camo", "shortDescription": "AF1 Low in olive camo overlays over a tonal base.", "description": "AF1 Low in an olive-and-army green camo makeup. Earthy green tones layered on leather and suede panels, matching Swoosh and midsole. Tactical, understated, ready for winter.", "colors": [{ "name": "Olive", "hex": "#5B6233" }], "price": 6200, "comparePrice": 8000, "isFeatured": false, "files": ["IMG-20251007-WA0063.jpg"] },
+
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Raptors", "shortDescription": "AM90 in white, grape and red — Raptors colours.", "description": "Air Max 90 in a Raptors-inspired white, grape purple and red makeup. Leather and mesh upper, visible Air unit, and the signature chunky AM90 profile. A pop of colour for the rotation.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Purple", "hex": "#5D3A9B" }, { "name": "Red", "hex": "#C8102E" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0004.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Black / Khaki / Orange", "shortDescription": "AM90 in black with khaki and safety-orange hits.", "description": "AM90 in a tactical black-and-khaki execution with a safety-orange pop on the tongue. Leather, suede and mesh panels, visible Air cushioning. Outdoors-ready classic.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Khaki", "hex": "#8A7A55" }, { "name": "Orange", "hex": "#F26B1F" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0018.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "White / Navy / Red", "shortDescription": "AM90 Americana — white, navy and red blocking.", "description": "Classic AM90 in a clean white, navy and red colour-block. Premium leather upper, visible Air cushioning, all-day comfort. A forever colourway.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Navy", "hex": "#1A2B5E" }, { "name": "Red", "hex": "#C8102E" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0019.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Black / White / Mint", "shortDescription": "AM90 in black and white with a mint green accent.", "description": "AM90 in a crisp black and white upper with a soft mint green highlight on the tongue and Swoosh. A fresh twist on the iconic runner.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Mint", "hex": "#9BD3B3" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0022.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Triple Red", "shortDescription": "AM90 in a bold head-to-toe red.", "description": "Air Max 90 in a full University Red execution. Tonal leather and mesh upper, matching midsole and outsole. Loud, confident, impossible to miss.", "colors": [{ "name": "Red", "hex": "#C8102E" }], "price": 6800, "comparePrice": 8800, "isFeatured": true, "files": ["IMG-20251008-WA0023.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "White / Grey / Teal", "shortDescription": "AM90 in white and grey with a teal heel tab.", "description": "AM90 in a clean white and grey base with a teal and black highlight. Layered leather, suede and mesh upper, visible Air, rubber cupsole. Versatile and easy to style.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Grey", "hex": "#8E9094" }, { "name": "Teal", "hex": "#2A7F7E" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0024.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Surplus Black", "shortDescription": "Triple-black tactical AM90 with matte overlays.", "description": "Air Max 90 Surplus — all-black tactical makeup with matte suede and leather overlays, tonal Swoosh, and blackened Air unit. The stealth AM90.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0025.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "Spiderweb", "shortDescription": "AM90 in black with subtle spiderweb graphic overlays.", "description": "Halloween-ready Air Max 90 in black with tonal spiderweb overlays on the mudguard and heel. Visible Air unit, glow-ready pops. Seasonal statement.", "colors": [{ "name": "Black", "hex": "#111111" }], "price": 7000, "comparePrice": 9000, "isFeatured": true, "files": ["IMG-20251008-WA0026.jpg"] },
+    { "brand": "Nike", "model": "Air Max 90", "colorway": "USA", "shortDescription": "AM90 in a patriotic white, red and navy makeup.", "description": "AM90 USA — white leather base with navy-and-red colour blocking on the overlays. Subtle star detailing, visible Air, rubber cupsole. Americana energy on the runner silhouette.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Red", "hex": "#C8102E" }, { "name": "Navy", "hex": "#1A2B5E" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0031.jpg"] },
+
+    { "brand": "Nike", "model": "Air Max 95", "colorway": "Black / Pink Laces", "shortDescription": "AM95 in tonal black with contrasting pink laces.", "description": "Air Max 95 in a full-black execution, layered leather and mesh gradient, with a pop of pink on the laces. Visible Air cushioning throughout the midsole.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Pink", "hex": "#E87AA8" }], "price": 7200, "comparePrice": 9200, "isFeatured": false, "files": ["IMG-20251011-WA0038.jpg"] },
+    { "brand": "Nike", "model": "Air Max 95", "colorway": "Grey / Pink", "shortDescription": "AM95 in a grey gradient with pink highlights.", "description": "Air Max 95 with the classic grey-gradient overlays and a soft pink accent on the laces and tongue. Visible Air unit, chunky midsole. A fresh take on a 90s icon.", "colors": [{ "name": "Grey", "hex": "#8E9094" }, { "name": "Pink", "hex": "#F4B8C4" }], "price": 7200, "comparePrice": 9200, "isFeatured": false, "files": ["IMG-20251011-WA0050.jpg"] },
+
+    { "brand": "Nike", "model": "Air Max 97", "colorway": "Jesus", "shortDescription": "MSCHF x Nike Air Max 97 Jesus shoe — white and icy blue.", "description": "The infamous MSCHF-collab Air Max 97 in an icy-white makeup with holy water blue sole. Cross pendant, scripture details, and the unmistakable AM97 wavy lines.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Blue", "hex": "#C9E8F2" }], "price": 8500, "comparePrice": 11000, "isFeatured": true, "files": ["IMG-20251011-WA0033.jpg", "IMG-20251011-WA0034.jpg"] },
+
+    { "brand": "Nike", "model": "Air Max Plus TN 3", "colorway": "White / Multi Swoosh", "shortDescription": "TN 3 in triple white with a pink-yellow gradient Swoosh.", "description": "Air Max Plus TN 3 in a crisp all-white upper with a gradient pink-to-yellow Swoosh and matching sole hit. Extra cushioning, extra statement.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Pink", "hex": "#E87AA8" }, { "name": "Yellow", "hex": "#F2C200" }], "price": 7500, "comparePrice": 9500, "isFeatured": false, "files": ["IMG-20251006-WA0038.jpg"] },
+    { "brand": "Nike", "model": "Air Max Plus TN 3", "colorway": "Black / Iridescent", "shortDescription": "TN 3 blacked out with iridescent blue/green accents.", "description": "Air Max Plus TN 3 in a stealth black upper with oil-slick iridescent overlays that shift from blue to green to purple. Full-length Max Air, shark-tooth details.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 7500, "comparePrice": 9500, "isFeatured": true, "files": ["IMG-20251006-WA0039.jpg"] },
+    { "brand": "Nike", "model": "Air Max Plus TN 3", "colorway": "Black / Green", "shortDescription": "TN 3 in all black with a bold green Swoosh and spine.", "description": "TN 3 in triple black with a vibrant green Swoosh and matching rear spine. Extra Tuned Air, extra attitude.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Green", "hex": "#3FA64C" }], "price": 7500, "comparePrice": 9500, "isFeatured": false, "files": ["IMG-20251006-WA0040.jpg"] },
+
+    { "brand": "Nike", "model": "Shox TL", "colorway": "Triple Black", "shortDescription": "Shox TL in full black — tonal mesh, leather and shox columns.", "description": "Nike Shox TL in an all-black makeup. Tonal mesh and synthetic upper over the iconic four-column Shox midsole. Bouncy, futuristic, and back in a big way.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 8200, "comparePrice": 10500, "isFeatured": true, "files": ["IMG-20251009-WA0130.jpg"] },
+    { "brand": "Nike", "model": "Shox TL", "colorway": "Triple White", "shortDescription": "Shox TL in full triple white.", "description": "Shox TL in an all-white execution. Clean mesh and synthetic upper over the signature Shox columns. A head-turner on foot.", "colors": [{ "name": "White", "hex": "#FFFFFF" }], "price": 8200, "comparePrice": 10500, "isFeatured": true, "files": ["IMG-20251009-WA0135.jpg", "WhatsApp Image 2025-10-11 at 03.14.47_bce56256.jpg"] },
+
+    { "brand": "Nike", "model": "Cortez", "colorway": "White / Red", "shortDescription": "The OG Cortez — white leather with a red Swoosh.", "description": "Nike Cortez in the classic white leather and red Swoosh makeup. Herringbone outsole, low profile, and the silhouette that started it all. A true retro icon.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Red", "hex": "#C8102E" }], "price": 5500, "comparePrice": 7000, "isFeatured": true, "files": ["IMG-20251011-WA0029.jpg", "IMG-20251011-WA0030.jpg"] },
+    { "brand": "Nike", "model": "Cortez", "colorway": "Black / Rose Gold", "shortDescription": "Cortez in full black with a rose-gold Swoosh.", "description": "Cortez in a tonal black leather upper with a metallic rose-gold Swoosh and heel tab. Understated silhouette, premium finish.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Rose Gold", "hex": "#B76E79" }], "price": 5500, "comparePrice": 7000, "isFeatured": false, "files": ["IMG-20251011-WA0039.jpg"] },
+    { "brand": "Nike", "model": "Cortez", "colorway": "White / Black", "shortDescription": "Cortez in crisp white leather with a black Swoosh.", "description": "Classic Cortez — white leather upper, bold black Swoosh, and a tonal rubber sole. The cleanest take on the original runner.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 5500, "comparePrice": 7000, "isFeatured": false, "files": ["IMG-20251011-WA0042.jpg"] },
+    { "brand": "Nike", "model": "Cortez", "colorway": "Silver / Grey", "shortDescription": "Cortez in metallic silver and grey suede.", "description": "Cortez done in metallic silver leather paired with grey suede overlays. Reflective, retro, and a bit futuristic. A standout take on the low-pro runner.", "colors": [{ "name": "Silver", "hex": "#C0C0C0" }, { "name": "Grey", "hex": "#8E9094" }], "price": 5800, "comparePrice": 7500, "isFeatured": false, "files": ["IMG-20251011-WA0044.jpg"] },
+
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Grey Fog", "shortDescription": "Dunk Low in soft Grey Fog over white.", "description": "Nike Dunk Low in the popular Grey Fog colorway — soft grey leather overlays on a crisp white base. Clean, versatile, everyday rotation piece.", "colors": [{ "name": "Grey", "hex": "#B5B5B5" }, { "name": "White", "hex": "#FFFFFF" }], "price": 6500, "comparePrice": 8500, "isFeatured": true, "files": ["IMG-20251011-WA0040.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Syracuse", "shortDescription": "Dunk Low in the classic Syracuse orange and white.", "description": "Dunk Low Syracuse — vibrant orange leather overlays on a white base. An OG Be True To Your School colourway making a comeback.", "colors": [{ "name": "Orange", "hex": "#F26B1F" }, { "name": "White", "hex": "#FFFFFF" }], "price": 6500, "comparePrice": 8500, "isFeatured": false, "files": ["IMG-20251011-WA0041.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Kentucky", "shortDescription": "Dunk Low Kentucky — royal blue and white.", "description": "Dunk Low in the classic Kentucky Wildcats colours — royal blue leather overlays on a white base. A college hoops staple.", "colors": [{ "name": "Blue", "hex": "#1E3FA0" }, { "name": "White", "hex": "#FFFFFF" }], "price": 6500, "comparePrice": 8500, "isFeatured": true, "files": ["IMG-20251011-WA0053.jpg", "IMG-20251011-WA0059.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Dior", "shortDescription": "Dunk Low x Dior — grey monogram with red heel.", "description": "The ultra-rare Dunk Low x Dior in the signature grey monogram canvas with white leather panels and a Dior-red heel. Couture meets court.", "colors": [{ "name": "Grey", "hex": "#8E9094" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Red", "hex": "#C8102E" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251011-WA0056.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Ceramic", "shortDescription": "Dunk Low Ceramic — earthy orange, teal and black.", "description": "Dunk Low Ceramic — earthy orange suede overlays, a teal-green Swoosh, and black accents. Unique colour-blocking inspired by vintage pottery.", "colors": [{ "name": "Orange", "hex": "#C2682B" }, { "name": "Teal", "hex": "#6B9A8E" }, { "name": "Black", "hex": "#111111" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251011-WA0057.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Panda Prank", "shortDescription": "Dunk Low Panda Prank — grey and white with gold Swoosh.", "description": "A playful spin on the classic Panda — grey and white layered leather with a metallic gold Swoosh and red label details. Quirky and clean.", "colors": [{ "name": "Grey", "hex": "#8E9094" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Gold", "hex": "#D4AF37" }], "price": 6500, "comparePrice": 8500, "isFeatured": false, "files": ["IMG-20251011-WA0058.jpg"] },
+    { "brand": "Nike", "model": "Dunk Low", "colorway": "Brazil", "shortDescription": "Dunk Low Brazil — bright green and yellow.", "description": "Dunk Low in a bold Brazil makeup — vibrant green leather overlays on a yellow base. A South American classic.", "colors": [{ "name": "Green", "hex": "#3FA64C" }, { "name": "Yellow", "hex": "#F2C200" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251011-WA0062.jpg"] },
+
+    { "brand": "Nike", "model": "SB Dunk Low", "colorway": "Grateful Dead", "shortDescription": "SB Dunk x Grateful Dead — white suede with blue and red.", "description": "Nike SB Dunk Low x Grateful Dead bears — cream suede upper with blue Swoosh and red tongue hits. A psychedelic skate classic.", "colors": [{ "name": "White", "hex": "#F5F1E8" }, { "name": "Blue", "hex": "#1E78C2" }, { "name": "Red", "hex": "#C8102E" }], "price": 8500, "comparePrice": 11000, "isFeatured": true, "files": ["IMG-20251011-WA0052.jpg"] },
+    { "brand": "Nike", "model": "SB Dunk Low", "colorway": "Sean Cliver April", "shortDescription": "SB Dunk x Sean Cliver — white and mint green.", "description": "SB Dunk Low — white and mint-green suede with metallic silver Swoosh. Premium artist collab on the classic SB Dunk silhouette.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Green", "hex": "#8CC9B5" }, { "name": "Silver", "hex": "#C0C0C0" }], "price": 7800, "comparePrice": 10000, "isFeatured": false, "files": ["IMG-20251011-WA0054.jpg"] },
+    { "brand": "Nike", "model": "SB Dunk Low", "colorway": "Supreme Red", "shortDescription": "SB Dunk x Supreme — red and black bandana print.", "description": "SB Dunk Low Supreme colab — white leather base with deep red suede overlays and a bandana-print sidewall. Skate culture royalty.", "colors": [{ "name": "Red", "hex": "#9A1B1E" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 8800, "comparePrice": 11500, "isFeatured": true, "files": ["IMG-20251011-WA0055.jpg"] },
+    { "brand": "Nike", "model": "SB Dunk Low", "colorway": "Chrome Hearts", "shortDescription": "SB Dunk x Chrome Hearts — brown and white with cross motif.", "description": "SB Dunk Low Chrome Hearts — brown and white leather paneling with the signature Chrome Hearts cross motif across the sidewalls. Luxury meets skate.", "colors": [{ "name": "Brown", "hex": "#6B3F1D" }, { "name": "White", "hex": "#FFFFFF" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251011-WA0060.jpg"] },
+    { "brand": "Nike", "model": "SB Dunk Low", "colorway": "Chicago", "shortDescription": "SB Dunk Low in the classic Chicago red and white.", "description": "SB Dunk Low Chicago — varsity red leather overlays on white with a black Swoosh. The OG hoops colourway transposed onto the SB silhouette.", "colors": [{ "name": "Red", "hex": "#C8102E" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 7500, "comparePrice": 9500, "isFeatured": true, "files": ["IMG-20251011-WA0061.jpg"] },
+
+    { "brand": "Nike", "model": "Air Jordan 1 Low", "colorway": "Travis Scott Olive", "shortDescription": "AJ1 Low Travis Scott — reverse swoosh in olive and brown.", "description": "Air Jordan 1 Low Travis Scott in the iconic olive-and-brown suede makeup with the reversed Swoosh. Cactus Jack branding throughout. A grail-tier AJ1.", "colors": [{ "name": "Olive", "hex": "#5B6233" }, { "name": "Brown", "hex": "#6B3F1D" }, { "name": "Black", "hex": "#111111" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251008-WA0006.jpg", "IMG-20251008-WA0020.jpg", "IMG-20251008-WA0027.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 Low", "colorway": "Reverse Bred", "shortDescription": "AJ1 Low Reverse Bred — red upper with black overlays.", "description": "AJ1 Low in the Reverse Bred colourway — Varsity Red leather base with black overlays, black laces and tonal Swoosh. Loud and iconic.", "colors": [{ "name": "Red", "hex": "#C8102E" }, { "name": "Black", "hex": "#111111" }], "price": 7000, "comparePrice": 9200, "isFeatured": false, "files": ["IMG-20251008-WA0082.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 Low", "colorway": "Light Smoke Grey", "shortDescription": "AJ1 Low in Light Smoke Grey over white.", "description": "AJ1 Low Light Smoke Grey — soft grey leather overlays on a crisp white base with black Swoosh. One of the most versatile AJ1 Low colourways going.", "colors": [{ "name": "Grey", "hex": "#C5C8CC" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251008-WA0083.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 Low", "colorway": "Green Toe", "shortDescription": "AJ1 Low Green Toe — black, white and pine green.", "description": "AJ1 Low Green Toe — pine green suede toe and heel on a black and white leather base with gold Jumpman branding. A rotation standout.", "colors": [{ "name": "Green", "hex": "#1E4D2B" }, { "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 7200, "comparePrice": 9200, "isFeatured": true, "files": ["IMG-20251008-WA0084.jpg"] },
+
+    { "brand": "Nike", "model": "Air Jordan 1 High", "colorway": "UNC University Blue", "shortDescription": "AJ1 High in the classic UNC University Blue colourway.", "description": "Air Jordan 1 High UNC — University Blue leather paired with white and black overlays. A classic 2021 GR that remains a fan favourite.", "colors": [{ "name": "Blue", "hex": "#7BB0D8" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 8800, "comparePrice": 11500, "isFeatured": true, "files": ["IMG-20251008-WA0085.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 High", "colorway": "Shadow", "shortDescription": "AJ1 High Shadow — black and grey two-tone classic.", "description": "AJ1 High Shadow — the OG 1985 colourway in black and medium grey leather. A grail-tier silhouette that never goes out of style.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "Grey", "hex": "#8E9094" }], "price": 8500, "comparePrice": 11000, "isFeatured": true, "files": ["IMG-20251008-WA0087.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 High", "colorway": "Pink Quartz", "shortDescription": "AJ1 High Pink Quartz — soft pink, white and black.", "description": "AJ1 High in a soft Pink Quartz makeup with crisp white leather panels and a black Swoosh. A fresh take on the iconic high-top.", "colors": [{ "name": "Pink", "hex": "#F4C4C4" }, { "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 8500, "comparePrice": 11000, "isFeatured": false, "files": ["IMG-20251008-WA0088.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 1 High", "colorway": "Black / White 85", "shortDescription": "AJ1 High '85 — panda black and white.", "description": "The '85 re-release of the AJ1 High in a crisp black and white Panda execution. Wings logo, smooth leather, Nike Air branded tongue. A grail.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 9000, "comparePrice": 11500, "isFeatured": true, "files": ["IMG-20251008-WA0089.jpg"] },
+
+    { "brand": "Nike", "model": "Jordan Courtside 23", "colorway": "White", "shortDescription": "Jordan Courtside 23 in a clean triple white.", "description": "Jordan Courtside 23 in a crisp all-white leather execution with tonal Jumpman. Mid-top silhouette, everyday comfort, retro-hoops energy.", "colors": [{ "name": "White", "hex": "#FFFFFF" }], "price": 7000, "comparePrice": 9000, "isFeatured": false, "files": ["IMG-20251009-WA0011.jpg", "IMG-20251009-WA0012.jpg"] },
+    { "brand": "Nike", "model": "Jordan Courtside 23", "colorway": "Wheat", "shortDescription": "Jordan Courtside 23 in a warm tan / wheat suede.", "description": "Jordan Courtside 23 in a cream-wheat nubuck upper with tonal Jumpman branding. Earthy, clean, easy to style.", "colors": [{ "name": "Tan", "hex": "#D8B27E" }], "price": 7000, "comparePrice": 9000, "isFeatured": false, "files": ["IMG-20251009-WA0013.jpg", "IMG-20251009-WA0014.jpg"] },
+
+    { "brand": "Nike", "model": "Air Jordan 11", "colorway": "Space Jam", "shortDescription": "AJ11 Space Jam — black patent with Concord Jumpman.", "description": "Air Jordan 11 Space Jam — the grail worn by MJ in the 1996 film. Black ballistic mesh, Concord patent-leather mudguard, icy translucent outsole. Forever iconic.", "colors": [{ "name": "Black", "hex": "#050505" }, { "name": "Purple", "hex": "#3A2B6E" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251008-WA0065.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 11", "colorway": "Bred", "shortDescription": "AJ11 Bred — black patent with red sole.", "description": "Jordan 11 Bred — black ballistic mesh with patent-leather mudguard, white midsole and bright red outsole. The OG 1996 colourway MJ won the '96 title in.", "colors": [{ "name": "Black", "hex": "#050505" }, { "name": "Red", "hex": "#C8102E" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251008-WA0067.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 11", "colorway": "Heiress", "shortDescription": "AJ11 Heiress — black stingray with gold accents.", "description": "AJ11 Heiress — luxe stingray-textured mudguard, black nubuck upper, and metallic gold Jumpman embroidery. Premium all around.", "colors": [{ "name": "Black", "hex": "#050505" }, { "name": "Gold", "hex": "#D4AF37" }], "price": 9800, "comparePrice": 12800, "isFeatured": false, "files": ["IMG-20251008-WA0068.jpg"] },
+    { "brand": "Nike", "model": "Air Jordan 11", "colorway": "Cool Grey", "shortDescription": "AJ11 Cool Grey — tonal grey patent with white midsole.", "description": "Jordan 11 Cool Grey — the cult-favourite from 2001. Grey ballistic mesh, darker grey patent-leather mudguard, white midsole and translucent outsole.", "colors": [{ "name": "Grey", "hex": "#8E9094" }], "price": 9500, "comparePrice": 12500, "isFeatured": true, "files": ["IMG-20251008-WA0069.jpg"] },
+
+    { "brand": "New Balance", "model": "9060", "colorway": "Olive", "shortDescription": "9060 in a muted military-olive green.", "description": "NB 9060 in a full olive-green makeup — layered mesh and suede, the signature wavy sole, and tonal N. Earthy, versatile, winter-ready.", "colors": [{ "name": "Olive", "hex": "#5B6233" }], "price": 8500, "comparePrice": 11000, "isFeatured": false, "files": ["IMG-20251009-WA0117.jpg", "WhatsApp Image 2025-10-11 at 03.14.44_df28be15.jpg"] },
+    { "brand": "New Balance", "model": "9060", "colorway": "Triple Black", "shortDescription": "9060 in a stealth all-black execution.", "description": "NB 9060 in triple black — tonal mesh, suede and TPU overlays, blackened N logo, and the chunky wavy midsole. A stealth daily driver.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 8500, "comparePrice": 11000, "isFeatured": false, "files": ["IMG-20251009-WA0119.jpg", "IMG-20251009-WA0120.jpg"] },
+    { "brand": "New Balance", "model": "9060", "colorway": "Black / Red", "shortDescription": "9060 in black with a dramatic red gradient.", "description": "NB 9060 in black with a bold red-to-black gradient running through the TPU overlays. A standout colourway with real attitude.", "colors": [{ "name": "Black", "hex": "#050505" }, { "name": "Red", "hex": "#C8102E" }], "price": 8800, "comparePrice": 11500, "isFeatured": true, "files": ["IMG-20251009-WA0121.jpg"] },
+    { "brand": "New Balance", "model": "9060", "colorway": "Green / Blue", "shortDescription": "9060 in olive green with blue sole accents.", "description": "NB 9060 in layered olive green mesh and suede with bold blue sole accents. Earthy tones meet a pop of colour.", "colors": [{ "name": "Green", "hex": "#5B6233" }, { "name": "Blue", "hex": "#1E3FA0" }], "price": 8800, "comparePrice": 11500, "isFeatured": false, "files": ["IMG-20251006-WA0025.jpg"] },
+
+    { "brand": "New Balance", "model": "530", "colorway": "White / Silver", "shortDescription": "NB 530 in the OG white-and-silver steel-toe finish.", "description": "New Balance 530 — the y2k runner in its cleanest form. White leather and mesh base with metallic silver overlays and reflective detailing. A classic.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Silver", "hex": "#C0C0C0" }], "price": 5500, "comparePrice": 7200, "isFeatured": true, "files": ["IMG-20251009-WA0025.jpg", "IMG-20251009-WA0027.jpg", "IMG-20251011-WA0031.jpg", "IMG-20251011-WA0046.jpg", "IMG-20251009-WA0126.jpg", "IMG-20251009-WA0132.jpg", "IMG-20251009-WA0136.jpg"] },
+    { "brand": "New Balance", "model": "530", "colorway": "Cream / Blue", "shortDescription": "530 in cream with royal blue overlays.", "description": "NB 530 in a cream base with royal blue mesh and suede overlays. A fresh, 70s-runner inspired take on the wavy silhouette.", "colors": [{ "name": "Cream", "hex": "#F1E9DC" }, { "name": "Blue", "hex": "#1E3FA0" }], "price": 5500, "comparePrice": 7200, "isFeatured": false, "files": ["IMG-20251009-WA0026.jpg"] },
+    { "brand": "New Balance", "model": "530", "colorway": "White / Burgundy", "shortDescription": "530 in white with burgundy accents.", "description": "530 in white mesh and leather with deep burgundy suede overlays and N logo. A warmer, moodier take on the everyday runner.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Burgundy", "hex": "#5C1A1B" }], "price": 5500, "comparePrice": 7200, "isFeatured": false, "files": ["IMG-20251009-WA0028.jpg", "IMG-20251011-WA0047.jpg"] },
+    { "brand": "New Balance", "model": "530", "colorway": "White / Purple", "shortDescription": "530 in white and metallic purple.", "description": "NB 530 in a crisp white base with metallic purple mesh and overlays. A playful colourway for the iconic y2k runner.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Purple", "hex": "#6F3FA0" }], "price": 5500, "comparePrice": 7200, "isFeatured": false, "files": ["IMG-20251011-WA0049.jpg"] },
+
+    { "brand": "New Balance", "model": "327", "colorway": "Cream / Burgundy", "shortDescription": "NB 327 in cream with a bold burgundy N.", "description": "New Balance 327 — the retro trail-inspired silhouette in cream suede with an oversized burgundy N. Chunky tread sole, 70s runner vibes.", "colors": [{ "name": "Cream", "hex": "#F1E9DC" }, { "name": "Burgundy", "hex": "#5C1A1B" }], "price": 6000, "comparePrice": 7800, "isFeatured": true, "files": ["IMG-20251007-WA0075.jpg"] },
+    { "brand": "New Balance", "model": "327", "colorway": "Cream / Green", "shortDescription": "NB 327 in cream with a green N.", "description": "NB 327 in cream suede and mesh with a forest-green N logo. Classic retro colourway on the chunky 70s runner.", "colors": [{ "name": "Cream", "hex": "#F1E9DC" }, { "name": "Green", "hex": "#3B5B3B" }], "price": 6000, "comparePrice": 7800, "isFeatured": false, "files": ["IMG-20251007-WA0076.jpg"] },
+    { "brand": "New Balance", "model": "327", "colorway": "Black / White", "shortDescription": "NB 327 in black suede with a white N.", "description": "NB 327 in black suede and mesh with a crisp white N logo and tonal sole. Stealthy take on the retro runner.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 6000, "comparePrice": 7800, "isFeatured": false, "files": ["IMG-20251007-WA0077.jpg"] },
+    { "brand": "New Balance", "model": "327", "colorway": "Cream / Navy", "shortDescription": "NB 327 in cream with a navy N.", "description": "NB 327 in cream suede with a dark navy N. The oversized N logo wraps the midfoot for that unmistakable 327 profile.", "colors": [{ "name": "Cream", "hex": "#F1E9DC" }, { "name": "Navy", "hex": "#1A2B5E" }], "price": 6000, "comparePrice": 7800, "isFeatured": false, "files": ["IMG-20251007-WA0078.jpg"] },
+    { "brand": "New Balance", "model": "327", "colorway": "White / Grey", "shortDescription": "NB 327 in white suede with a grey N.", "description": "NB 327 in white suede with a cool grey N and black accents. Clean, understated, easy to pair.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Grey", "hex": "#8E9094" }], "price": 6000, "comparePrice": 7800, "isFeatured": false, "files": ["IMG-20251007-WA0079.jpg"] },
+
+    { "brand": "New Balance", "model": "1000", "colorway": "Navy / Pink", "shortDescription": "NB 1000 in navy with pink accents.", "description": "NB 1000 — a chunky y2k runner in navy blue with pink detailing across the midsole, N and heel tab. Layered textures, retro tech.", "colors": [{ "name": "Navy", "hex": "#1A2B5E" }, { "name": "Pink", "hex": "#E8A7B6" }], "price": 6800, "comparePrice": 8800, "isFeatured": false, "files": ["IMG-20251011-WA0036.jpg"] },
+
+    { "brand": "Puma", "model": "Suede Classic", "colorway": "Black / White", "shortDescription": "Classic Puma Suede in black with a white Formstrip.", "description": "Puma Suede Classic — the all-time streetwear staple in black suede with the iconic white Formstrip. Gum outsole, simple silhouette, endlessly wearable.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 4200, "comparePrice": 5500, "isFeatured": false, "files": ["IMG-20251007-WA0011.jpg"] },
+    { "brand": "Puma", "model": "Suede XL", "colorway": "Black / White", "shortDescription": "Puma Suede XL — chunky platform with oversized laces.", "description": "Puma Suede XL — the bulked-up version of the classic Suede with a chunky platform and oversized fat laces. Plush black suede, bold white Formstrip.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 4800, "comparePrice": 6200, "isFeatured": true, "files": ["IMG-20251007-WA0012.jpg"] },
+    { "brand": "Puma", "model": "Suede Classic", "colorway": "Triple Black", "shortDescription": "Puma Suede in full tonal black.", "description": "Puma Suede Classic in a full triple-black execution — tonal suede upper, tonal Formstrip, and a blackened gum sole. Subtle and clean.", "colors": [{ "name": "Black", "hex": "#050505" }], "price": 4200, "comparePrice": 5500, "isFeatured": false, "files": ["IMG-20251011-WA0048.jpg"] },
+
+    { "brand": "Adidas", "model": "Samba OG", "colorway": "Black / White", "shortDescription": "The OG Samba — black leather with white stripes and gum sole.", "description": "Adidas Samba OG — the most timeless terrace shoe going. Black leather upper, white 3-Stripes, black suede T-toe, and a gum outsole. Versatile, classic, forever in rotation.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 5500, "comparePrice": 7000, "isFeatured": true, "files": ["IMG-20251009-WA0049.jpg"] },
+    { "brand": "Adidas", "model": "Samba OG", "colorway": "White / Black", "shortDescription": "Samba OG in crisp white with black stripes.", "description": "Samba OG in a clean white leather base with black 3-Stripes, grey suede T-toe, and gum sole. The terrace classic in its freshest form.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Black", "hex": "#111111" }], "price": 5500, "comparePrice": 7000, "isFeatured": true, "files": ["IMG-20251009-WA0047.jpg", "IMG-20251009-WA0050.jpg", "IMG-20251009-WA0052.jpg"] },
+    { "brand": "Adidas", "model": "Samba OG", "colorway": "White / Green", "shortDescription": "Samba OG in white with green 3-Stripes.", "description": "Samba OG — white leather upper with vibrant green 3-Stripes and heel tab, gum sole. A fresh colourway on the terrace icon.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Green", "hex": "#3FA64C" }], "price": 5500, "comparePrice": 7000, "isFeatured": false, "files": ["IMG-20251009-WA0051.jpg"] },
+    { "brand": "Adidas", "model": "Samba", "colorway": "Pastel Pink", "shortDescription": "Samba in soft pastel pink with gum sole.", "description": "Samba in a soft pastel-pink leather upper with tonal 3-Stripes and a gum outsole. A feminine take on the terrace classic.", "colors": [{ "name": "Pink", "hex": "#F4C4C4" }], "price": 5800, "comparePrice": 7500, "isFeatured": false, "files": ["IMG-20251011-WA0035.jpg"] },
+    { "brand": "Adidas", "model": "Samba", "colorway": "Tan Crochet", "shortDescription": "Samba in a woven tan and cream crochet upper.", "description": "Adidas Samba in an unusual crochet-woven upper in warm tan and cream tones with white 3-Stripes and gum sole. A premium, one-of-one take.", "colors": [{ "name": "Tan", "hex": "#B89B70" }, { "name": "Cream", "hex": "#F1E9DC" }], "price": 6200, "comparePrice": 8000, "isFeatured": true, "files": ["IMG-20251007-WA0014.jpg", "IMG-20251007-WA0015.jpg"] },
+
+    { "brand": "Adidas", "model": "Sambarose", "colorway": "Triple White", "shortDescription": "Platform Sambarose in full triple white.", "description": "Adidas Sambarose in a crisp all-white leather execution with tonal 3-Stripes and a stacked gum-free midsole. Platform Samba at its cleanest.", "colors": [{ "name": "White", "hex": "#FFFFFF" }], "price": 5800, "comparePrice": 7500, "isFeatured": false, "files": ["IMG-20251010-WA0055.jpg"] },
+    { "brand": "Adidas", "model": "Sambarose", "colorway": "White / Pink Gum Heart", "shortDescription": "Sambarose with pink gum sole and a heart detail.", "description": "Sambarose in white leather with black 3-Stripes, a playful pink gum outsole, and a tiny heart graphic on the mudguard. Sweet platform energy.", "colors": [{ "name": "White", "hex": "#FFFFFF" }, { "name": "Pink", "hex": "#F4A6B0" }, { "name": "Black", "hex": "#111111" }], "price": 5800, "comparePrice": 7500, "isFeatured": true, "files": ["IMG-20251010-WA0056.jpg"] },
+
+    { "brand": "Adidas", "model": "Gazelle Indoor", "colorway": "Cream", "shortDescription": "Adidas Gazelle Indoor in warm cream suede.", "description": "Adidas Gazelle Indoor in a cream suede upper with tonal 3-Stripes, gum outsole, and the clean retro profile that has defined Gazelles for decades.", "colors": [{ "name": "Cream", "hex": "#F1E9DC" }], "price": 5800, "comparePrice": 7500, "isFeatured": false, "files": ["IMG-20251009-WA0133.jpg"] },
+    { "brand": "Adidas", "model": "Campus 00s", "colorway": "Black / White", "shortDescription": "Campus 00s in black suede with white stripes.", "description": "Adidas Campus 00s — the chunkier 2000s take on the classic Campus. Plush black suede upper, white 3-Stripes, and a thicker cupsole. A streetwear staple.", "colors": [{ "name": "Black", "hex": "#111111" }, { "name": "White", "hex": "#FFFFFF" }], "price": 5800, "comparePrice": 7500, "isFeatured": true, "files": ["IMG-20251009-WA0134.jpg"] },
+
+    { "brand": "Adidas", "model": "Drop Step XL", "colorway": "Burgundy / Cream", "shortDescription": "Drop Step XL in cream with burgundy overlays.", "description": "Adidas Drop Step XL — a Dunk-inspired silhouette in cream leather with deep burgundy overlays and tonal 3-Stripes. A heritage hoops vibe for the streets.", "colors": [{ "name": "Burgundy", "hex": "#5C1A1B" }, { "name": "Cream", "hex": "#F1E9DC" }], "price": 5800, "comparePrice": 7500, "isFeatured": false, "files": ["IMG-20251011-WA0043.jpg"] },
+
+    { "brand": "Timberland", "model": "6-Inch Premium Boot", "colorway": "Wheat", "shortDescription": "Classic Timberland 6-inch boot in wheat nubuck.", "description": "The iconic Timberland 6-inch Premium Boot in wheat nubuck with a padded collar and rugged rubber outsole. Waterproof, warm, and built for the long haul.", "colors": [{ "name": "Wheat", "hex": "#D8B27E" }], "price": 8500, "comparePrice": 11000, "isFeatured": true, "files": ["IMG-20251008-WA0053.jpg"] }
+  ]
+}

@@ -1,6 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const AfricasTalking = require("africastalking") as (opts: { apiKey: string; username: string }) => { SMS: { send: (opts: { to: string[]; message: string; from: string }) => Promise<unknown> } };
 import { formatPrice } from "./utils";
+
+// africastalking ships no types and exports a CJS factory function. Wrap the
+// require behind a typed shim so the rest of the file stays strongly typed.
+type AtClient = { SMS: { send: (opts: { to: string[]; message: string; from: string }) => Promise<unknown> } };
+type AtFactory = (opts: { apiKey: string; username: string }) => AtClient;
+const AfricasTalking: AtFactory = require("africastalking");
 
 let _at: ReturnType<typeof AfricasTalking> | null = null;
 

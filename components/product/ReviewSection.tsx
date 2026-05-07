@@ -191,7 +191,7 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
 
       {submitted && (
         <div className="bg-forest/10 border border-forest/20 px-4 py-3 text-sm text-forest mb-6">
-          Thanks for your review! It'll appear after moderation.
+          Thanks for your review! It&apos;ll appear after moderation.
         </div>
       )}
 

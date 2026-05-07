@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { uploadImage, deleteImage } from "@/lib/cloudinary";
 
+function unauthorized() {
+  const session = cookies().get("admin_session")?.value;
+  const secret = process.env.ADMIN_SECRET_TOKEN;
+  return !secret || !session || session !== secret;
+}
+
 export async function POST(req: NextRequest) {
+  if (unauthorized()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const form = await req.formData();
     const file = form.get("file") as File | null;
@@ -31,6 +39,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (unauthorized()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const { publicId } = await req.json();
     if (!publicId) {

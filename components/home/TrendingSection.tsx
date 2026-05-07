@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getFeaturedProducts } from "@/lib/data";
+import { getFeaturedProducts } from "@/lib/supabase/queries";
+import { Product } from "@/lib/types";
 import ProductCard from "@/components/shop/ProductCard";
 
 const stagger = {
@@ -10,7 +12,15 @@ const stagger = {
 };
 
 export default function TrendingSection() {
-  const products = getFeaturedProducts().slice(0, 4);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    getFeaturedProducts(4)
+      .then(setProducts)
+      .catch(() => setProducts([]));
+  }, []);
+
+  if (products.length === 0) return null;
 
   return (
     <section className="container-px mt-24">

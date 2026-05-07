@@ -22,6 +22,20 @@
     "ADMIN_SECRET_TOKEN": "@admin_secret_token",
     "CLOUDINARY_CLOUD_NAME": "@cloudinary_cloud_name",
     "CLOUDINARY_API_KEY": "@cloudinary_api_key",
-    "CLOUDINARY_API_SECRET": "@cloudinary_api_secret"
-  }
+    "CLOUDINARY_API_SECRET": "@cloudinary_api_secret",
+    "CRON_SECRET": "@cron_secret",
+    "RESEND_AUDIENCE_ID": "@resend_audience_id",
+    "SENTRY_DSN": "@sentry_dsn",
+    "NEXT_PUBLIC_SENTRY_DSN": "@next_public_sentry_dsn"
+  },
+  "crons": [
+    {
+      "path": "/api/cron/abandoned-carts",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/expire-reservations",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

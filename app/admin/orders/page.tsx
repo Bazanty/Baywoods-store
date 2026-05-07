@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils";
 import { ShoppingBag } from "lucide-react";
+import OrderStatusControl from "./OrderStatusControl";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,8 @@ async function getOrders() {
       .from("orders")
       .select(`
         id, status, total, subtotal, discount_amount, shipping_cost,
-        shipping_name, shipping_city, shipping_country,
-        tracking_number, created_at, updated_at,
+        shipping_name, shipping_city, shipping_country, shipping_phone, email,
+        tracking_number, shipping_method, created_at, updated_at,
         order_items ( id, product_name, variant_name, quantity, unit_price )
       `)
       .order("created_at", { ascending: false });
@@ -43,76 +44,21 @@ export default async function AdminOrders() {
         <p className="text-sm text-muted mt-0.5">{orders.length} total</p>
       </div>
 
-      <div className="bg-white rounded overflow-hidden max-w-6xl">
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-20 text-muted">
-            <ShoppingBag size={32} strokeWidth={1} />
-            <p className="text-sm">No orders yet.</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-stone text-left">
-                {[
-                  { label: "Order ID",  cls: "" },
-                  { label: "Customer",  cls: "" },
-                  { label: "Items",     cls: "" },
-                  { label: "Status",    cls: "" },
-                  { label: "Total",     cls: "text-right" },
-                  { label: "Date",      cls: "text-right" },
-                ].map(({ label, cls }) => (
-                  <th
-                    key={label}
-                    className={`px-5 py-3.5 text-xs font-medium text-muted tracking-wider uppercase ${cls}`}
-                  >
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order: any, i: number) => (
-                <tr
-                  key={order.id}
-                  className={`hover:bg-stone/20 transition-colors ${
-                    i < orders.length - 1 ? "border-b border-stone/50" : ""
-                  }`}
-                >
-                  <td className="px-5 py-4">
+      {orders.length === 0 ? (
+        <div className="bg-white rounded flex flex-col items-center gap-3 py-20 text-muted max-w-6xl">
+          <ShoppingBag size={32} strokeWidth={1} />
+          <p className="text-sm">No orders yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-w-6xl">
+          {orders.map((order: any) => (
+            <div key={order.id} className="bg-white rounded overflow-hidden">
+              <div className="flex items-start justify-between px-5 py-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <span className="font-mono text-xs text-muted">
                       {order.id.slice(0, 8).toUpperCase()}
                     </span>
-                    {order.tracking_number && (
-                      <p className="text-[10px] text-muted/60 mt-0.5 font-mono">
-                        {order.tracking_number}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-ink">{order.shipping_name}</p>
-                    <p className="text-xs text-muted">
-                      {order.shipping_city}, {order.shipping_country}
-                    </p>
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <div className="space-y-0.5">
-                      {(order.order_items ?? []).slice(0, 2).map((item: any) => (
-                        <p key={item.id} className="text-xs text-muted truncate max-w-[180px]">
-                          {item.quantity}× {item.product_name}
-                          {item.variant_name ? ` · ${item.variant_name}` : ""}
-                        </p>
-                      ))}
-                      {order.order_items?.length > 2 && (
-                        <p className="text-[10px] text-muted/60">
-                          +{order.order_items.length - 2} more
-                        </p>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-5 py-4">
                     <span
                       className={`inline-block text-[11px] px-2 py-0.5 rounded-sm capitalize font-medium ${
                         STATUS_STYLES[order.status] ?? "bg-stone-light text-muted"
@@ -120,30 +66,46 @@ export default async function AdminOrders() {
                     >
                       {order.status}
                     </span>
-                  </td>
-
-                  <td className="px-5 py-4 text-right">
-                    <span className="font-medium text-ink">{formatPrice(order.total)}</span>
-                    {order.discount_amount > 0 && (
-                      <p className="text-[10px] text-forest mt-0.5">
-                        -{formatPrice(order.discount_amount)} off
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="px-5 py-4 text-right text-xs text-muted">
+                  </div>
+                  <p className="text-sm font-medium text-ink">{order.shipping_name}</p>
+                  <p className="text-xs text-muted">
+                    {order.email} · {order.shipping_phone}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {order.shipping_city}, {order.shipping_country} · {order.shipping_method}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-medium text-ink">{formatPrice(order.total)}</p>
+                  <p className="text-xs text-muted mt-0.5">
                     {new Date(order.created_at).toLocaleDateString("en-KE", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
+                      day: "numeric", month: "short", year: "numeric",
                     })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-5 pb-1 space-y-0.5">
+                {(order.order_items ?? []).map((item: any) => (
+                  <p key={item.id} className="text-xs text-muted">
+                    {item.quantity}× {item.product_name}
+                    {item.variant_name ? ` · ${item.variant_name}` : ""}{" "}
+                    <span className="text-muted/60">({formatPrice(item.unit_price)})</span>
+                  </p>
+                ))}
+              </div>
+
+              <div className="px-5 py-3 border-t border-stone/50 mt-2">
+                <OrderStatusControl
+                  orderId={order.id}
+                  currentStatus={order.status}
+                  currentTracking={order.tracking_number ?? ""}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

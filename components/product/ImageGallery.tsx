@@ -33,14 +33,15 @@ export default function ImageGallery({ images, productName }: ImageGalleryProps)
                 src={src}
                 alt={`${productName} view ${i + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain p-1"
                 sizes="80px"
               />
             </button>
           ))}
         </div>
 
-        {/* Main image */}
+        {/* Main image — generous padding + object-contain so the whole shoe
+            stays visible on every aspect ratio, no crop, no detail loss. */}
         <div className="flex-1 relative aspect-[4/5] bg-beige-dark overflow-hidden group cursor-zoom-in"
           onClick={() => setZoomed(true)}
         >
@@ -51,14 +52,15 @@ export default function ImageGallery({ images, productName }: ImageGalleryProps)
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="absolute inset-0"
+              className="absolute inset-0 p-6 sm:p-10"
             >
               <Image
                 src={images[active]}
                 alt={`${productName} — image ${active + 1}`}
                 fill
                 priority
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                quality={95}
+                className="object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                 sizes="(max-width: 1024px) 100vw, 55vw"
               />
             </motion.div>

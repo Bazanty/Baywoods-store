@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, Tag, ArrowUpLeft, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Tag, Ticket, Users, Boxes, RotateCcw, ArrowUpLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/admin",            label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/products",   label: "Products",  icon: Package },
+  { href: "/admin/inventory",  label: "Inventory", icon: Boxes },
   { href: "/admin/orders",     label: "Orders",    icon: ShoppingBag },
+  { href: "/admin/customers",  label: "Customers", icon: Users },
+  { href: "/admin/returns",    label: "Returns",   icon: RotateCcw },
   { href: "/admin/categories", label: "Categories",icon: Tag },
+  { href: "/admin/coupons",    label: "Coupons",   icon: Ticket },
 ];
 
 export default function AdminNav() {

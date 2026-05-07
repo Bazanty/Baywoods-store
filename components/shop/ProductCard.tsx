@@ -46,29 +46,32 @@ export default function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      {/* Image container — link covers images only, interactive buttons are siblings */}
+      {/* Image container — original 3/4 frame, but with padding + contain so
+          shoes still show end-to-end without object-cover slicing them. */}
       <div className="relative aspect-[3/4] bg-beige-dark overflow-hidden">
-        <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0">
+        <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0 p-3 sm:p-4">
           <Image
             src={product.images[0]}
             alt={product.name}
             fill
+            quality={90}
             className={cn(
-              "object-cover transition-all duration-500 ease-out-expo",
-              hovered && hasSecondImage ? "opacity-0 scale-105" : "opacity-100 scale-100"
+              "object-contain transition-all duration-500 ease-out-expo",
+              hovered && hasSecondImage ? "opacity-0 scale-[1.04]" : "opacity-100 scale-100"
             )}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
           />
           {hasSecondImage && (
             <Image
               src={product.images[1]}
               alt={`${product.name} alternate view`}
               fill
+              quality={90}
               className={cn(
-                "object-cover transition-all duration-500 ease-out-expo",
-                hovered ? "opacity-100 scale-100" : "opacity-0 scale-105"
+                "object-contain transition-all duration-500 ease-out-expo",
+                hovered ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
               )}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
             />
           )}
         </Link>

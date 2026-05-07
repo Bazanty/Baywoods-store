@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { supabase } from "./supabase/client";
+import { useCartStore } from "./store";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthStore {
@@ -22,10 +23,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   init: async () => {
     const { data } = await supabase.auth.getSession();
-    set({ user: data.session?.user ?? null, initialized: true });
+    const user = data.session?.user ?? null;
+    set({ user, initialized: true });
+    if (user) useCartStore.getState().loadWishlist(user.id);
 
     supabase.auth.onAuthStateChange((_event, session) => {
-      set({ user: session?.user ?? null });
+      const next = session?.user ?? null;
+      set({ user: next });
+      if (next) {
+        useCartStore.getState().loadWishlist(next.id);
+      } else {
+        useCartStore.getState().clearUser();
+      }
     });
   },
 

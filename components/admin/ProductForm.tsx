@@ -399,7 +399,7 @@ export default function ProductForm({ productId, initial }: Props) {
             />
             <span className="text-sm text-ink">
               Featured{" "}
-              <span className="text-muted">— shows "Hot" badge, appears in trending</span>
+              <span className="text-muted">— shows &ldquo;Hot&rdquo; badge, appears in trending</span>
             </span>
           </label>
         </div>

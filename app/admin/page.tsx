@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { Plus, ArrowRight } from "lucide-react";
-import { getAdminStats } from "./actions";
+import { Plus, ArrowRight, TrendingUp, Users, DollarSign, CalendarDays } from "lucide-react";
+import { getAdminStats, getAdminRevenue } from "./actions";
 import { formatPrice } from "@/lib/utils";
 import StatCards from "./_components/StatCards";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const { productCount, orderCount, outOfStockCount, recentOrders } = await getAdminStats();
+  const [{ productCount, orderCount, outOfStockCount, recentOrders }, revenue] = await Promise.all([
+    getAdminStats(),
+    getAdminRevenue(),
+  ]);
 
   return (
     <div className="px-8 py-10 max-w-5xl">
@@ -34,6 +37,53 @@ export default async function AdminDashboard() {
         orderCount={orderCount}
         outOfStockCount={outOfStockCount}
       />
+
+      {/* Revenue Stats */}
+      <div className="grid grid-cols-4 gap-4 mt-6">
+        {[
+          {
+            label: "Total Revenue",
+            value: formatPrice(revenue.totalRevenue),
+            icon: DollarSign,
+            color: "text-forest",
+            bg: "bg-forest/[0.08]",
+          },
+          {
+            label: "This Month",
+            value: formatPrice(revenue.monthlyRevenue),
+            icon: CalendarDays,
+            color: "text-blue-600",
+            bg: "bg-blue-50",
+          },
+          {
+            label: "Monthly Orders",
+            value: String(revenue.monthlyOrders),
+            icon: TrendingUp,
+            color: "text-purple-600",
+            bg: "bg-purple-50",
+          },
+          {
+            label: "Customers",
+            value: String(revenue.customerCount),
+            icon: Users,
+            color: "text-ink",
+            bg: "bg-ink/5",
+          },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div
+            key={label}
+            className="bg-white rounded p-5 flex items-start justify-between"
+          >
+            <div>
+              <p className="text-xs text-muted tracking-wider uppercase mb-1">{label}</p>
+              <p className={`text-2xl font-serif ${color}`}>{value}</p>
+            </div>
+            <span className={`${bg} ${color} p-2.5 rounded`}>
+              <Icon size={18} strokeWidth={1.5} />
+            </span>
+          </div>
+        ))}
+      </div>
 
       {/* Recent Orders */}
       <div className="bg-white rounded overflow-hidden mt-10">

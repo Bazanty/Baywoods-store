@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initiateStkPush, formatPhone } from "@/lib/mpesa";
+import { getClientIp, rateLimit } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req) ?? "unknown";
+    const rl = rateLimit(`stk:${ip}`, 5, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: "Too many payment attempts. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
+
     const { phone, amount, orderId } = await req.json();
 
     if (!phone || !amount) {

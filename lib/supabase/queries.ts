@@ -8,7 +8,7 @@
  */
 
 import { supabase } from "./client";
-import type { Category, Order, Product, ProductColor, Review } from "../types";
+import type { Category, Order, Product, ProductColor, ProductVariant, Review } from "../types";
 
 // ---------------------------------------------------------------------------
 // Internal DB shape returned by the nested select
@@ -27,6 +27,7 @@ type RawProduct = {
   product_images: { url: string; is_primary: boolean; sort_order: number }[];
   inventory: { quantity: number; reserved: number }[];
   product_variants: {
+    id: string;
     is_active: boolean;
     variant_options: { option_name: string; option_value: string }[];
   }[];
@@ -51,6 +52,7 @@ function mapProduct(raw: RawProduct): Product {
   // Sizes + colors from active variants' options
   const sizesSet = new Set<string>();
   const colorsMap = new Map<string, string>(); // name → hex
+  const variants: ProductVariant[] = [];
 
   for (const variant of raw.product_variants ?? []) {
     if (!variant.is_active) continue;
@@ -62,6 +64,7 @@ function mapProduct(raw: RawProduct): Product {
     if (colorName && colorHex && !colorsMap.has(colorName)) {
       colorsMap.set(colorName, colorHex);
     }
+    variants.push({ id: variant.id, size, colorName });
   }
 
   const colors: ProductColor[] = Array.from(colorsMap.entries()).map(([name, hex]) => ({
@@ -100,6 +103,7 @@ function mapProduct(raw: RawProduct): Product {
     images,
     sizes: Array.from(sizesSet),
     colors,
+    variants,
     description: raw.description ?? "",
     badge,
     rating,
@@ -126,6 +130,7 @@ const PRODUCT_SELECT = `
   product_images ( url, is_primary, sort_order ),
   inventory ( quantity, reserved ),
   product_variants (
+    id,
     is_active,
     variant_options ( option_name, option_value )
   ),
@@ -163,18 +168,34 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
+  // Resolve the target category and any of its sub-categories (e.g. "shoes"
+  // has nike/vans/… as children). A product belongs if its category_id is
+  // either the parent or any of the children.
+  const { data: parent, error: parentErr } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("slug", categorySlug)
+    .maybeSingle();
+
+  if (parentErr) throw new Error(`getProductsByCategory: ${parentErr.message}`);
+  if (!parent) return [];
+
+  const { data: children } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("parent_id", parent.id);
+
+  const categoryIds = [parent.id, ...(children ?? []).map((c) => c.id)];
+
   const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_SELECT)
     .eq("is_active", true)
-    .eq("categories.slug", categorySlug)
+    .in("category_id", categoryIds)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`getProductsByCategory: ${error.message}`);
-  // PostgREST returns all rows; filter client-side for category match
-  return (data as unknown as RawProduct[])
-    .filter((p) => p.categories?.slug === categorySlug)
-    .map(mapProduct);
+  return (data as unknown as RawProduct[]).map(mapProduct);
 }
 
 export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
@@ -338,7 +359,8 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
         quantity,
         line_total,
         products (
-          id, name, slug,
+          id, name, slug, base_price, compare_price,
+          categories!category_id ( slug ),
           product_images ( url, is_primary, sort_order )
         )
       )
@@ -365,8 +387,9 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
           id: item.products?.id ?? "",
           name: item.product_name,
           slug: item.products?.slug ?? "",
-          category: "accessories" as Category,
-          price: item.unit_price,
+          category: (item.products?.categories?.slug ?? "accessories") as Category,
+          price: item.products?.base_price ?? item.unit_price,
+          salePrice: item.products?.compare_price ?? undefined,
           images: [primaryImage],
           sizes: [],
           colors: [],

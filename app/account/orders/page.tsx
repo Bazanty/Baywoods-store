@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronLeft, Package, Truck, MapPin, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, Package, Truck, MapPin, RefreshCw, Download, RotateCcw, ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUserOrders } from "@/lib/supabase/queries";
 import { useAuthStore } from "@/lib/authStore";
+import { useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 import { Order } from "@/lib/types";
+import { supabase } from "@/lib/supabase/client";
 
 const STATUS_STEPS = ["pending", "processing", "shipped", "delivered"];
 const STATUS_LABELS: Record<string, string> = {
@@ -23,7 +26,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [returnMsg, setReturnMsg] = useState<Record<string, string>>({});
   const { user } = useAuthStore();
+  const { addItem } = useCartStore();
+  const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
@@ -176,14 +182,56 @@ export default function OrdersPage() {
                           ))}
                         </div>
 
-                        <div className="flex gap-3 pt-2 border-t border-stone">
+                        <div className="flex gap-3 pt-2 border-t border-stone flex-wrap">
                           {order.status === "delivered" && (
-                            <button className="text-xs text-forest underline underline-offset-2">
-                              Request Return
-                            </button>
+                            <>
+                              <button
+                                onClick={async () => {
+                                  if (!user) return;
+                                  const reason = window.prompt("Reason for return?");
+                                  if (!reason) return;
+                                  await supabase.from("return_requests").insert({
+                                    order_id: order.id,
+                                    user_id:  user.id,
+                                    email:    user.email,
+                                    reason,
+                                  });
+                                  setReturnMsg((m) => ({ ...m, [order.id]: "Return request submitted. We'll be in touch." }));
+                                }}
+                                className="flex items-center gap-1 text-xs text-forest underline underline-offset-2"
+                              >
+                                <RotateCcw size={11} /> Request Return
+                              </button>
+                              {returnMsg[order.id] && (
+                                <span className="text-xs text-forest">{returnMsg[order.id]}</span>
+                              )}
+                            </>
                           )}
-                          <button className="text-xs text-ink underline underline-offset-2">Reorder</button>
-                          <button className="text-xs text-ink underline underline-offset-2">Get Invoice</button>
+                          <button
+                            onClick={() => {
+                              order.items.forEach((item) => {
+                                if (item.product.id) {
+                                  addItem(
+                                    item.product,
+                                    item.size || item.product.sizes[0] || "One Size",
+                                    item.color.name ? item.color : item.product.colors[0] || { name: "Default", hex: "#000" }
+                                  );
+                                }
+                              });
+                              router.push("/cart");
+                            }}
+                            className="flex items-center gap-1 text-xs text-ink underline underline-offset-2"
+                          >
+                            <ShoppingCart size={11} /> Reorder
+                          </button>
+                          <a
+                            href={`/api/invoice/${order.id}?email=${encodeURIComponent(user?.email ?? "")}`}
+                            target="_blank"
+                            rel="noopener"
+                            className="flex items-center gap-1 text-xs text-ink underline underline-offset-2"
+                          >
+                            <Download size={11} /> Get Invoice
+                          </a>
                         </div>
                       </div>
                     </motion.div>

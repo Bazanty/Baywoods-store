@@ -19,6 +19,7 @@ export interface Product {
   images: string[];
   sizes: string[];
   colors: ProductColor[];
+  variants?: ProductVariant[];
   description: string;
   material?: string;
   badge?: "new" | "sale" | "hot";
@@ -33,11 +34,19 @@ export interface ProductColor {
   hex: string;
 }
 
+// Resolved variant row used to map (size, color) → inventory variant_id.
+export interface ProductVariant {
+  id: string;
+  size?: string;
+  colorName?: string;
+}
+
 export interface CartItem {
   product: Product;
   size: string;
   color: ProductColor;
   quantity: number;
+  variantId?: string;
 }
 
 export interface Review {

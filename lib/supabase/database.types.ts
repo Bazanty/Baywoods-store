@@ -8,7 +8,7 @@ export type OrderStatus =
 export type PaymentStatus =
   | "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type PaymentMethod =
-  | "card" | "bank_transfer" | "paypal" | "crypto" | "cash_on_delivery";
+  | "mpesa" | "card" | "bank_transfer" | "paypal" | "crypto" | "cash_on_delivery";
 export type AddressType = "shipping" | "billing" | "both";
 export type DiscountType = "percentage" | "fixed";
 
@@ -74,10 +74,12 @@ export interface CouponRow {
 export type CouponInsert = Omit<CouponRow, "id" | "created_at">;
 
 export interface OrderRow {
-  id: string; user_id: string | null; status: OrderStatus;
+  id: string; user_id: string | null; email: string | null; status: OrderStatus;
+  payment_method: PaymentMethod | null; payment_status: PaymentStatus;
   shipping_name: string; shipping_line1: string; shipping_line2: string | null;
   shipping_city: string; shipping_state: string | null;
   shipping_postal: string; shipping_country: string; shipping_phone: string | null;
+  shipping_method: string;
   subtotal: number; discount_amount: number; shipping_cost: number;
   tax_amount: number; total: number; coupon_id: string | null;
   notes: string | null; tracking_number: string | null;
@@ -97,6 +99,9 @@ export interface PaymentRow {
   id: string; order_id: string; status: PaymentStatus; method: PaymentMethod;
   amount: number; currency: string; provider_tx_id: string | null;
   provider_response: Record<string, unknown> | null;
+  checkout_request_id: string | null; mpesa_receipt: string | null;
+  result_desc: string | null;
+  stripe_payment_intent_id: string | null;
   paid_at: string | null; refunded_at: string | null; refund_amount: number | null;
   created_at: string; updated_at: string;
 }
@@ -110,12 +115,25 @@ export interface ReviewRow {
 export type ReviewInsert = Omit<ReviewRow, "id" | "created_at">;
 
 export interface AddressRow {
-  id: string; user_id: string; type: AddressType;
-  full_name: string; phone: string | null; line1: string; line2: string | null;
-  city: string; state: string | null; postal_code: string; country_code: string;
-  is_default: boolean; created_at: string;
+  id: string; user_id: string; type: AddressType; label: string;
+  full_name: string; first_name: string | null; last_name: string | null;
+  phone: string | null; line1: string; address: string | null; line2: string | null;
+  city: string; state: string | null; county: string | null;
+  postal_code: string; country_code: string;
+  is_default: boolean; created_at: string; updated_at: string;
 }
 export type AddressInsert = Omit<AddressRow, "id" | "created_at">;
+
+export interface NewsletterSubscriberRow {
+  id: string; email: string; subscribed_at: string;
+}
+export type NewsletterSubscriberInsert = Omit<NewsletterSubscriberRow, "id" | "subscribed_at">;
+
+export interface ContactMessageRow {
+  id: string; name: string; email: string; subject: string;
+  message: string; is_read: boolean; created_at: string;
+}
+export type ContactMessageInsert = Omit<ContactMessageRow, "id" | "is_read" | "created_at">;
 
 // ---------------------------------------------------------------------------
 // Database shape — GenericSchema compatible (requires Relationships on each table)
@@ -138,7 +156,9 @@ export interface Database {
       orders:           T<OrderRow,          OrderInsert>;
       order_items:      T<OrderItemRow,      OrderItemInsert>;
       payments:         T<PaymentRow,        PaymentInsert>;
-      reviews:          T<ReviewRow,         ReviewInsert>;
+      reviews:                T<ReviewRow,                ReviewInsert>;
+      newsletter_subscribers: T<NewsletterSubscriberRow, NewsletterSubscriberInsert>;
+      contact_messages:       T<ContactMessageRow,       ContactMessageInsert>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

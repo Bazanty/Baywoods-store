@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,14 +43,24 @@ interface ShippingForm {
 const SHIPPING_COSTS = { standard: 350, express: 800 };
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, subtotal, clearCart } = useCartStore();
   const { user } = useAuthStore();
   const [step, setStep] = useState<Step>("shipping");
-  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card" | "paypal">("mpesa");
-  const [mpesaPhone, setMpesaPhone] = useState("07");
+  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
+  const savedMpesaNumbers: { phone: string; label: string }[] =
+    user?.user_metadata?.mpesa_numbers ?? [];
+  const [mpesaPhone, setMpesaPhone] = useState(
+    savedMpesaNumbers.length > 0 ? savedMpesaNumbers[0].phone : "07"
+  );
   const [loading, setLoading] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [orderNumber] = useState(() => Math.floor(Math.random() * 9000 + 1000));
+  // Stable per-tab pseudo order reference passed to M-Pesa as AccountReference.
+  // Real persisted order id is generated server-side after STK push succeeds.
+  const [orderNumber] = useState(() =>
+    typeof window !== "undefined" && window.crypto?.randomUUID
+      ? window.crypto.randomUUID().slice(0, 12)
+      : `ref-${Date.now().toString(36)}`
+  );
   const [mpesaStatus, setMpesaStatus] = useState<MpesaStatus>("idle");
   const [mpesaMessage, setMpesaMessage] = useState("");
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
@@ -58,6 +69,33 @@ export default function CheckoutPage() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoMsg, setPromoMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [reserving, setReserving] = useState(false);
+
+  // Stable per-tab session id used to tie cart reservations to this checkout
+  // attempt. Generated lazily so SSR doesn't try to touch crypto.
+  const sessionIdRef = useRef<string>("");
+  if (typeof window !== "undefined" && !sessionIdRef.current) {
+    sessionIdRef.current =
+      window.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+  const reservedRef = useRef(false);
+
+  // Best-effort: if the user navigates away from /checkout without completing,
+  // release whatever they had reserved so other shoppers aren't blocked.
+  useEffect(() => {
+    return () => {
+      if (reservedRef.current && sessionIdRef.current) {
+        navigator.sendBeacon?.(
+          "/api/reservations/release",
+          new Blob([JSON.stringify({ sessionId: sessionIdRef.current })], {
+            type: "application/json",
+          })
+        );
+      }
+    };
+  }, []);
 
   const [shipping, setShipping] = useState<ShippingForm>({
     firstName: "",
@@ -91,8 +129,10 @@ export default function CheckoutPage() {
     total,
     paymentMethod,
     checkoutRequestId: resolvedCheckoutRequestId,
+    sessionId: reservedRef.current ? sessionIdRef.current : undefined,
     items: items.map((item) => ({
       productId: item.product.id,
+      variantId: item.variantId ?? null,
       productName: item.product.name,
       variantName: `${item.size} / ${item.color.name}`,
       unitPrice: item.product.salePrice ?? item.product.price,
@@ -101,15 +141,122 @@ export default function CheckoutPage() {
     })),
   });
 
-  const persistOrder = async (resolvedCheckoutRequestId?: string, stripePaymentIntentId?: string) => {
+  const persistOrder = async (
+    resolvedCheckoutRequestId?: string,
+    stripePaymentIntentId?: string
+  ): Promise<string | null> => {
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...buildOrderPayload(resolvedCheckoutRequestId), stripePaymentIntentId }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        // Reservation TTL ran out between reserving and finalising — drop
+        // the dead session id and bounce the user back to shipping so they
+        // can re-reserve fresh stock.
+        if (data?.code === "RESERVATION_EXPIRED") {
+          reservedRef.current = false;
+          sessionIdRef.current =
+            window.crypto?.randomUUID?.() ??
+            `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          setStep("shipping");
+          setReserveError(
+            "Your 15-minute stock hold expired. Please review your cart and continue again."
+          );
+        }
+        setMpesaStatus("failed");
+        setMpesaMessage(data.error ?? "Failed to place order.");
+        setLoading(false);
+        return null;
+      }
+      return data.orderId ?? null;
     } catch {
-      // Order persistence failure — don't block user confirmation
+      return null;
+    }
+  };
+
+  const goToOrder = (orderId: string | null) => {
+    // Reservation has been consumed server-side — make sure unmount cleanup
+    // doesn't try to release stock that's now permanently decremented.
+    reservedRef.current = false;
+    if (shipping.email) {
+      fetch("/api/cart-snapshot", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: shipping.email }),
+      }).catch(() => {});
+    }
+    clearCart();
+    if (orderId) {
+      router.push(`/order/${orderId}`);
+    } else {
+      // Fallback: still clear and send to orders list if persistence failed
+      router.push("/account/orders");
+    }
+  };
+
+  // Snapshot the cart for abandoned-cart recovery once we have an email.
+  const snapshotCart = async () => {
+    if (!shipping.email || items.length === 0) return;
+    try {
+      await fetch("/api/cart-snapshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: shipping.email,
+          userId: user?.id,
+          subtotal: sub,
+          items: items.map((i) => ({
+            productId: i.product.id,
+            name: i.product.name,
+            slug: i.product.slug,
+            image: i.product.images[0],
+            size: i.size,
+            color: i.color.name,
+            quantity: i.quantity,
+            price: i.product.salePrice ?? i.product.price,
+          })),
+        }),
+      });
+    } catch {
+      // best-effort — don't block checkout on snapshot failures
+    }
+  };
+
+  // Reserve every cart line for this session before the user goes to payment.
+  // If anything is short, surface the failing item and stay on the shipping step.
+  const reserveCartStock = async (): Promise<boolean> => {
+    if (reservedRef.current) return true;
+    setReserving(true);
+    setReserveError(null);
+    try {
+      const res = await fetch("/api/reservations/reserve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          items: items.map((i) => ({
+            productId: i.product.id,
+            variantId: i.variantId ?? null,
+            quantity: i.quantity,
+            productName: i.product.name,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setReserveError(data.error ?? "Could not reserve stock. Please try again.");
+        return false;
+      }
+      reservedRef.current = true;
+      return true;
+    } catch {
+      setReserveError("Network error reserving stock. Please try again.");
+      return false;
+    } finally {
+      setReserving(false);
     }
   };
 
@@ -135,12 +282,6 @@ export default function CheckoutPage() {
   const handleOrder = async () => {
     if (paymentMethod === "mpesa") {
       await handleMpesaPayment();
-    } else if (paymentMethod === "paypal") {
-      setLoading(true);
-      await persistOrder();
-      setLoading(false);
-      clearCart();
-      setConfirmed(true);
     }
     // card is handled by StripeCardForm inline
   };
@@ -165,9 +306,8 @@ export default function CheckoutPage() {
   };
 
   const handleStripeSuccess = async (paymentIntentId: string) => {
-    await persistOrder(undefined, paymentIntentId);
-    clearCart();
-    setConfirmed(true);
+    const orderId = await persistOrder(undefined, paymentIntentId);
+    goToOrder(orderId);
   };
 
   const handleStripeError = (message: string) => {
@@ -215,10 +355,9 @@ export default function CheckoutPage() {
           if (qData.resultCode === "0") {
             clearInterval(poll);
             setMpesaStatus("success");
-            await persistOrder(data.checkoutRequestId);
+            const orderId = await persistOrder(data.checkoutRequestId);
             setLoading(false);
-            clearCart();
-            setConfirmed(true);
+            goToOrder(orderId);
             return;
           }
 
@@ -246,40 +385,6 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
-
-  if (confirmed) {
-    return (
-      <div className="pt-32 pb-24 flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", damping: 20 }}
-          className="w-16 h-16 bg-forest rounded-full flex items-center justify-center mb-6"
-        >
-          <Check size={28} className="text-white" />
-        </motion.div>
-        <h1 className="font-serif text-4xl text-ink mb-3">Order Confirmed!</h1>
-        <p className="text-muted text-sm max-w-sm mb-2">
-          Your order has been placed. You'll receive an email and SMS confirmation shortly.
-        </p>
-        <p className="text-xs text-muted mb-8">Order #BW-2026-{orderNumber}</p>
-        <div className="flex gap-3">
-          <Link
-            href="/account/orders"
-            className="inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-200 active:scale-[0.98] border border-ink text-ink hover:bg-ink hover:text-white text-sm px-6 py-3"
-          >
-            Track Order
-          </Link>
-          <Link
-            href="/shop"
-            className="inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-200 active:scale-[0.98] bg-forest text-white hover:bg-forest-dark text-sm px-6 py-3"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -380,6 +485,7 @@ export default function CheckoutPage() {
                         type="email"
                         value={shipping.email}
                         onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
+                        onBlur={snapshotCart}
                         placeholder="brian@email.com"
                       />
                     </div>
@@ -458,10 +564,22 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {reserveError && (
+                    <p className="mt-4 text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
+                      {reserveError}
+                    </p>
+                  )}
                   <Button
                     className="mt-8 w-full"
                     size="lg"
-                    onClick={() => setStep("payment")}
+                    loading={reserving}
+                    onClick={async () => {
+                      const ok = await reserveCartStock();
+                      if (ok) {
+                        await snapshotCart();
+                        setStep("payment");
+                      }
+                    }}
                     disabled={!shipping.firstName || !shipping.lastName || !shipping.email || !shipping.phone || !shipping.address || !shipping.city}
                   >
                     Continue to Payment
@@ -484,7 +602,6 @@ export default function CheckoutPage() {
                     {[
                       { value: "mpesa", label: "M-Pesa" },
                       { value: "card", label: "Card" },
-                      { value: "paypal", label: "PayPal" },
                     ].map((m) => (
                       <button
                         key={m.value}
@@ -505,16 +622,75 @@ export default function CheckoutPage() {
                       <div className="bg-forest-muted border border-forest/20 p-4">
                         <p className="text-sm text-forest-dark font-medium mb-1">M-Pesa STK Push</p>
                         <p className="text-xs text-muted">
-                          Enter your M-Pesa number. A payment prompt will be sent to your phone.
+                          {savedMpesaNumbers.length > 0
+                            ? "Select a saved number or enter a new one."
+                            : "Enter your M-Pesa number. A payment prompt will be sent to your phone."}
                         </p>
                       </div>
-                      <Input
-                        label="M-Pesa Phone Number"
-                        type="tel"
-                        value={mpesaPhone}
-                        onChange={(e) => setMpesaPhone(e.target.value)}
-                        placeholder="0712 345 678"
-                      />
+                      {savedMpesaNumbers.length > 0 && (
+                        <div className="space-y-1.5">
+                          {savedMpesaNumbers.map((num) => (
+                            <button
+                              key={num.phone}
+                              type="button"
+                              onClick={() => setMpesaPhone(num.phone)}
+                              className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                                mpesaPhone === num.phone
+                                  ? "border-forest bg-forest/5"
+                                  : "border-stone hover:border-ink"
+                              }`}
+                            >
+                              <span
+                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                  mpesaPhone === num.phone
+                                    ? "border-forest"
+                                    : "border-stone"
+                                }`}
+                              >
+                                {mpesaPhone === num.phone && (
+                                  <span className="w-2 h-2 rounded-full bg-forest" />
+                                )}
+                              </span>
+                              <div>
+                                <p className="text-sm font-medium text-ink">{num.phone}</p>
+                                <p className="text-xs text-muted">{num.label}</p>
+                              </div>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setMpesaPhone("07")}
+                            className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                              !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)
+                                ? "border-forest bg-forest/5"
+                                : "border-stone hover:border-ink"
+                            }`}
+                          >
+                            <span
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)
+                                  ? "border-forest"
+                                  : "border-stone"
+                              }`}
+                            >
+                              {!savedMpesaNumbers.some((n) => n.phone === mpesaPhone) && (
+                                <span className="w-2 h-2 rounded-full bg-forest" />
+                              )}
+                            </span>
+                            <p className="text-sm text-muted">Use a different number</p>
+                          </button>
+                        </div>
+                      )}
+                      {(savedMpesaNumbers.length === 0 ||
+                        !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)) && (
+                        <Input
+                          label="M-Pesa Phone Number"
+                          type="tel"
+                          value={mpesaPhone}
+                          onChange={(e) => setMpesaPhone(e.target.value)}
+                          placeholder="0712 345 678"
+                        />
+                      )}
                       {mpesaStatus === "pending" && mpesaMessage && (
                         <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
@@ -552,14 +728,6 @@ export default function CheckoutPage() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {paymentMethod === "paypal" && (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted">
-                        You'll be redirected to PayPal to complete your payment securely.
-                      </p>
                     </div>
                   )}
 

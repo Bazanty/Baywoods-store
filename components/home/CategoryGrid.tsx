@@ -1,41 +1,27 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
 
-const cats = [
-  {
-    slug: "shoes",
-    label: "Shoes",
-    img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80",
-    span: "col-span-2 row-span-2",
-  },
-  {
-    slug: "hoodies",
-    label: "Hoodies",
-    img: "https://images.unsplash.com/photo-1556821840-3a63f15732ce?w=600&q=80",
-    span: "col-span-1 row-span-1",
-  },
-  {
-    slug: "caps",
-    label: "Caps",
-    img: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80",
-    span: "col-span-1 row-span-1",
-  },
-  {
-    slug: "joggers",
-    label: "Joggers",
-    img: "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&q=80",
-    span: "col-span-1 row-span-1",
-  },
-  {
-    slug: "accessories",
-    label: "Accessories",
-    img: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=600&q=80",
-    span: "col-span-1 row-span-1",
-  },
-];
+interface CategoryItem {
+  slug: string;
+  label: string;
+  img: string;
+  span: string;
+}
+
+const LAYOUT: Record<number, string> = {
+  0: "col-span-2 row-span-2",
+  1: "col-span-1 row-span-1",
+  2: "col-span-1 row-span-1",
+  3: "col-span-1 row-span-1",
+  4: "col-span-1 row-span-1",
+};
+
+const FALLBACK_IMG = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80";
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.07 } },
@@ -47,6 +33,57 @@ const item = {
 };
 
 export default function CategoryGrid() {
+  const [cats, setCats] = useState<CategoryItem[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: categories } = await supabase
+        .from("categories")
+        .select("slug, name")
+        .eq("is_active", true)
+        .order("sort_order")
+        .limit(5);
+
+      if (!categories?.length) return;
+
+      const items: CategoryItem[] = await Promise.all(
+        categories.map(async (cat, idx) => {
+          const { data: images } = await supabase
+            .from("products")
+            .select("product_images(url, is_primary)")
+            .eq("is_active", true)
+            .eq("categories.slug", cat.slug)
+            .limit(1);
+
+          const productImages = (images?.[0] as any)?.product_images ?? [];
+          const primary = productImages.find((i: any) => i.is_primary)?.url ?? productImages[0]?.url;
+
+          return {
+            slug: cat.slug,
+            label: cat.name,
+            img: primary ?? FALLBACK_IMG,
+            span: LAYOUT[idx] ?? "col-span-1 row-span-1",
+          };
+        })
+      );
+
+      setCats(items);
+    })();
+  }, []);
+
+  if (cats.length === 0) {
+    return (
+      <section className="container-px mt-24">
+        <h2 className="section-title mb-8">Shop by Category</h2>
+        <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[480px] lg:h-[560px]">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className={`bg-stone/30 animate-pulse ${LAYOUT[i]}`} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="container-px mt-24">
       <div className="flex items-end justify-between mb-8">

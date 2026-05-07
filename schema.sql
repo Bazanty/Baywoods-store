@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE user_role       AS ENUM ('customer', 'admin', 'staff');
 CREATE TYPE order_status    AS ENUM ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded');
 CREATE TYPE payment_status  AS ENUM ('pending', 'paid', 'failed', 'refunded', 'partially_refunded');
-CREATE TYPE payment_method  AS ENUM ('card', 'bank_transfer', 'paypal', 'crypto', 'cash_on_delivery');
+CREATE TYPE payment_method  AS ENUM ('mpesa', 'card', 'bank_transfer', 'paypal', 'crypto', 'cash_on_delivery');
 CREATE TYPE address_type    AS ENUM ('shipping', 'billing', 'both');
 CREATE TYPE discount_type   AS ENUM ('percentage', 'fixed');
 
@@ -46,16 +46,22 @@ CREATE TABLE addresses (
     id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id        UUID         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     type           address_type NOT NULL DEFAULT 'shipping',
+    label          VARCHAR(50)  NOT NULL DEFAULT 'Home',    -- Home / Work / Other
     full_name      VARCHAR(200) NOT NULL,
+    first_name     VARCHAR(100),
+    last_name      VARCHAR(100),
     phone          VARCHAR(30),
     line1          VARCHAR(255) NOT NULL,
+    address        VARCHAR(255),                            -- alias for line1 (Kenya UI)
     line2          VARCHAR(255),
     city           VARCHAR(100) NOT NULL,
     state          VARCHAR(100),
-    postal_code    VARCHAR(20)  NOT NULL,
-    country_code   CHAR(2)      NOT NULL,   -- ISO 3166-1 alpha-2
+    county         VARCHAR(100),                            -- alias for state (Kenya UI)
+    postal_code    VARCHAR(20)  NOT NULL DEFAULT '00100',
+    country_code   CHAR(2)      NOT NULL DEFAULT 'KE',     -- ISO 3166-1 alpha-2
     is_default     BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_addresses_user ON addresses (user_id);
@@ -205,7 +211,10 @@ CREATE INDEX idx_coupons_active ON coupons (is_active, expires_at);
 CREATE TABLE orders (
     id               UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id          UUID           REFERENCES users (id) ON DELETE SET NULL,
+    email            VARCHAR(255),                            -- guest checkout email
     status           order_status   NOT NULL DEFAULT 'pending',
+    payment_method   payment_method,                          -- mpesa / card / etc.
+    payment_status   payment_status NOT NULL DEFAULT 'pending',
     -- Address snapshot at time of order (intentionally denormalised)
     shipping_name    VARCHAR(200)   NOT NULL,
     shipping_line1   VARCHAR(255)   NOT NULL,
@@ -215,6 +224,7 @@ CREATE TABLE orders (
     shipping_postal  VARCHAR(20)    NOT NULL,
     shipping_country CHAR(2)        NOT NULL,
     shipping_phone   VARCHAR(30),
+    shipping_method  VARCHAR(20)    NOT NULL DEFAULT 'standard', -- standard / express
     -- Totals
     subtotal         NUMERIC(12, 2) NOT NULL CHECK (subtotal >= 0),
     discount_amount  NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -262,24 +272,33 @@ CREATE INDEX idx_order_items_product ON order_items (product_id);
 -- =============================================================
 
 CREATE TABLE payments (
-    id                UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id          UUID           NOT NULL REFERENCES orders (id) ON DELETE RESTRICT,
-    status            payment_status NOT NULL DEFAULT 'pending',
-    method            payment_method NOT NULL,
-    amount            NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
-    currency          CHAR(3)        NOT NULL DEFAULT 'USD',  -- ISO 4217
-    provider_tx_id    VARCHAR(255)   UNIQUE,                  -- gateway transaction ID
-    provider_response JSONB,                                  -- raw gateway payload
-    paid_at           TIMESTAMPTZ,
-    refunded_at       TIMESTAMPTZ,
-    refund_amount     NUMERIC(12, 2) CHECK (refund_amount >= 0),
-    created_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
-    updated_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+    id                       UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id                 UUID           NOT NULL REFERENCES orders (id) ON DELETE RESTRICT,
+    status                   payment_status NOT NULL DEFAULT 'pending',
+    method                   payment_method NOT NULL,
+    amount                   NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+    currency                 CHAR(3)        NOT NULL DEFAULT 'KES',  -- ISO 4217
+    provider_tx_id           VARCHAR(255)   UNIQUE,                  -- gateway transaction ID
+    provider_response        JSONB,                                  -- raw gateway payload
+    -- M-Pesa specific
+    checkout_request_id      VARCHAR(255),                            -- STK push checkout request ID
+    mpesa_receipt            VARCHAR(100),                            -- e.g. "QJK3B7WCLP"
+    result_desc              TEXT,                                    -- Daraja result description
+    -- Stripe specific
+    stripe_payment_intent_id VARCHAR(255),                            -- Stripe PaymentIntent ID
+    --
+    paid_at                  TIMESTAMPTZ,
+    refunded_at              TIMESTAMPTZ,
+    refund_amount            NUMERIC(12, 2) CHECK (refund_amount >= 0),
+    created_at               TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    updated_at               TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_payments_order    ON payments (order_id);
-CREATE INDEX idx_payments_status   ON payments (status);
-CREATE INDEX idx_payments_provider ON payments (provider_tx_id);
+CREATE INDEX idx_payments_order     ON payments (order_id);
+CREATE INDEX idx_payments_status    ON payments (status);
+CREATE INDEX idx_payments_provider  ON payments (provider_tx_id);
+CREATE INDEX idx_payments_mpesa_cri ON payments (checkout_request_id);
+CREATE INDEX idx_payments_stripe_pi ON payments (stripe_payment_intent_id);
 
 -- =============================================================
 -- REVIEWS
@@ -338,3 +357,35 @@ CREATE TRIGGER trg_payments_updated_at
 CREATE TRIGGER trg_inventory_updated_at
     BEFORE UPDATE ON inventory
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_addresses_updated_at
+    BEFORE UPDATE ON addresses
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =============================================================
+-- NEWSLETTER SUBSCRIBERS
+-- =============================================================
+
+CREATE TABLE newsletter_subscribers (
+    id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    email         VARCHAR(255)  NOT NULL UNIQUE,
+    subscribed_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_newsletter_email ON newsletter_subscribers (email);
+
+-- =============================================================
+-- CONTACT MESSAGES
+-- =============================================================
+
+CREATE TABLE contact_messages (
+    id         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(200)  NOT NULL,
+    email      VARCHAR(255)  NOT NULL,
+    subject    VARCHAR(255)  NOT NULL DEFAULT 'General',
+    message    TEXT          NOT NULL,
+    is_read    BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_contact_messages_read ON contact_messages (is_read, created_at DESC);
