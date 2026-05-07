@@ -21,7 +21,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://baywoods.co.ke";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Baywoods Store — Kenyan Streetwear",
+    default: "Baywoods Store - Kenyan Streetwear",
     template: "%s | Baywoods Store",
   },
   description:
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     locale: "en_KE",
     url: SITE_URL,
     siteName: "Baywoods Store",
-    title: "Baywoods Store — Kenyan Streetwear",
+    title: "Baywoods Store - Kenyan Streetwear",
     description: "Kenyan streetwear for the culture. M-Pesa checkout, ships nationwide.",
     images: [
       {
@@ -81,9 +81,15 @@ export const metadata: Metadata = {
   },
 };
 
+const themeScript = `(function(){try{var t=localStorage.getItem('bw_theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(t===null&&d))document.documentElement.classList.add('dark')}catch(e){}})()`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${inter.variable}`}>
+    <html lang="en" className={`${cormorant.variable} ${inter.variable}`} suppressHydrationWarning>
+      {/* Runs before paint to prevent flash of wrong theme */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <StoreShell>{children}</StoreShell>
       </body>

@@ -1,5 +1,6 @@
 import { getNewArrivals } from "@/lib/supabase/queries";
 import ProductCard from "@/components/shop/ProductCard";
+import Link from "next/link";
 
 export const metadata = { title: "New Arrivals" };
 
@@ -20,7 +21,12 @@ export default async function NewArrivalsPage() {
         </div>
 
         {products.length === 0 ? (
-          <p className="text-muted text-center py-20">New arrivals coming soon — stay tuned.</p>
+          <div className="text-center py-20">
+            <p className="text-muted mb-5">New arrivals coming soon - stay tuned.</p>
+            <Link href="/shop" className="btn-outline">
+              Browse All Products
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
             {products.map((product) => (

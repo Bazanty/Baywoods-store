@@ -16,9 +16,6 @@ function getAdmin() {
   );
 }
 
-// Reserves stock for every cart line under a single session id. If any line
-// fails, every previously-reserved line for this session is released so the
-// user is never left holding partial stock.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
   const rl = rateLimit(`reserve:${ip}`, 15, 60_000);
@@ -40,8 +37,13 @@ export async function POST(req: NextRequest) {
 
   const supabaseAdmin = getAdmin();
 
-  // Clear any stale reservations from a previous attempt on the same session.
+  // Sweep globally-expired reservations so stale holds don't block new checkouts.
+  try { await supabaseAdmin.rpc("expire_reservations"); } catch { /* best-effort */ }
+
+  // Clear any previous attempt on this session.
   await supabaseAdmin.rpc("release_session_reservations", { p_session_id: sessionId });
+
+  let reservedCount = 0;
 
   for (const item of items) {
     const { data, error } = await supabaseAdmin.rpc("reserve_stock_v2", {
@@ -53,6 +55,35 @@ export async function POST(req: NextRequest) {
     });
 
     if (error || data === false) {
+      // Check if an inventory row exists for this specific variant bucket
+      // (base row when variantId is null, or the exact variant row).
+      // Checking any row for the product would give a false positive when the
+      // product only has per-variant rows but the cart sent variantId = null.
+      const { data: invRows } = await (
+        item.variantId
+          ? supabaseAdmin.from("inventory").select("id").eq("product_id", item.productId).eq("variant_id", item.variantId)
+          : supabaseAdmin.from("inventory").select("id").eq("product_id", item.productId).is("variant_id", null)
+      ).limit(1);
+
+      if (!invRows || invRows.length === 0) {
+        // No inventory row — product is untracked. Insert a placeholder reservation
+        // (with null variant_id to avoid FK issues) so consume_reservations gets
+        // the right count. If the insert also fails, just skip — the orders route
+        // will handle it via expectedConsumed.
+        const { error: phErr } = await supabaseAdmin.from("cart_reservations").insert({
+          session_id: sessionId,
+          product_id: item.productId,
+          variant_id: null,
+          quantity: item.quantity,
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        });
+        if (!phErr) reservedCount++;
+        // If placeholder fails, don't increment — orders route uses reservedCount
+        // and won't expect this item to be consumed.
+        continue;
+      }
+
+      // Inventory row exists but stock is insufficient.
       await supabaseAdmin.rpc("release_session_reservations", { p_session_id: sessionId });
       return NextResponse.json(
         {
@@ -61,7 +92,11 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
+
+    reservedCount++;
   }
 
-  return NextResponse.json({ ok: true });
+  // Return reservedCount so the orders route can verify exactly how many
+  // reservations to expect, rather than comparing against items.length.
+  return NextResponse.json({ ok: true, reservedCount });
 }

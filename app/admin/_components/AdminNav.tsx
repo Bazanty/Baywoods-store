@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, Tag, Ticket, Users, Boxes, RotateCcw, ArrowUpLeft, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Tag, Ticket, Users, Boxes, RotateCcw, MessageSquare, Star, ArrowUpLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -14,14 +14,17 @@ const nav = [
   { href: "/admin/returns",    label: "Returns",   icon: RotateCcw },
   { href: "/admin/categories", label: "Categories",icon: Tag },
   { href: "/admin/coupons",    label: "Coupons",   icon: Ticket },
+  { href: "/admin/reviews",    label: "Reviews",   icon: Star },
+  { href: "/admin/contacts",   label: "Messages",  icon: MessageSquare },
 ];
 
-export default function AdminNav() {
-  const pathname = usePathname();
+export default function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname() ?? "";
   const router = useRouter();
 
   const handleLogout = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
+    onNavigate?.();
     router.replace("/admin/login");
   };
 
@@ -36,6 +39,7 @@ export default function AdminNav() {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 px-6 py-2.5 text-sm transition-colors",
                 active
@@ -53,6 +57,7 @@ export default function AdminNav() {
       <div className="px-6 py-5 border-t border-white/10 space-y-3">
         <Link
           href="/"
+          onClick={onNavigate}
           className="flex items-center gap-2 text-xs text-white/35 hover:text-white/60 transition-colors"
         >
           <ArrowUpLeft size={13} />

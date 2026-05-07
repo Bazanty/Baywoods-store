@@ -24,9 +24,12 @@ interface Props {
 
 export default function ProductClient({ product, related, reviews }: Props) {
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
+  const [selectedColor, setSelectedColor] = useState(
+    product.colors[0] ?? { name: "Default", hex: "#1E293B" }
+  );
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [addedMsg, setAddedMsg] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState<string | null>(null);
 
   const { addItem, toggleWishlist, isWishlisted } = useCartStore();
@@ -146,7 +149,17 @@ export default function ProductClient({ product, related, reviews }: Props) {
                   <Heart size={18} className={wishlisted ? "fill-danger" : ""} />
                 </button>
                 <button
-                  onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}
+                  onClick={async () => {
+                    const url = window.location.href;
+                    if (navigator.share) {
+                      await navigator.share({ title: product.name, url });
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }
+                  }}
+                  title={copied ? "Copied!" : "Share"}
                   className="w-14 h-14 border border-stone text-ink hover:border-ink flex items-center justify-center transition-colors"
                 >
                   <Share2 size={16} />

@@ -129,7 +129,7 @@ export default function OrderTrackingPage() {
                       {step === "shipped" && <Truck size={15} />}
                       {step === "delivered" && <MapPin size={15} />}
                     </div>
-                    <span className="text-[10px] mt-1.5 uppercase tracking-wider text-muted capitalize">
+                    <span className="text-[10px] mt-1.5 uppercase tracking-wider text-muted">
                       {step}
                     </span>
                   </div>

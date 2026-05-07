@@ -10,6 +10,7 @@ interface AuthStore {
   loading: boolean;
   initialized: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
+  signInWithOAuth: (provider: "google" | "apple") => Promise<string | null>;
   signUp: (opts: { email: string; password: string; firstName: string; lastName: string; phone?: string }) => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
@@ -41,6 +42,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
   signIn: async (email, password) => {
     set({ loading: true });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    set({ loading: false });
+    return error ? error.message : null;
+  },
+
+  signInWithOAuth: async (provider) => {
+    set({ loading: true });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/account` },
+    });
     set({ loading: false });
     return error ? error.message : null;
   },

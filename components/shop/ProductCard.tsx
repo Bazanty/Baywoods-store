@@ -19,19 +19,25 @@ const cardVariant = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
 
+const FALLBACK_PRODUCT_IMAGE =
+  "https://res.cloudinary.com/dltbrta8h/image/upload/v1775887092/baywoodstore/nike/ak9wc1v6af5lvckiithw.jpg";
+
 export default function ProductCard({ product }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const { toggleWishlist, isWishlisted, addItem } = useCartStore();
   const wishlisted = isWishlisted(product.id);
-  const hasSecondImage = product.images.length > 1;
+  const primaryImage = product.images[0] ?? FALLBACK_PRODUCT_IMAGE;
+  const secondaryImage = product.images[1];
+  const hasSecondImage = Boolean(secondaryImage);
   const discount = product.salePrice
     ? getDiscountPercent(product.price, product.salePrice)
     : null;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
-    const defaultSize = product.sizes[Math.floor(product.sizes.length / 2)];
-    addItem(product, defaultSize, product.colors[0]);
+    const defaultSize = product.sizes[Math.floor(product.sizes.length / 2)] ?? "One Size";
+    const defaultColor = product.colors[0] ?? { name: "Default", hex: "#1E293B" };
+    addItem(product, defaultSize, defaultColor);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -46,29 +52,29 @@ export default function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      {/* Image container — original 3/4 frame, but with padding + contain so
-          shoes still show end-to-end without object-cover slicing them. */}
-      <div className="relative aspect-[3/4] bg-beige-dark overflow-hidden">
-        <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0 p-3 sm:p-4">
+      <div className="relative aspect-square bg-beige-dark overflow-hidden">
+        <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0">
           <Image
-            src={product.images[0]}
+            src={primaryImage}
             alt={product.name}
-            fill
+            width={500}
+            height={500}
             quality={90}
             className={cn(
-              "object-contain transition-all duration-500 ease-out-expo",
+              "w-full h-full object-cover transition-all duration-500 ease-out-expo",
               hovered && hasSecondImage ? "opacity-0 scale-[1.04]" : "opacity-100 scale-100"
             )}
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
           />
-          {hasSecondImage && (
+          {hasSecondImage && secondaryImage && (
             <Image
-              src={product.images[1]}
+              src={secondaryImage}
               alt={`${product.name} alternate view`}
-              fill
+              width={500}
+              height={500}
               quality={90}
               className={cn(
-                "object-contain transition-all duration-500 ease-out-expo",
+                "absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out-expo",
                 hovered ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
               )}
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
@@ -85,14 +91,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Wishlist */}
         <button
           onClick={handleWishlist}
-          className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:bg-white"
+          className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:bg-white [&>svg]:text-neutral-800"
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart
             size={14}
             className={cn(
               "transition-colors",
-              wishlisted ? "fill-danger text-danger" : "text-ink"
+              wishlisted ? "fill-danger text-danger" : "text-neutral-800"
             )}
           />
         </button>
@@ -108,7 +114,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             initial={false}
             animate={{ y: hovered ? 0 : "100%" }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-0 left-0 right-0 z-10 bg-ink text-white py-2.5 flex items-center justify-center gap-2 text-xs font-medium tracking-wide hover:bg-forest transition-colors"
+            className="absolute bottom-0 left-0 right-0 z-10 bg-neutral-900 text-white py-2.5 flex items-center justify-center gap-2 text-xs font-medium tracking-wide hover:bg-forest transition-colors"
           >
             <Plus size={12} />
             Quick Add

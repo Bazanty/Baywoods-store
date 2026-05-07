@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -14,9 +14,18 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setHasSession(Boolean(data.session));
+      setCheckingSession(false);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +68,22 @@ export default function ResetPasswordPage() {
             <h1 className="font-serif text-3xl text-ink mb-2">New Password</h1>
             <p className="text-sm text-muted mb-8">Choose a strong password for your account.</p>
 
-            {done ? (
+            {checkingSession ? (
+              <div className="h-28 bg-stone/40 animate-pulse" />
+            ) : !hasSession ? (
+              <div className="bg-red-50 border border-red-100 px-4 py-5 text-sm text-danger">
+                <p className="font-medium mb-1">Reset link expired</p>
+                <p className="text-danger/80 mb-4">
+                  Open the latest reset link from your email, or request a new one.
+                </p>
+                <Link href="/auth/forgot" className="text-xs font-medium underline underline-offset-2">
+                  Request new link
+                </Link>
+              </div>
+            ) : done ? (
               <div className="bg-forest/10 border border-forest/20 px-4 py-5 text-sm text-forest">
                 <p className="font-medium mb-1">Password updated</p>
-                <p className="text-forest/80">Redirecting you to sign in…</p>
+                <p className="text-forest/80">Redirecting you to sign in...</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

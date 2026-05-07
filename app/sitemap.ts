@@ -10,6 +10,9 @@ const STATIC_PATHS: { path: string; priority: number; changeFrequency: MetadataR
   { path: "/sale",         priority: 0.9, changeFrequency: "daily" },
   { path: "/about",        priority: 0.5, changeFrequency: "monthly" },
   { path: "/contact",      priority: 0.5, changeFrequency: "monthly" },
+  { path: "/privacy",      priority: 0.3, changeFrequency: "yearly" },
+  { path: "/terms",        priority: 0.3, changeFrequency: "yearly" },
+  { path: "/cookies",      priority: 0.3, changeFrequency: "yearly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

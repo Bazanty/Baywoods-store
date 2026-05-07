@@ -8,26 +8,32 @@ import Button from "@/components/ui/Button";
 
 const faqs = [
   {
+    id: "shipping",
     q: "How long does delivery take?",
     a: "Standard shipping takes 3–7 business days. Express shipping delivers within 1–2 business days. We ship across Kenya via multiple carriers.",
   },
   {
+    id: "mpesa",
     q: "Can I pay with M-Pesa?",
     a: "Yes! We support M-Pesa via Safaricom Daraja STK Push. You'll receive a payment prompt on your phone at checkout. Till Number: 5234789.",
   },
   {
+    id: "returns",
     q: "What's your returns policy?",
     a: "We accept returns within 14 days of delivery. Items must be unworn, unwashed, with original tags attached. Defective or wrong items get free returns. Refunds process within 5–7 business days.",
   },
   {
+    id: "tracking",
     q: "How do I track my order?",
     a: "Once your order ships, you'll receive an SMS and email with your tracking number. You can also view order status in your account under 'My Orders'.",
   },
   {
+    id: "sizing",
     q: "What if something doesn't fit?",
     a: "We offer free size exchanges within the 14-day window. Use our size guide before ordering to find the right fit. When in doubt, size up.",
   },
   {
+    id: "international",
     q: "Do you ship outside Kenya?",
     a: "Currently we ship within Kenya only. International shipping is planned for Phase 4 of our roadmap. Sign up for our newsletter to be notified.",
   },
@@ -76,7 +82,7 @@ export default function ContactPage() {
             <h2 className="font-serif text-2xl text-ink mb-6">Frequently Asked</h2>
             <div className="space-y-0">
               {faqs.map((faq, i) => (
-                <div key={i} className="border-b border-stone">
+                <div key={faq.id} id={faq.id} className="scroll-mt-28 border-b border-stone">
                   <button
                     onClick={() => setOpen(open === i ? null : i)}
                     className="w-full flex items-start justify-between py-5 text-left gap-4"

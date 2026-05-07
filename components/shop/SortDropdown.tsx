@@ -26,6 +26,8 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className="flex items-center gap-2 text-sm text-ink border border-stone px-3 py-2 hover:border-ink transition-colors"
       >
         <span className="text-muted text-xs">Sort:</span>
@@ -39,10 +41,12 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-cream border border-stone shadow-lg z-20">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-cream border border-stone shadow-lg z-20" role="listbox">
             {options.map((opt) => (
               <button
                 key={opt.value}
+                role="option"
+                aria-selected={opt.value === value}
                 onClick={() => {
                   onChange(opt.value);
                   setOpen(false);

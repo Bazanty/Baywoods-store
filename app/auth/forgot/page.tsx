@@ -18,13 +18,16 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return;
     setLoading(true);
     setError(null);
-    const err = await resetPassword(email);
+    const err = await resetPassword(normalizedEmail);
     setLoading(false);
     if (err) {
       setError(err);
     } else {
+      setEmail(normalizedEmail);
       setSent(true);
     }
   };
@@ -61,6 +64,13 @@ export default function ForgotPasswordPage() {
                 <p className="text-forest/80">
                   A reset link was sent to <strong>{email}</strong>. It expires in 1 hour.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setSent(false)}
+                  className="mt-4 text-xs font-medium text-forest underline underline-offset-2"
+                >
+                  Use a different email
+                </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

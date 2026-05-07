@@ -20,7 +20,15 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     }
   }, [initialized, user, router]);
 
-  if (!initialized || !user) return null;
+  if (!initialized || !user) {
+    return (
+      <div className="min-h-screen pt-28 flex items-start justify-center">
+        <div className="w-40 h-2 bg-stone/50 overflow-hidden">
+          <div className="h-full w-1/2 bg-forest animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

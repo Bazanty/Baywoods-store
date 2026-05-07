@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
-import { PackageX, Pencil } from "lucide-react";
+import { PackageX, Search, X } from "lucide-react";
 import { bulkToggleProducts, bulkDeleteProducts } from "../actions";
 import ProductRowActions from "@/components/admin/ProductRowActions";
 import { formatPrice } from "@/lib/utils";
@@ -22,8 +22,25 @@ interface ProductRow {
 export default function BulkActions({ products }: { products: ProductRow[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "low-stock" | "out-of-stock">("all");
 
-  const allSelected = selected.size === products.length && products.length > 0;
+  const visible = useMemo(() => {
+    let list = products;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q) || (p.categoryName ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter === "active") list = list.filter((p) => p.isActive);
+    if (statusFilter === "draft") list = list.filter((p) => !p.isActive);
+    if (statusFilter === "low-stock") list = list.filter((p) => p.stock > 0 && p.stock <= 5);
+    if (statusFilter === "out-of-stock") list = list.filter((p) => p.stock === 0);
+    return list;
+  }, [products, search, statusFilter]);
+
+  const allSelected = selected.size === visible.length && visible.length > 0;
   const someSelected = selected.size > 0;
 
   const toggle = (id: string) => {
@@ -36,7 +53,7 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
 
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(products.map((p) => p.id)));
+    else setSelected(new Set(visible.map((p) => p.id)));
   };
 
   const ids = Array.from(selected);
@@ -61,6 +78,39 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
 
   return (
     <>
+      {/* Search + filter bar */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-stone flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, slug, category…"
+            className="w-full text-xs border border-stone bg-white pl-7 pr-7 py-2 text-ink outline-none focus:border-ink placeholder:text-muted"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink">
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          className="text-xs border border-stone bg-white px-2.5 py-2 text-ink outline-none focus:border-ink"
+        >
+          <option value="all">All ({products.length})</option>
+          <option value="active">Active ({products.filter(p => p.isActive).length})</option>
+          <option value="draft">Draft ({products.filter(p => !p.isActive).length})</option>
+          <option value="low-stock">Low stock ({products.filter(p => p.stock > 0 && p.stock <= 5).length})</option>
+          <option value="out-of-stock">Out of stock ({products.filter(p => p.stock === 0).length})</option>
+        </select>
+        {(search || statusFilter !== "all") && (
+          <span className="text-xs text-muted">{visible.length} result{visible.length !== 1 ? "s" : ""}</span>
+        )}
+      </div>
+
       {someSelected && (
         <div className="flex items-center gap-3 px-5 py-2.5 bg-stone/30 border-b border-stone">
           <span className="text-xs text-muted">{selected.size} selected</span>
@@ -109,11 +159,18 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {products.map((p, i) => (
+          {visible.length === 0 && (
+            <tr>
+              <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted">
+                No products match your search.
+              </td>
+            </tr>
+          )}
+          {visible.map((p, i) => (
             <tr
               key={p.id}
               className={`hover:bg-stone/20 transition-colors ${
-                i < products.length - 1 ? "border-b border-stone/50" : ""
+                i < visible.length - 1 ? "border-b border-stone/50" : ""
               } ${selected.has(p.id) ? "bg-forest/[0.03]" : ""}`}
             >
               <td className="pl-5 pr-2 py-3">

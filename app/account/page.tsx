@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -9,16 +9,17 @@ import {
   Heart,
   MapPin,
   Settings,
-  ChevronRight,
   LogOut,
   CreditCard,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
+import { getUserOrders } from "@/lib/supabase/queries";
+import type { Order } from "@/lib/types";
 
-const STATUS_COLORS: Record<string, string> = {
-  delivered: "text-forest bg-forest-muted",
+const statusColors: Record<Order["status"], string> = {
+  delivered: "text-forest bg-forest/10",
   shipped: "text-amber-700 bg-amber-50",
   processing: "text-ink bg-stone",
   pending: "text-muted bg-stone/50",
@@ -28,6 +29,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AccountPage() {
   const { user, signOut } = useAuthStore();
   const wishlistCount = useCartStore((s) => s.wishlist.length);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const router = useRouter();
 
   const meta = user?.user_metadata ?? {};
@@ -38,11 +41,20 @@ export default function AccountPage() {
   const email = user?.email ?? "";
 
   const cards = [
-    { icon: Package, label: "Orders", href: "/account/orders", count: 0 },
+    { icon: Package, label: "Orders", href: "/account/orders", count: orders.length },
     { icon: Heart, label: "Wishlist", href: "/account/wishlist", count: wishlistCount },
     { icon: MapPin, label: "Addresses", href: "/account/addresses", count: 0 },
     { icon: CreditCard, label: "Payment Methods", href: "/account/payments", count: 0 },
   ];
+
+  useEffect(() => {
+    if (!user) return;
+    setOrdersLoading(true);
+    getUserOrders(user.id)
+      .then(setOrders)
+      .catch(() => setOrders([]))
+      .finally(() => setOrdersLoading(false));
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -93,7 +105,6 @@ export default function AccountPage() {
           ))}
         </div>
 
-        {/* Recent orders — will show real orders after Step 4 */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-serif text-xl text-ink">Recent Orders</h2>
@@ -101,9 +112,40 @@ export default function AccountPage() {
               View All
             </Link>
           </div>
-          <p className="text-sm text-muted py-8 text-center border border-stone bg-cream">
-            No orders yet. <Link href="/shop" className="text-forest underline underline-offset-2">Start shopping</Link>
-          </p>
+          {ordersLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-20 bg-stone/40 animate-pulse" />
+              ))}
+            </div>
+          ) : orders.length > 0 ? (
+            <div className="border border-stone bg-cream divide-y divide-stone">
+              {orders.slice(0, 3).map((order) => (
+                <Link
+                  key={order.id}
+                  href={`/order/${order.id}`}
+                  className="flex items-center justify-between gap-4 p-4 hover:bg-stone/30 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-ink">#{order.id.slice(0, 8)}</p>
+                    <p className="text-xs text-muted mt-1">
+                      {order.date} · {order.items.length} {order.items.length === 1 ? "item" : "items"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 ${statusColors[order.status]}`}>
+                      {order.status}
+                    </span>
+                    <p className="text-sm font-semibold text-ink mt-2">{formatPrice(order.total)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted py-8 text-center border border-stone bg-cream">
+              No orders yet. <Link href="/shop" className="text-forest underline underline-offset-2">Start shopping</Link>
+            </p>
+          )}
         </div>
 
         <div className="border-t border-stone pt-6 space-y-1">

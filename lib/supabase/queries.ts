@@ -14,7 +14,7 @@ import type { Category, Order, Product, ProductColor, ProductVariant, Review } f
 // Internal DB shape returned by the nested select
 // ---------------------------------------------------------------------------
 
-type RawProduct = {
+export type RawProduct = {
   id: string;
   name: string;
   slug: string;
@@ -40,7 +40,7 @@ type RawProduct = {
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-function mapProduct(raw: RawProduct): Product {
+export function mapProduct(raw: RawProduct): Product {
   // Images — primary first, then by sort_order
   const images = [...raw.product_images]
     .sort((a, b) => {
@@ -117,7 +117,7 @@ function mapProduct(raw: RawProduct): Product {
 // Shared select string (keeps queries DRY)
 // ---------------------------------------------------------------------------
 
-const PRODUCT_SELECT = `
+export const PRODUCT_SELECT = `
   id,
   name,
   slug,

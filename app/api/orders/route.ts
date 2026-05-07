@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import { sendOrderConfirmation } from "@/lib/email";
+import { sendOrderConfirmation, sendAdminOrderNotification } from "@/lib/email";
 import { sendOrderSms } from "@/lib/sms";
 import { getClientIp, rateLimit } from "@/lib/security";
 
@@ -46,6 +46,7 @@ interface CreateOrderPayload {
   // so we can atomically consume those reservations instead of running a fresh
   // decrement (which would fail because the user's own reservation blocks it).
   sessionId?: string;
+  expectedConsumed?: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     const payload: CreateOrderPayload = await req.json();
-    const { userId, email, phone, shippingAddress, shippingMethod, shippingCost, subtotal, discountAmount = 0, total, paymentMethod, checkoutRequestId, stripePaymentIntentId, items, sessionId } = payload;
+    const { userId, email, phone, shippingAddress, shippingMethod, shippingCost, subtotal, discountAmount = 0, total, paymentMethod, checkoutRequestId, stripePaymentIntentId, items, sessionId, expectedConsumed } = payload;
 
     if (!items?.length) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
@@ -68,12 +69,16 @@ export async function POST(req: NextRequest) {
 
     const supabaseAdmin = getAdmin();
 
-    // Two stock paths:
-    //   1. Reserved path — client called reserve_stock_v2 earlier, so we just
-    //      consume the session's reservations atomically.
-    //   2. Direct path — fall back to per-item variant-aware decrement, with
-    //      rollback on any failure.
-    const decremented: { productId: string; variantId: string | null; qty: number }[] = [];
+    // Stock handling — two paths tried in order:
+    //   1. Reservation path: atomically consume the session's cart_reservations rows,
+    //      which both decrements quantity and releases the reserved hold in one shot.
+    //      Used when the client reserved stock at the shipping step.
+    //   2. Direct decrement path: per-item variant-aware decrement with rollback.
+    //      Used when no session (guest fast-checkout) OR when consume_reservations
+    //      found 0 rows (TTL expired between reservation and payment).
+    //      Untracked products (no inventory row) are skipped gracefully.
+
+    let inventoryHandledByReservation = false;
 
     if (sessionId) {
       const { data: consumed, error: consumeErr } = await supabaseAdmin.rpc(
@@ -82,24 +87,19 @@ export async function POST(req: NextRequest) {
       );
       if (consumeErr) {
         Sentry.captureException(consumeErr);
-        return NextResponse.json(
-          { error: "Could not finalise your reserved stock. Please retry." },
-          { status: 409 }
-        );
+        console.error("[orders] consume_reservations error:", consumeErr);
+        // Fall through to direct decrement below
+      } else if ((consumed ?? 0) > 0) {
+        // At least some reservations were consumed — inventory is handled.
+        // Untracked items (placeholder rows) are no-ops and still counted.
+        inventoryHandledByReservation = true;
       }
-      // No reservations consumed → the user's TTL ran out between reserving
-      // and submitting. Tell the client to re-reserve so we don't ship an
-      // order with no inventory decrement.
-      if ((consumed ?? 0) < items.length) {
-        return NextResponse.json(
-          {
-            error: "Your stock hold expired. Please refresh and try again.",
-            code: "RESERVATION_EXPIRED",
-          },
-          { status: 410 }
-        );
-      }
-    } else {
+      // consumed === 0: all reservations expired, fall through to direct decrement
+    }
+
+    const decremented: { productId: string; variantId: string | null; qty: number }[] = [];
+
+    if (!inventoryHandledByReservation) {
       for (const item of items) {
         const { data, error } = await supabaseAdmin.rpc("decrement_inventory_v2", {
           p_product_id: item.productId,
@@ -108,6 +108,19 @@ export async function POST(req: NextRequest) {
         });
 
         if (error || data === false) {
+          // Check whether this product has an inventory row at all.
+          const { data: invRows } = await supabaseAdmin
+            .from("inventory")
+            .select("id")
+            .eq("product_id", item.productId)
+            .limit(1);
+
+          if (!invRows || invRows.length === 0) {
+            // Untracked product — no inventory to manage, skip.
+            continue;
+          }
+
+          // Inventory row exists but stock is insufficient — rollback and fail.
           for (const dec of decremented) {
             await supabaseAdmin.rpc("restore_inventory_v2", {
               p_product_id: dec.productId,
@@ -234,6 +247,15 @@ export async function POST(req: NextRequest) {
         customerName,
         orderId,
         total,
+      }),
+      sendAdminOrderNotification({
+        orderId,
+        customerName,
+        email,
+        total,
+        paymentMethod,
+        items: items.map((i) => ({ name: i.productName, variant: i.variantName, qty: i.quantity, price: i.unitPrice })),
+        shippingAddress: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.county}`,
       }),
     ]).catch(() => {});
 

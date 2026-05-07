@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Instagram, Twitter } from "lucide-react";
 
@@ -28,7 +29,7 @@ const columns = [
       { label: "Shipping & Delivery", href: "/contact#shipping" },
       { label: "Returns & Exchanges", href: "/contact#returns" },
       { label: "Size Guide", href: "/contact#sizing" },
-      { label: "Track My Order", href: "/account/orders" },
+      { label: "Track My Order", href: "/order/track" },
       { label: "Contact Us", href: "/contact" },
     ],
   },
@@ -44,8 +45,29 @@ const columns = [
 ];
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) throw new Error("Newsletter request failed");
+      setEmail("");
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+  };
+
   return (
-    <footer className="bg-ink text-white mt-24">
+    <footer className="bg-ink text-white mt-16 lg:mt-20">
       {/* Newsletter strip */}
       <div className="border-b border-white/10">
         <div className="container-px py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -56,20 +78,32 @@ export default function Footer() {
             </p>
           </div>
           <form
-            onSubmit={(e) => e.preventDefault()}
-            className="flex w-full sm:w-auto gap-0"
+            onSubmit={handleNewsletter}
+            className="w-full sm:w-auto"
           >
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="flex-1 sm:w-64 bg-white/10 border border-white/20 text-white text-sm px-4 py-3 outline-none placeholder:text-white/40 focus:border-white/40 transition-colors"
-            />
-            <button
-              type="submit"
-              className="px-5 py-3 bg-forest text-white text-sm font-medium hover:bg-forest-dark transition-colors shrink-0"
-            >
-              Subscribe
-            </button>
+            <div className="flex gap-0">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="flex-1 sm:w-64 bg-white/10 border border-white/20 text-white text-sm px-4 py-3 outline-none placeholder:text-white/40 focus:border-white/40 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={status === "loading"}
+                className="px-5 py-3 bg-forest text-white text-sm font-medium hover:bg-forest-dark transition-colors shrink-0 disabled:opacity-60"
+              >
+                {status === "loading" ? "Joining..." : "Subscribe"}
+              </button>
+            </div>
+            {status === "success" && (
+              <p className="text-xs text-white/60 mt-2">You&apos;re on the list.</p>
+            )}
+            {status === "error" && (
+              <p className="text-xs text-red-200 mt-2">Could not subscribe. Try again.</p>
+            )}
           </form>
         </div>
       </div>
@@ -144,7 +178,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-white/30">
-            © {new Date().getFullYear()} Baywoods Store. All rights reserved.
+            Copyright {new Date().getFullYear()} Baywoods Store. All rights reserved.
           </p>
           <div className="flex items-center gap-3">
             {["Visa", "Mastercard", "M-Pesa", "PayPal"].map((method) => (

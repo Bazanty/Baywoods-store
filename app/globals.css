@@ -2,12 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --font-cormorant: "Cormorant Garamond", Georgia, serif;
-    --font-inter: "Inter", system-ui, sans-serif;
-  }
+/* CSS variables outside @layer so they are always highest-specificity */
+:root {
+  --font-cormorant: "Cormorant Garamond", Georgia, serif;
+  --font-inter: "Inter", system-ui, sans-serif;
 
+  --c-cream:        252 252 248;
+  --c-ink:          17 24 39;
+  --c-beige:        244 244 239;
+  --c-beige-dark:   232 236 230;
+  --c-forest:       45 106 79;
+  --c-forest-dark:  27 67 50;
+  --c-forest-light: 82 183 136;
+  --c-forest-muted: 216 243 220;
+  --c-stone:        225 228 232;
+  --c-stone-light:  238 241 243;
+  --c-muted:        100 116 139;
+  --c-danger:       192 57 43;
+}
+
+.dark {
+  --c-cream:        14 14 12;
+  --c-ink:          237 235 229;
+  --c-beige:        22 22 20;
+  --c-beige-dark:   30 30 28;
+  --c-forest:       82 183 136;
+  --c-forest-dark:  45 106 79;
+  --c-forest-light: 116 198 157;
+  --c-forest-muted: 21 43 31;
+  --c-stone:        42 41 39;
+  --c-stone-light:  34 33 32;
+  --c-muted:        126 138 150;
+  --c-danger:       224 92 92;
+}
+
+@layer base {
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -15,7 +44,8 @@
   }
 
   body {
-    @apply bg-beige text-ink font-sans;
+    @apply bg-cream text-ink font-sans;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   ::selection {
@@ -65,7 +95,11 @@
   }
 
   .section-title {
-    @apply font-serif text-display-lg text-ink leading-tight;
+    @apply font-serif text-3xl text-ink leading-tight sm:text-4xl lg:text-display-lg;
+  }
+
+  .section-kicker {
+    @apply text-[10px] font-semibold tracking-[0.22em] uppercase text-forest;
   }
 
   .tag {

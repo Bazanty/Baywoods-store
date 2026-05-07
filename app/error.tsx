@@ -23,7 +23,10 @@ export default function GlobalError({
       <p className="text-sm text-muted max-w-sm mb-8">
         We hit an unexpected error. Please try again, or contact support if the problem persists.
       </p>
-      <div className="flex gap-3">
+      {error.digest && (
+        <p className="text-[11px] text-muted mb-5">Reference: {error.digest}</p>
+      )}
+      <div className="flex flex-wrap justify-center gap-3">
         <button
           onClick={reset}
           className="px-6 py-3 bg-forest text-white text-sm font-medium hover:bg-forest-dark transition-colors"

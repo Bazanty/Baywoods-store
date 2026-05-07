@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { heroImages } from "@/lib/heroImages";
 
 const values = [
   {
@@ -29,10 +30,10 @@ export default function AboutPage() {
       {/* Hero */}
       <div className="relative h-[50vh] min-h-[320px] overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1400&q=85"
+          src={heroImages[3]}
           alt="Baywoods Store"
           fill
-          className="object-cover object-top"
+          className="object-cover object-center"
           sizes="100vw"
           priority
         />
@@ -99,6 +100,22 @@ export default function AboutPage() {
               </motion.div>
             ))}
           </div>
+        </div>
+
+        {/* Image grid */}
+        <div className="mb-20 grid grid-cols-3 gap-3">
+          {[heroImages[18], heroImages[34], heroImages[51], heroImages[72], heroImages[88], heroImages[97]].map((src, i) => (
+            <motion.div
+              key={src}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.07 }}
+              className={`relative overflow-hidden bg-stone-light ${i === 0 ? "col-span-2 aspect-[16/9]" : "aspect-square"}`}
+            >
+              <Image src={src} alt={`Baywoods campaign ${i + 1}`} fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
+            </motion.div>
+          ))}
         </div>
 
         {/* Numbers */}

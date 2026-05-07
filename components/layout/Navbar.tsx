@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown } from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/authStore";
@@ -50,6 +52,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,12 +81,21 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    setSearchOpen(false);
+    setMobileOpen(false);
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+  };
+
   return (
     <>
       <header
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-          scrolled ? "bg-beige/95 backdrop-blur-sm shadow-[0_1px_0_0_#E2DDD6]" : "bg-transparent"
+          scrolled ? "bg-beige/95 backdrop-blur-sm shadow-[0_1px_0_0_rgb(var(--c-stone))]" : "bg-transparent"
         )}
       >
         <div className="container-px">
@@ -163,6 +175,9 @@ export default function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-1">
+              {/* Theme toggle */}
+              <ThemeToggle />
+
               {/* Search */}
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -233,10 +248,7 @@ export default function Navbar() {
               <div className="container-px py-4">
                 <form
                   onSubmit={(e) => {
-                    e.preventDefault();
-                    if (searchQuery.trim()) {
-                      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-                    }
+                    submitSearch(e);
                   }}
                   className="flex items-center gap-3"
                 >
@@ -286,6 +298,17 @@ export default function Navbar() {
                   <X size={18} />
                 </button>
               </div>
+              <form onSubmit={submitSearch} className="p-6 border-b border-stone">
+                <div className="flex items-center gap-3 bg-beige border border-stone px-3 py-2.5">
+                  <Search size={15} className="text-muted shrink-0" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search products"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+                  />
+                </div>
+              </form>
               <nav className="flex-1 overflow-y-auto p-6 space-y-1">
                 {navLinks.map((link) => (
                   <div key={link.label}>

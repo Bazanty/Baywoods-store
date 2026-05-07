@@ -10,7 +10,6 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useCartStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/authStore";
-import { validateCoupon } from "@/lib/supabase/queries";
 import { formatPrice } from "@/lib/utils";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -71,16 +70,43 @@ export default function CheckoutPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [reserveError, setReserveError] = useState<string | null>(null);
   const [reserving, setReserving] = useState(false);
+  const [mpesaPhoneError, setMpesaPhoneError] = useState<string | null>(null);
 
   // Stable per-tab session id used to tie cart reservations to this checkout
   // attempt. Generated lazily so SSR doesn't try to touch crypto.
   const sessionIdRef = useRef<string>("");
   if (typeof window !== "undefined" && !sessionIdRef.current) {
-    sessionIdRef.current =
-      window.crypto?.randomUUID?.() ??
-      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // Reuse the session ID across page reloads so release_session_reservations
+    // at the top of the reserve route can clear the previous attempt's holds
+    // instead of orphaning them and inflating the reserved count.
+    const stored = sessionStorage.getItem("bw_checkout_sid");
+    if (stored) {
+      sessionIdRef.current = stored;
+    } else {
+      sessionIdRef.current =
+        window.crypto?.randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem("bw_checkout_sid", sessionIdRef.current);
+    }
   }
   const reservedRef = useRef(false);
+  const reservedCountRef = useRef(0);
+
+  // Prefill shipping form from logged-in user metadata once on mount.
+  useEffect(() => {
+    if (!user) return;
+    const meta = user.user_metadata ?? {};
+    const fullName: string = meta.full_name ?? meta.name ?? "";
+    const [first = "", ...rest] = fullName.trim().split(/\s+/);
+    setShipping((prev) => ({
+      ...prev,
+      email: prev.email || user.email || "",
+      phone: prev.phone || meta.phone || "",
+      firstName: prev.firstName || first,
+      lastName: prev.lastName || rest.join(" "),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Best-effort: if the user navigates away from /checkout without completing,
   // release whatever they had reserved so other shoppers aren't blocked.
@@ -126,10 +152,12 @@ export default function CheckoutPage() {
     shippingMethod: shipping.method,
     shippingCost,
     subtotal: sub,
+    discountAmount: promoDiscount,
     total,
     paymentMethod,
     checkoutRequestId: resolvedCheckoutRequestId,
     sessionId: reservedRef.current ? sessionIdRef.current : undefined,
+    expectedConsumed: reservedRef.current ? reservedCountRef.current : undefined,
     items: items.map((item) => ({
       productId: item.product.id,
       variantId: item.variantId ?? null,
@@ -163,7 +191,7 @@ export default function CheckoutPage() {
             `${Date.now()}-${Math.random().toString(36).slice(2)}`;
           setStep("shipping");
           setReserveError(
-            "Your 15-minute stock hold expired. Please review your cart and continue again."
+            "Your item hold timed out (15 min). Your cart is unchanged — confirm details and try again."
           );
         }
         setMpesaStatus("failed");
@@ -181,6 +209,7 @@ export default function CheckoutPage() {
     // Reservation has been consumed server-side — make sure unmount cleanup
     // doesn't try to release stock that's now permanently decremented.
     reservedRef.current = false;
+    sessionStorage.removeItem("bw_checkout_sid");
     if (shipping.email) {
       fetch("/api/cart-snapshot", {
         method: "DELETE",
@@ -251,6 +280,7 @@ export default function CheckoutPage() {
         return false;
       }
       reservedRef.current = true;
+      reservedCountRef.current = data.reservedCount ?? items.length;
       return true;
     } catch {
       setReserveError("Network error reserving stock. Please try again.");
@@ -265,22 +295,40 @@ export default function CheckoutPage() {
     setPromoLoading(true);
     setPromoMsg(null);
     try {
-      const result = await validateCoupon(promoCode, sub);
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode, orderTotal: sub }),
+      });
+      const result = await res.json();
       if (result.valid) {
         setPromoDiscount(result.discountAmount);
-        setPromoMsg({ type: "success", text: `Discount of ${formatPrice(result.discountAmount)} applied!` });
+        setPromoMsg({
+          type: "success",
+          text: `${formatPrice(result.discountAmount)} discount applied${result.description ? ` — ${result.description}` : ""}!`,
+        });
       } else {
         setPromoDiscount(0);
-        setPromoMsg({ type: "error", text: result.message ?? "Invalid coupon." });
+        setPromoMsg({ type: "error", text: result.message ?? "Invalid promo code." });
       }
     } catch {
-      setPromoMsg({ type: "error", text: "Failed to validate coupon. Try again." });
+      setPromoMsg({ type: "error", text: "Could not validate promo code. Try again." });
     }
     setPromoLoading(false);
   };
 
+  const validateMpesaPhone = (phone: string): string | null => {
+    const cleaned = phone.replace(/[\s\-()]/g, "");
+    if (!cleaned) return "Phone number is required";
+    if (/^(?:(?:\+?254)|0)[17]\d{8}$/.test(cleaned)) return null;
+    if (cleaned.length < 10) return "Phone number is too short";
+    return "Enter a valid Kenyan mobile number (e.g. 0712 345 678)";
+  };
+
   const handleOrder = async () => {
     if (paymentMethod === "mpesa") {
+      const err = validateMpesaPhone(mpesaPhone);
+      if (err) { setMpesaPhoneError(err); return; }
       await handleMpesaPayment();
     }
     // card is handled by StripeCardForm inline
@@ -455,16 +503,18 @@ export default function CheckoutPage() {
                 >
                   <h2 className="font-serif text-2xl text-ink mb-6">Shipping Information</h2>
 
-                  {/* Guest / sign in */}
-                  <div className="bg-forest-muted border border-forest/20 p-4 mb-6 flex items-center justify-between">
-                    <p className="text-sm text-forest-dark">
-                      Have an account?{" "}
-                      <Link href="/auth/signin" className="font-semibold underline underline-offset-2">
-                        Sign in
-                      </Link>{" "}
-                      to autofill your details.
-                    </p>
-                  </div>
+                  {/* Guest prompt — only shown when not signed in */}
+                  {!user && (
+                    <div className="bg-forest-muted border border-forest/20 p-4 mb-6">
+                      <p className="text-sm text-forest-dark">
+                        Have an account?{" "}
+                        <Link href="/auth/signin" className="font-semibold underline underline-offset-2">
+                          Sign in
+                        </Link>{" "}
+                        to autofill your details.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input
@@ -519,11 +569,18 @@ export default function CheckoutPage() {
                         onChange={(e) => setShipping({ ...shipping, county: e.target.value })}
                         className="input-base"
                       >
-                        {["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Other"].map(
-                          (c) => (
-                            <option key={c} value={c}>{c}</option>
-                          )
-                        )}
+                        {[
+                          "Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu",
+                          "Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho",
+                          "Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale",
+                          "Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit",
+                          "Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi",
+                          "Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya",
+                          "Taita-Taveta","Tana River","Tharaka-Nithi","Trans-Nzoia",
+                          "Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot",
+                        ].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -683,13 +740,22 @@ export default function CheckoutPage() {
                       )}
                       {(savedMpesaNumbers.length === 0 ||
                         !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)) && (
-                        <Input
-                          label="M-Pesa Phone Number"
-                          type="tel"
-                          value={mpesaPhone}
-                          onChange={(e) => setMpesaPhone(e.target.value)}
-                          placeholder="0712 345 678"
-                        />
+                        <div>
+                          <Input
+                            label="M-Pesa Phone Number"
+                            type="tel"
+                            value={mpesaPhone}
+                            onChange={(e) => {
+                              setMpesaPhone(e.target.value);
+                              if (mpesaPhoneError) setMpesaPhoneError(null);
+                            }}
+                            onBlur={() => setMpesaPhoneError(validateMpesaPhone(mpesaPhone))}
+                            placeholder="0712 345 678"
+                          />
+                          {mpesaPhoneError && (
+                            <p className="text-xs text-danger mt-1">{mpesaPhoneError}</p>
+                          )}
+                        </div>
                       )}
                       {mpesaStatus === "pending" && mpesaMessage && (
                         <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">

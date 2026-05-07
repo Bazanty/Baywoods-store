@@ -1,5 +1,6 @@
 import { getSaleProducts } from "@/lib/supabase/queries";
 import ProductCard from "@/components/shop/ProductCard";
+import Link from "next/link";
 
 export const metadata = { title: "Sale" };
 
@@ -10,7 +11,7 @@ export default async function SalePage() {
     <div className="pt-24 lg:pt-28 pb-24">
       <div className="bg-danger text-white py-3 text-center">
         <p className="text-sm font-semibold tracking-wide">
-          SALE — Up to 30% Off. Limited time only.
+          SALE - Up to 30% Off. Limited time only.
         </p>
       </div>
 
@@ -26,7 +27,12 @@ export default async function SalePage() {
         </div>
 
         {products.length === 0 ? (
-          <p className="text-muted text-center py-20">No sale items right now — check back soon.</p>
+          <div className="text-center py-20">
+            <p className="text-muted mb-5">No sale items right now - check back soon.</p>
+            <Link href="/new-arrivals" className="btn-outline">
+              Browse New Arrivals
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
             {products.map((product) => (

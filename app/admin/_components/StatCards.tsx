@@ -38,12 +38,12 @@ export default function StatCards({ productCount, orderCount, outOfStockCount }:
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {stats.map(({ label, value, icon: Icon, href, color, bg }) => (
         <Link
           key={label}
           href={href}
-          className="bg-white rounded p-5 flex items-start justify-between hover:shadow-sm transition-shadow"
+          className="bg-white rounded p-5 flex items-start justify-between hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest transition-shadow"
         >
           <div>
             <p className="text-xs text-muted tracking-wider uppercase mb-1">{label}</p>

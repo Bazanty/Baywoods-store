@@ -3,6 +3,15 @@ import { formatPrice } from "./utils";
 
 const FROM = "Baywoods Store <orders@baywoodsstore.com>";
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY ?? "placeholder");
 }
@@ -272,5 +281,114 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
   </table>
 </body>
 </html>`,
+  });
+}
+
+export async function sendContactConfirmationEmail(data: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  const firstName = escapeHtml(data.name.split(/\s+/)[0] || data.name);
+  const subject = escapeHtml(data.subject);
+  const message = escapeHtml(data.message).replace(/\n/g, "<br>");
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.NEXTAUTH_URL ??
+    "https://baywoodsstore.com";
+
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: "We received your message - Baywoods",
+    html: `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#F5F0E8;font-family:Inter,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:32px 16px">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
+        <tr><td style="padding:32px 40px;border-bottom:1px solid #E2DDD6;text-align:center">
+          <p style="font-family:Georgia,serif;font-size:24px;letter-spacing:4px;color:#1E293B;margin:0">BAYWOODS</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="font-family:Georgia,serif;font-size:22px;color:#1E293B;margin:0 0 8px">Message received.</p>
+          <p style="font-size:14px;color:#64748b;line-height:1.6;margin:0 0 24px">
+            Hi ${firstName}, thanks for contacting Baywoods. We have your message and will reply as soon as possible.
+          </p>
+          <div style="padding:20px;background:#F5F0E8;border:1px solid #E2DDD6">
+            <p style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 8px">Subject</p>
+            <p style="font-size:14px;color:#1E293B;margin:0 0 18px">${subject}</p>
+            <p style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 8px">Your Message</p>
+            <p style="font-size:13px;color:#1E293B;line-height:1.6;margin:0">${message}</p>
+          </div>
+          <div style="text-align:center;margin-top:32px">
+            <a href="${baseUrl}/shop" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">BROWSE BAYWOODS</a>
+          </div>
+        </td></tr>
+        <tr><td style="padding:24px 40px;border-top:1px solid #E2DDD6;text-align:center">
+          <p style="font-size:12px;color:#94a3b8;margin:0">Baywoods Store - Nairobi, Kenya</p>
+          <p style="font-size:12px;color:#94a3b8;margin:4px 0 0">Need to add details? Reply to this email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Admin — new order notification
+// ---------------------------------------------------------------------------
+export async function sendAdminOrderNotification(data: {
+  orderId: string;
+  customerName: string;
+  email: string;
+  total: number;
+  paymentMethod: string;
+  items: { name: string; variant: string; qty: number; price: number }[];
+  shippingAddress: string;
+}) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (!adminEmail || !process.env.RESEND_API_KEY) return;
+
+  const shortRef = data.orderId.slice(0, 8).toUpperCase();
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://baywoods.co.ke";
+
+  const itemRows = data.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;color:#1E293B">${escapeHtml(i.name)}${i.variant ? ` <span style="color:#94a3b8">${escapeHtml(i.variant)}</span>` : ""}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#64748b">×${i.qty}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#1E293B">${formatPrice(i.price * i.qty)}</td></tr>`
+    )
+    .join("");
+
+  await getResend().emails.send({
+    from: FROM,
+    to: adminEmail,
+    subject: `New Order #${shortRef} — ${formatPrice(data.total)} via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "Card"}`,
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:24px 16px"><tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
+<tr><td style="padding:24px 32px;border-bottom:1px solid #E2DDD6;background:#1E293B">
+<p style="font-family:Georgia,serif;font-size:20px;letter-spacing:4px;color:#fff;margin:0">BAYWOODS</p>
+<p style="font-size:11px;color:#94a3b8;margin:4px 0 0;letter-spacing:1px">NEW ORDER</p>
+</td></tr>
+<tr><td style="padding:28px 32px">
+<p style="font-size:22px;font-family:Georgia,serif;color:#1E293B;margin:0 0 4px">Order #${shortRef}</p>
+<p style="font-size:13px;color:#64748b;margin:0 0 20px">${data.customerName} · ${escapeHtml(data.email)} · via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "Card"}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px">${itemRows}</table>
+<p style="font-size:16px;font-weight:700;color:#1E293B;border-top:2px solid #1E293B;padding-top:10px;margin:0">Total: ${formatPrice(data.total)}</p>
+<p style="font-size:12px;color:#64748b;margin:12px 0 0">Ship to: ${escapeHtml(data.shippingAddress)}</p>
+<div style="margin-top:24px">
+<a href="${baseUrl}/admin/orders" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:12px;font-weight:600;padding:12px 28px;text-decoration:none;letter-spacing:1px">VIEW IN ADMIN</a>
+</div>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
   });
 }

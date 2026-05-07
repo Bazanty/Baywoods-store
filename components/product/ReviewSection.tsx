@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Star, ThumbsUp, Pencil } from "lucide-react";
 import { Review } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/authStore";
 import Button from "@/components/ui/Button";
 
@@ -16,12 +15,13 @@ interface ReviewSectionProps {
 }
 
 export default function ReviewSection({ reviews: initial, rating, reviewCount, productId }: ReviewSectionProps) {
-  const [reviews, setReviews] = useState(initial);
+  const reviews = initial;
   const [helpful, setHelpful] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ rating: 5, title: "", body: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
   const { user } = useAuthStore();
 
   const distribution = [5, 4, 3, 2, 1].map((star) => ({
@@ -34,38 +34,33 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
     e.preventDefault();
     if (!user) return;
     setSubmitting(true);
+    setError("");
 
-    const { data, error } = await supabase
-      .from("reviews")
-      .insert({
-        product_id: productId,
-        user_id: user.id,
-        rating: form.rating,
-        title: form.title,
-        body: form.body,
-        is_verified: false,
-        is_approved: false, // pending moderation
-      })
-      .select(`id, rating, title, body, created_at`)
-      .single();
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          rating: form.rating,
+          title: form.title,
+          body: form.body,
+        }),
+      });
+      const data = await res.json();
 
-    setSubmitting(false);
+      if (!res.ok) {
+        setError(data.error ?? "Could not submit review.");
+        return;
+      }
 
-    if (!error && data) {
-      const meta = user.user_metadata ?? {};
-      const newReview: Review = {
-        id: data.id,
-        author: `${meta.first_name ?? "You"} ${meta.last_name?.[0] ?? ""}.`.trim(),
-        rating: data.rating,
-        date: data.created_at.slice(0, 10),
-        body: data.body,
-        verified: false,
-        helpful: 0,
-      };
-      setReviews((r) => [newReview, ...r]);
       setSubmitted(true);
       setShowForm(false);
       setForm({ rating: 5, title: "", body: "" });
+    } catch {
+      setError("Could not submit review. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -176,6 +171,8 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
             <p className="text-xs text-muted mb-4">
               Your review will be visible after moderation.
             </p>
+
+            {error && <p className="text-xs font-medium text-danger mb-4">{error}</p>}
 
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="w-1/3">

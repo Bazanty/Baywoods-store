@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import type { Category } from "@/lib/types";
+import { getProductsByCategoryServer } from "@/lib/supabase/serverQueries";
 import CategoryClient from "./CategoryClient";
 
-const VALID_CATEGORIES = [
+const VALID_CATEGORIES: { slug: Category; label: string }[] = [
   { slug: "shoes", label: "Shoes" },
   { slug: "hoodies", label: "Hoodies" },
   { slug: "jorts", label: "Jorts" },
@@ -20,7 +22,7 @@ export async function generateMetadata(
   const meta = VALID_CATEGORIES.find((c) => c.slug === params.category);
   if (!meta) return { title: "Not Found" };
 
-  const title = `${meta.label} — Baywoods`;
+  const title = `${meta.label} - Baywoods`;
   const desc = `Shop ${meta.label.toLowerCase()} at Baywoods. Fresh drops, honest pricing, fast Kenya-wide delivery.`;
   return {
     title,
@@ -31,8 +33,17 @@ export async function generateMetadata(
   };
 }
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
+export default async function CategoryPage({ params }: { params: { category: string } }) {
   const catMeta = VALID_CATEGORIES.find((c) => c.slug === params.category);
   if (!catMeta) notFound();
-  return <CategoryClient category={params.category} label={catMeta.label} />;
+
+  const products = await getProductsByCategoryServer(catMeta.slug);
+
+  return (
+    <CategoryClient
+      category={catMeta.slug}
+      label={catMeta.label}
+      initialProducts={products}
+    />
+  );
 }

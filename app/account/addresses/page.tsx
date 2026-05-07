@@ -53,6 +53,7 @@ export default function AddressesPage() {
   const [editing, setEditing] = useState<Address | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -84,6 +85,7 @@ export default function AddressesPage() {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+    setError(null);
 
     const payload = {
       label:      form.label,
@@ -101,21 +103,39 @@ export default function AddressesPage() {
       updated_at: new Date().toISOString(),
     };
 
-    if (editing) {
-      const { data } = await supabase.from("addresses").update(payload).eq("id", editing.id).select().single();
+    try {
+      if (editing) {
+      const { data, error: updateError } = await supabase.from("addresses").update(payload).eq("id", editing.id).select().single();
+      if (updateError) throw updateError;
       if (data) setAddresses((prev) => prev.map((a) => (a.id === editing.id ? mapRow(data) : a)));
     } else {
-      const { data } = await supabase.from("addresses").insert({ ...payload, user_id: user.id, is_default: addresses.length === 0 }).select().single();
+      const { data, error: insertError } = await supabase.from("addresses").insert({ ...payload, user_id: user.id, is_default: addresses.length === 0 }).select().single();
+      if (insertError) throw insertError;
       if (data) setAddresses((prev) => [...prev, mapRow(data)]);
     }
 
-    setSaving(false);
-    setShowForm(false);
+      setShowForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save address.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("addresses").delete().eq("id", id);
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
+    if (!window.confirm("Delete this address?")) return;
+    const { error: deleteError } = await supabase.from("addresses").delete().eq("id", id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    setAddresses((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      if (prev.find((a) => a.id === id)?.is_default && next[0]) {
+        setDefault(next[0].id);
+      }
+      return next;
+    });
   };
 
   const setDefault = async (id: string) => {
@@ -192,6 +212,11 @@ export default function AddressesPage() {
             >
               <h2 className="font-serif text-xl text-ink mb-5">{editing ? "Edit Address" : "New Address"}</h2>
               <form onSubmit={handleSave} className="space-y-4">
+                {error && (
+                  <p className="text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
+                    {error}
+                  </p>
+                )}
                 <div>
                   <label className="label-base">Label</label>
                   <select value={form.label} onChange={set("label")} className="input-base">

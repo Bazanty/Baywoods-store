@@ -4,24 +4,55 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { productImages } from "@/lib/productImages";
 
 interface CategoryItem {
   slug: string;
   label: string;
   img: string;
-  span: string;
+  summary: string;
+  className: string;
 }
 
-const LAYOUT: Record<number, string> = {
-  0: "col-span-2 row-span-2",
-  1: "col-span-1 row-span-1",
-  2: "col-span-1 row-span-1",
-  3: "col-span-1 row-span-1",
-  4: "col-span-1 row-span-1",
-};
-
-const FALLBACK_IMG = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&q=80";
+const BASE_CATEGORIES: CategoryItem[] = [
+  {
+    slug: "shoes",
+    label: "Sneakers",
+    img: productImages.nike[0],
+    summary: "Daily pairs, statement Jordans, and clean runners.",
+    className: "md:col-span-2 md:row-span-2",
+  },
+  {
+    slug: "hoodies",
+    label: "Hoodies",
+    img: productImages.nike[12],
+    summary: "Heavyweight fleece and relaxed city layers.",
+    className: "",
+  },
+  {
+    slug: "joggers",
+    label: "Joggers",
+    img: productImages["new-balance"][5],
+    summary: "Soft rotation pieces for everyday movement.",
+    className: "",
+  },
+  {
+    slug: "caps",
+    label: "Caps",
+    img: productImages.vans[3],
+    summary: "Finishing pieces for low-effort fits.",
+    className: "",
+  },
+  {
+    slug: "accessories",
+    label: "Accessories",
+    img: productImages.adidas[2],
+    summary: "Belts, extras, and final details.",
+    className: "",
+  },
+];
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.07 } },
@@ -29,17 +60,17 @@ const stagger = {
 
 const item = {
   initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export default function CategoryGrid() {
-  const [cats, setCats] = useState<CategoryItem[]>([]);
+  const [cats, setCats] = useState<CategoryItem[]>(BASE_CATEGORIES);
 
   useEffect(() => {
     (async () => {
       const { data: categories } = await supabase
         .from("categories")
-        .select("slug, name")
+        .select("id, slug, name")
         .eq("is_active", true)
         .order("sort_order")
         .limit(5);
@@ -48,21 +79,25 @@ export default function CategoryGrid() {
 
       const items: CategoryItem[] = await Promise.all(
         categories.map(async (cat, idx) => {
-          const { data: images } = await supabase
+          const { data: products } = await supabase
             .from("products")
             .select("product_images(url, is_primary)")
             .eq("is_active", true)
-            .eq("categories.slug", cat.slug)
+            .eq("category_id", cat.id)
             .limit(1);
 
-          const productImages = (images?.[0] as any)?.product_images ?? [];
-          const primary = productImages.find((i: any) => i.is_primary)?.url ?? productImages[0]?.url;
+          const productImagesFromDb = (products?.[0] as any)?.product_images ?? [];
+          const primary =
+            productImagesFromDb.find((image: any) => image.is_primary)?.url ??
+            productImagesFromDb[0]?.url;
+          const fallback = BASE_CATEGORIES[idx] ?? BASE_CATEGORIES[0];
 
           return {
             slug: cat.slug,
             label: cat.name,
-            img: primary ?? FALLBACK_IMG,
-            span: LAYOUT[idx] ?? "col-span-1 row-span-1",
+            img: primary ?? fallback.img,
+            summary: fallback.summary,
+            className: fallback.className,
           };
         })
       );
@@ -71,25 +106,19 @@ export default function CategoryGrid() {
     })();
   }, []);
 
-  if (cats.length === 0) {
-    return (
-      <section className="container-px mt-24">
-        <h2 className="section-title mb-8">Shop by Category</h2>
-        <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[480px] lg:h-[560px]">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className={`bg-stone/30 animate-pulse ${LAYOUT[i]}`} />
-          ))}
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="container-px mt-24">
-      <div className="flex items-end justify-between mb-8">
-        <h2 className="section-title">Shop by Category</h2>
-        <Link href="/shop" className="text-xs font-medium tracking-widest uppercase text-forest hover:text-forest-dark transition-colors">
-          View All →
+    <section className="container-px mt-20 lg:mt-24">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="section-kicker mb-2">Shop by category</p>
+          <h2 className="section-title">Start with the fit.</h2>
+        </div>
+        <Link
+          href="/shop"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-forest transition-colors hover:text-forest-dark"
+        >
+          View all
+          <ArrowUpRight size={14} />
         </Link>
       </div>
 
@@ -98,13 +127,13 @@ export default function CategoryGrid() {
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-80px" }}
-        className="grid grid-cols-4 grid-rows-2 gap-3 h-[480px] lg:h-[560px]"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:auto-rows-[260px] lg:auto-rows-[300px]"
       >
         {cats.map((cat) => (
-          <motion.div
+          <motion.article
             key={cat.slug}
             variants={item}
-            className={`relative overflow-hidden group cursor-pointer ${cat.span}`}
+            className={`group relative min-h-[260px] overflow-hidden bg-stone-light ${cat.className}`}
           >
             <Link href={`/shop/${cat.slug}`} className="block h-full">
               <Image
@@ -112,19 +141,19 @@ export default function CategoryGrid() {
                 alt={cat.label}
                 fill
                 className="object-cover transition-transform duration-700 ease-out-expo group-hover:scale-105"
-                sizes="(max-width: 768px) 50vw, 25vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-ink/10 to-transparent transition-opacity duration-300 group-hover:opacity-80" />
-              <div className="absolute bottom-4 left-4">
-                <p className="text-white font-serif text-xl lg:text-2xl font-medium">
-                  {cat.label}
-                </p>
-                <p className="text-white/70 text-xs mt-0.5 translate-y-1 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                  Shop Now →
-                </p>
+              <div className="absolute inset-0 bg-ink/25 transition-colors group-hover:bg-ink/35" />
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                <p className="font-serif text-3xl leading-none text-white">{cat.label}</p>
+                <p className="mt-2 max-w-xs text-sm leading-6 text-white/75">{cat.summary}</p>
+                <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                  Shop now
+                  <ArrowUpRight size={14} />
+                </span>
               </div>
             </Link>
-          </motion.div>
+          </motion.article>
         ))}
       </motion.div>
     </section>

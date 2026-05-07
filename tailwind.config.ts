@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,32 +11,33 @@ const config: Config = {
     extend: {
       colors: {
         beige: {
-          DEFAULT: "#F5F0E8",
-          dark: "#EDE7DB",
+          DEFAULT: "rgb(var(--c-beige) / <alpha-value>)",
+          dark: "rgb(var(--c-beige-dark) / <alpha-value>)",
         },
-        cream: "#FAFAF6",
+        cream: "rgb(var(--c-cream) / <alpha-value>)",
         forest: {
-          DEFAULT: "#2D6A4F",
-          dark: "#1B4332",
-          light: "#52B788",
-          muted: "#D8F3DC",
+          DEFAULT: "rgb(var(--c-forest) / <alpha-value>)",
+          dark: "rgb(var(--c-forest-dark) / <alpha-value>)",
+          light: "rgb(var(--c-forest-light) / <alpha-value>)",
+          muted: "rgb(var(--c-forest-muted) / <alpha-value>)",
         },
-        ink: "#1E293B",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
         stone: {
-          DEFAULT: "#E2DDD6",
-          light: "#EDE8E2",
+          DEFAULT: "rgb(var(--c-stone) / <alpha-value>)",
+          light: "rgb(var(--c-stone-light) / <alpha-value>)",
         },
-        muted: "#64748B",
-        danger: "#C0392B",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        danger: "rgb(var(--c-danger) / <alpha-value>)",
+        cobalt: "#2563EB",
       },
       fontFamily: {
         serif: ["var(--font-cormorant)", "Georgia", "serif"],
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       fontSize: {
-        "display-2xl": ["clamp(3.5rem, 8vw, 7rem)", { lineHeight: "1.0" }],
-        "display-xl": ["clamp(2.5rem, 5vw, 5rem)", { lineHeight: "1.05" }],
-        "display-lg": ["clamp(2rem, 4vw, 3.5rem)", { lineHeight: "1.1" }],
+        "display-2xl": ["5rem", { lineHeight: "1.0" }],
+        "display-xl": ["4rem", { lineHeight: "1.05" }],
+        "display-lg": ["2.75rem", { lineHeight: "1.1" }],
       },
       transitionTimingFunction: {
         "out-expo": "cubic-bezier(0.22, 1, 0.36, 1)",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
@@ -11,6 +12,7 @@ import Button from "@/components/ui/Button";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuthStore();
+  const router = useRouter();
   const meta = user?.user_metadata ?? {};
 
   const [profileForm, setProfileForm] = useState({
@@ -34,7 +36,7 @@ export default function SettingsPage() {
       data: {
         first_name: profileForm.firstName,
         last_name: profileForm.lastName,
-        phone: profileForm.phone,
+        phone: profileForm.phone.trim(),
       },
     });
     setProfileSaving(false);
@@ -72,6 +74,11 @@ export default function SettingsPage() {
 
   const setPw = (f: keyof typeof pwForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setPwForm((s) => ({ ...s, [f]: e.target.value }));
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
 
   return (
     <div className="pt-24 lg:pt-28 pb-24">
@@ -173,7 +180,7 @@ export default function SettingsPage() {
           <h2 className="font-serif text-xl text-ink mb-4">Sign Out</h2>
           <p className="text-sm text-muted mb-4">You&apos;ll be signed out of your account on this device.</p>
           <button
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className="text-sm text-danger border border-danger/30 px-5 py-2.5 hover:bg-red-50 transition-colors"
           >
             Sign Out

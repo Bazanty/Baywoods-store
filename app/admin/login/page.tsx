@@ -16,19 +16,21 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanPassword = password.trim();
+    if (!cleanPassword) return;
     setError("");
     setLoading(true);
 
     const res = await fetch("/api/admin/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password: cleanPassword }),
     });
 
     setLoading(false);
 
     if (res.ok) {
-      const from = params.get("from") ?? "/admin";
+      const from = params?.get("from") ?? "/admin";
       router.replace(from);
       router.refresh();
     } else {
@@ -91,7 +93,7 @@ export default function AdminLoginPage() {
             className="w-full bg-ink text-white text-sm font-medium py-3 hover:bg-ink/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 size={14} className="animate-spin" />}
-            {loading ? "Verifying…" : "Sign In"}
+            {loading ? "Verifying..." : "Sign In"}
           </button>
         </form>
       </div>

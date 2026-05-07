@@ -10,6 +10,7 @@ import ProductCard from "@/components/shop/ProductCard";
 
 export default function WishlistPage() {
   const { wishlist } = useCartStore();
+  const toggleWishlist = useCartStore((s) => s.toggleWishlist);
   const [wishlisted, setWishlisted] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,10 +21,15 @@ export default function WishlistPage() {
       return;
     }
     getAllProducts()
-      .then((all) => setWishlisted(all.filter((p) => wishlist.includes(p.id))))
+      .then((all) => {
+        const activeWishlist = all.filter((p) => wishlist.includes(p.id));
+        const activeIds = new Set(activeWishlist.map((p) => p.id));
+        wishlist.filter((id) => !activeIds.has(id)).forEach(toggleWishlist);
+        setWishlisted(activeWishlist);
+      })
       .catch(() => setWishlisted([]))
       .finally(() => setLoading(false));
-  }, [wishlist]);
+  }, [wishlist, toggleWishlist]);
 
   return (
     <div className="pt-24 lg:pt-28 pb-24">

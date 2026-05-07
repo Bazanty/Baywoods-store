@@ -1,35 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryStkPush } from "@/lib/mpesa";
 
-// In-memory poll counter for mock mode (resets on server restart — fine for dev)
 const mockPollCount = new Map<string, number>();
 
 export async function POST(req: NextRequest) {
   try {
     const { checkoutRequestId } = await req.json();
+    const cleanCheckoutRequestId = String(checkoutRequestId ?? "").trim();
 
-    if (!checkoutRequestId) {
+    if (!cleanCheckoutRequestId) {
       return NextResponse.json({ error: "checkoutRequestId is required" }, { status: 400 });
     }
-
-    // Mock mode — simulate pending for 2 polls (~8s), then succeed
-    if (process.env.MPESA_MOCK === "true" || checkoutRequestId.startsWith("mock_")) {
-      const count = (mockPollCount.get(checkoutRequestId) ?? 0) + 1;
-      mockPollCount.set(checkoutRequestId, count);
-
-      if (count < 3) {
-        // Still "pending" — no resultCode means keep polling
-        return NextResponse.json({ resultCode: null, resultDesc: "The request is being processed" });
-      }
-
-      // Clean up and return success
-      mockPollCount.delete(checkoutRequestId);
-      return NextResponse.json({ resultCode: "0", resultDesc: "The service request is processed successfully." });
+    if (cleanCheckoutRequestId.length > 120) {
+      return NextResponse.json({ error: "checkoutRequestId is invalid" }, { status: 400 });
     }
 
-    const result = await queryStkPush(checkoutRequestId);
+    if (process.env.MPESA_MOCK === "true" || cleanCheckoutRequestId.startsWith("mock_")) {
+      const count = (mockPollCount.get(cleanCheckoutRequestId) ?? 0) + 1;
+      mockPollCount.set(cleanCheckoutRequestId, count);
 
-    // ResultCode "0" = success, "1032" = cancelled by user, "1037" = timeout
+      if (count < 3) {
+        return NextResponse.json({
+          resultCode: null,
+          resultDesc: "The request is being processed",
+        });
+      }
+
+      mockPollCount.delete(cleanCheckoutRequestId);
+      return NextResponse.json({
+        resultCode: "0",
+        resultDesc: "The service request is processed successfully.",
+      });
+    }
+
+    const result = await queryStkPush(cleanCheckoutRequestId);
+
     return NextResponse.json({
       resultCode: result.ResultCode,
       resultDesc: result.ResultDesc,

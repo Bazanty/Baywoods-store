@@ -412,30 +412,34 @@ export async function deleteCoupon(couponId: string) {
 // Admin stats for dashboard (enhanced with revenue)
 // ---------------------------------------------------------------------------
 export async function getAdminRevenue() {
-  const { data: orders } = await db()
-    .from("orders")
-    .select("total, status, created_at")
-    .in("status", ["pending", "confirmed", "processing", "shipped", "delivered"]);
+  try {
+    const { data: orders } = await db()
+      .from("orders")
+      .select("total, status, created_at")
+      .in("status", ["pending", "confirmed", "processing", "shipped", "delivered"]);
 
-  const allOrders = orders ?? [];
-  const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const allOrders = orders ?? [];
+    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const recentOrders = allOrders.filter((o) => new Date(o.created_at) >= thirtyDaysAgo);
-  const monthlyRevenue = recentOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const recentOrders = allOrders.filter((o) => new Date(o.created_at) >= thirtyDaysAgo);
+    const monthlyRevenue = recentOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
-  const { count: customerCount } = await db()
-    .from("orders")
-    .select("user_id", { count: "exact", head: true })
-    .not("user_id", "is", null);
+    const { count: customerCount } = await db()
+      .from("orders")
+      .select("user_id", { count: "exact", head: true })
+      .not("user_id", "is", null);
 
-  return {
-    totalRevenue,
-    monthlyRevenue,
-    monthlyOrders: recentOrders.length,
-    customerCount: customerCount ?? 0,
-  };
+    return {
+      totalRevenue,
+      monthlyRevenue,
+      monthlyOrders: recentOrders.length,
+      customerCount: customerCount ?? 0,
+    };
+  } catch {
+    return { totalRevenue: 0, monthlyRevenue: 0, monthlyOrders: 0, customerCount: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -607,6 +611,69 @@ export async function actionReturnRequest(
   }
 
   revalidatePath("/admin/returns");
+}
+
+// ---------------------------------------------------------------------------
+// Contact messages
+// ---------------------------------------------------------------------------
+export async function getContactMessages() {
+  requireAdmin();
+  const { data, error } = await db()
+    .from("contact_messages")
+    .select("id, name, email, subject, message, is_read, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function markContactRead(id: string) {
+  requireAdmin();
+  await db()
+    .from("contact_messages")
+    .update({ is_read: true })
+    .eq("id", id);
+  revalidatePath("/admin/contacts");
+}
+
+// ---------------------------------------------------------------------------
+// Reviews moderation
+// ---------------------------------------------------------------------------
+export async function getPendingReviews() {
+  requireAdmin();
+  const { data, error } = await db()
+    .from("reviews")
+    .select(`
+      id, rating, title, body, is_verified, is_approved, created_at,
+      products ( name, slug ),
+      users ( first_name, last_name, email )
+    `)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    rating: r.rating,
+    title: r.title ?? null,
+    body: r.body,
+    isApproved: r.is_approved,
+    isVerified: r.is_verified,
+    createdAt: r.created_at,
+    productName: r.products?.name ?? "Unknown product",
+    productSlug: r.products?.slug ?? "",
+    authorName: r.users ? `${r.users.first_name} ${r.users.last_name}` : "Anonymous",
+    authorEmail: r.users?.email ?? "",
+  }));
+}
+
+export async function approveReview(id: string) {
+  requireAdmin();
+  await db().from("reviews").update({ is_approved: true }).eq("id", id);
+  revalidatePath("/admin/reviews");
+}
+
+export async function rejectReview(id: string) {
+  requireAdmin();
+  await db().from("reviews").delete().eq("id", id);
+  revalidatePath("/admin/reviews");
 }
 
 // ---------------------------------------------------------------------------

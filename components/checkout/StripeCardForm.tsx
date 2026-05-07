@@ -24,12 +24,20 @@ export default function StripeCardForm({
   const elements = useElements();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!stripe || !elements) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) {
+      onError("Card payment is still loading. Please try again.");
+      return;
+    }
 
     setLoading(true);
     const card = elements.getElement(CardElement);
-    if (!card) { setLoading(false); return; }
+    if (!card) {
+      setLoading(false);
+      onError("Card details could not be loaded. Please refresh and try again.");
+      return;
+    }
 
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
@@ -50,7 +58,7 @@ export default function StripeCardForm({
   };
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="p-3.5 border border-stone bg-white rounded-sm">
         <CardElement
           options={{
@@ -69,12 +77,12 @@ export default function StripeCardForm({
 
       <div className="flex items-center gap-2 text-xs text-muted">
         <Lock size={11} className="text-forest" />
-        Secured by Stripe — your card details are encrypted
+        Secured by Stripe - your card details are encrypted
       </div>
 
-      <Button className="w-full" size="lg" loading={loading} onClick={handleSubmit}>
+      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!stripe || !elements}>
         Pay Now
       </Button>
-    </div>
+    </form>
   );
 }

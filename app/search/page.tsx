@@ -5,14 +5,19 @@ import { useSearchParams } from "next/navigation";
 import { searchProducts } from "@/lib/supabase/queries";
 import { Product } from "@/lib/types";
 import ProductCard from "@/components/shop/ProductCard";
-import { SearchX } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
 import Link from "next/link";
 
 function SearchResults() {
   const searchParams = useSearchParams();
-  const q = searchParams.get("q") || "";
+  const q = searchParams?.get("q") || "";
+  const [term, setTerm] = useState(q);
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setTerm(q);
+  }, [q]);
 
   useEffect(() => {
     if (!q.trim()) {
@@ -44,6 +49,26 @@ function SearchResults() {
             <h1 className="font-serif text-4xl text-ink">What are you looking for?</h1>
           )}
         </div>
+
+        <form
+          action="/search"
+          className="mb-10 flex items-center gap-3 border border-stone bg-cream px-4 py-3 max-w-xl"
+        >
+          <Search size={16} className="text-muted shrink-0" />
+          <input
+            name="q"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Search shoes, hoodies, joggers..."
+            className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+          />
+          <button
+            type="submit"
+            className="text-xs font-semibold tracking-wide text-forest hover:text-forest-dark"
+          >
+            Search
+          </button>
+        </form>
 
         {loading && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
