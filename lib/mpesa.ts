@@ -10,10 +10,11 @@
  *   MPESA_CALLBACK_URL     – Public HTTPS URL Safaricom POSTs results to
  */
 
-const BASE =
-  process.env.NODE_ENV === "production"
-    ? "https://api.safaricom.co.ke"
-    : "https://sandbox.safaricom.co.ke";
+const isProd = process.env.MPESA_ENVIRONMENT === "production";
+
+const BASE = isProd
+  ? "https://api.safaricom.co.ke"
+  : "https://sandbox.safaricom.co.ke";
 
 // Safaricom sandbox test credentials — only used when NODE_ENV !== "production"
 const SANDBOX_SHORTCODE = "174379";
@@ -74,7 +75,7 @@ export async function initiateStkPush(opts: {
   description: string;
 }): Promise<StkPushResult> {
   const token = await getAccessToken();
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.MPESA_ENVIRONMENT === "production";
   const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
   const passkey = isProd ? process.env.MPESA_PASSKEY! : SANDBOX_PASSKEY;
   const callbackUrl = process.env.MPESA_CALLBACK_URL!;
@@ -132,7 +133,7 @@ export interface StkQueryResult {
 
 export async function queryStkPush(checkoutRequestId: string): Promise<StkQueryResult> {
   const token = await getAccessToken();
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.MPESA_ENVIRONMENT === "production";
   const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
   const passkey = isProd ? process.env.MPESA_PASSKEY! : SANDBOX_PASSKEY;
 
