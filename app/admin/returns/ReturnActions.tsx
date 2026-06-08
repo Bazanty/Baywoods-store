@@ -6,10 +6,11 @@ import { actionReturnRequest } from "@/app/admin/actions";
 interface Props {
   id: string;
   status: string;
+  refundStatus: string | null;
   mpesaRefundConfigured: boolean;
 }
 
-export default function ReturnActions({ id, status, mpesaRefundConfigured }: Props) {
+export default function ReturnActions({ id, status, refundStatus, mpesaRefundConfigured }: Props) {
   const [pending, start] = useTransition();
   const [note, setNote] = useState("");
   const [refundRef, setRefundRef] = useState("");
@@ -108,6 +109,19 @@ export default function ReturnActions({ id, status, mpesaRefundConfigured }: Pro
             </p>
           )}
         </>
+      )}
+
+      {/* Retry section — shown when Daraja accepted the request but the async
+          callback came back with a failure. The server action allows retrying
+          in this state (refund_status: failed, status: refunded). */}
+      {status === "refunded" && refundStatus === "failed" && mpesaRefundConfigured && (
+        <button
+          disabled={pending}
+          onClick={() => run("refund-auto")}
+          className="w-full px-3 py-1.5 text-xs bg-danger text-cream disabled:opacity-50 hover:opacity-85 transition-colors"
+        >
+          {pending ? "Retrying…" : "Retry auto-refund"}
+        </button>
       )}
 
       {status === "received" && mode === "manual" && (

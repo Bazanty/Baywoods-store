@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
 import { getClientIp, isSafaricomIp } from "@/lib/security";
+import { sendRefundSuccessEmail } from "@/lib/email";
 
 function getAdmin() {
   return createClient(
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     const { data: returnReq, error: lookupError } = await db
       .from("return_requests")
-      .select("id, order_id, refund_status")
+      .select("id, order_id, refund_status, email")
       .eq("refund_conversation_id", originatorConversationId)
       .maybeSingle();
 
@@ -92,11 +93,25 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", returnReq.id);
 
+      let orderTotal: number | null = null;
+      let customerName: string | null = null;
+
       if (returnReq.order_id) {
-        const { data: items } = await db
-          .from("order_items")
-          .select("product_id, variant_id, quantity")
-          .eq("order_id", returnReq.order_id);
+        const [{ data: items }, { data: order }] = await Promise.all([
+          db
+            .from("order_items")
+            .select("product_id, variant_id, quantity")
+            .eq("order_id", returnReq.order_id),
+          db
+            .from("orders")
+            .select("id, shipping_name, total")
+            .eq("id", returnReq.order_id)
+            .maybeSingle(),
+        ]);
+
+        orderTotal = order?.total != null ? Number(order.total) : null;
+        customerName = order?.shipping_name ?? null;
+
         for (const it of items ?? []) {
           try {
             await db.rpc("restore_inventory_v2", {
@@ -117,14 +132,29 @@ export async function POST(req: NextRequest) {
           })
           .eq("id", returnReq.order_id);
       }
+
+      // Notify the customer that their refund is on the way. Fire-and-forget -
+      // a failed email must never block the ACK or the callback won't retry.
+      if (returnReq.email && orderTotal != null && returnReq.order_id) {
+        sendRefundSuccessEmail({
+          email: returnReq.email,
+          customerName: customerName ?? "there",
+          orderId: returnReq.order_id,
+          amount: orderTotal,
+          receipt: reversalReceipt ?? originatorConversationId,
+        }).catch((err) => {
+          Sentry.captureException(err);
+          console.error("[mpesa reversal callback] refund email failed:", err);
+        });
+      }
     } else {
-      // Failure — leave inventory and order untouched so the admin can retry
+      // Failure - leave inventory and order untouched so the admin can retry
       // or fall back to a manual refund without double-restocking.
       await db
         .from("return_requests")
         .update({
           refund_status: "failed",
-          refund_failure_reason: resultDesc || `ResultCode ${resultCode}`,
+          refund_failure_reason: resultDesc || "ResultCode " + String(resultCode),
           updated_at: nowIso,
         })
         .eq("id", returnReq.id);

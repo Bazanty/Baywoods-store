@@ -94,7 +94,7 @@ export default async function ReturnsPage() {
                 {new Date(r.createdAt).toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" })}
               </p>
             </div>
-            <ReturnActions id={r.id} status={r.status} mpesaRefundConfigured={mpesaConfigured} />
+            <ReturnActions id={r.id} status={r.status} refundStatus={r.refundStatus} mpesaRefundConfigured={mpesaConfigured} />
           </div>
         ))}
 

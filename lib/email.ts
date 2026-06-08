@@ -444,7 +444,78 @@ export async function sendRestockEmail(data: {
 }
 
 // ---------------------------------------------------------------------------
-// Admin — new order notification
+// M-Pesa refund confirmation — sent after Daraja reversal callback succeeds
+// ---------------------------------------------------------------------------
+export async function sendRefundSuccessEmail(data: {
+  email: string;
+  customerName: string;
+  orderId: string;
+  amount: number;
+  receipt: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+  const shortRef = data.orderId.slice(0, 8).toUpperCase();
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://baywoods.co.ke";
+
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Refund Processed — #${shortRef}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F5F0E8;font-family:Inter,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:32px 16px">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
+        <tr><td style="padding:32px 40px;border-bottom:1px solid #E2DDD6;text-align:center">
+          <p style="font-family:Georgia,serif;font-size:24px;letter-spacing:4px;color:#1E293B;margin:0">BAYWOODS</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="font-family:Georgia,serif;font-size:22px;color:#1E293B;margin:0 0 8px">Refund Processed</p>
+          <p style="font-size:14px;color:#64748b;margin:0 0 24px">Hi ${escapeHtml(data.customerName)}, your M-Pesa refund has been sent back to your account.</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;border:1px solid #E2DDD6;margin-bottom:24px">
+            <tr>
+              <td style="padding:16px 20px;border-bottom:1px solid #E2DDD6">
+                <p style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 4px">Order Reference</p>
+                <p style="font-family:monospace;font-size:15px;font-weight:700;color:#1E293B;margin:0">#${shortRef}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 20px;border-bottom:1px solid #E2DDD6">
+                <p style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 4px">Refund Amount</p>
+                <p style="font-family:monospace;font-size:15px;font-weight:700;color:#1E293B;margin:0">${formatPrice(data.amount)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 20px">
+                <p style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;margin:0 0 4px">M-Pesa Receipt</p>
+                <p style="font-family:monospace;font-size:14px;color:#1E293B;margin:0">${escapeHtml(data.receipt)}</p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="font-size:13px;color:#64748b;margin:0 0 24px">The amount will reflect in your M-Pesa account within minutes. If you have any questions, reply to this email.</p>
+
+          <div style="text-align:center">
+            <a href="${baseUrl}/account/orders" style="display:inline-block;background:#1E293B;color:#FAFAF6;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:14px 32px;text-decoration:none">View Your Orders</a>
+          </div>
+        </td></tr>
+        <tr><td style="padding:24px 40px;border-top:1px solid #E2DDD6;text-align:center">
+          <p style="font-size:11px;color:#94a3b8;margin:0">BAYWOODS - Kenyan Streetwear</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Admin -- new order notification
 // ---------------------------------------------------------------------------
 export async function sendAdminOrderNotification(data: {
   orderId: string;
@@ -464,14 +535,14 @@ export async function sendAdminOrderNotification(data: {
   const itemRows = data.items
     .map(
       (i) =>
-        `<tr><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;color:#1E293B">${escapeHtml(i.name)}${i.variant ? ` <span style="color:#94a3b8">${escapeHtml(i.variant)}</span>` : ""}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#64748b">×${i.qty}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#1E293B">${formatPrice(i.price * i.qty)}</td></tr>`
+        `<tr><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;color:#1E293B">${escapeHtml(i.name)}${i.variant ? ` <span style="color:#94a3b8">${escapeHtml(i.variant)}</span>` : ""}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#64748b">${String.fromCharCode(215)}${i.qty}</td><td style="padding:6px 0;border-bottom:1px solid #E2DDD6;font-size:12px;text-align:right;color:#1E293B">${formatPrice(i.price * i.qty)}</td></tr>`
     )
     .join("");
 
   await getResend().emails.send({
     from: FROM,
     to: adminEmail,
-    subject: `New Order #${shortRef} — ${formatPrice(data.total)} via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "payment"}`,
+    subject: `New Order #${shortRef} - ${formatPrice(data.total)} via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "payment"}`,
     html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:24px 16px"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
