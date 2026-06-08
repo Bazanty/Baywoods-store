@@ -1192,7 +1192,10 @@ export async function broadcastPush(input: PushBroadcastInput): Promise<PushBroa
     .from("push_subscriptions")
     .select("id", { count: "exact", head: true });
 
-  const result = await sendPushToAll({ title, body, url, tag: `broadcast-${Date.now()}` });
+  // Fixed tag "broadcast" means each new broadcast replaces the previous one
+  // in the user's notification tray rather than stacking. Using Date.now() as
+  // the tag would make every broadcast unique, defeating deduplication entirely.
+  const result = await sendPushToAll({ title, body, url, tag: "broadcast" });
 
   // Best-effort log. If the push_broadcasts table is missing (migration not
   // applied yet) we don't want to break the broadcast itself.

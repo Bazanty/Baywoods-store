@@ -112,7 +112,8 @@ export async function getProductReviewsServer(productId: string): Promise<Review
   const { data, error } = await db()
     .from("reviews")
     .select(`
-      id, rating, title, body, is_verified, is_approved, created_at,
+      id, rating, title, body, helpful, is_verified, is_approved,
+      store_reply, store_reply_at, created_at,
       users ( first_name, last_name )
     `)
     .eq("product_id", productId)
@@ -129,6 +130,8 @@ export async function getProductReviewsServer(productId: string): Promise<Review
     title: r.title ?? "",
     body: r.body ?? "",
     verified: r.is_verified ?? false,
-    helpful: 0,
+    helpful: r.helpful ?? 0,
+    storeReply: r.store_reply ?? undefined,
+    storeReplyAt: r.store_reply_at ?? undefined,
   }));
 }

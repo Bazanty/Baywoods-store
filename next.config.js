@@ -2,6 +2,24 @@
 const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        // Service workers must not be cached by the browser or a CDN.
+        // Browsers will recheck /sw.js on every navigator.serviceWorker.register()
+        // call (typically each page load) and apply updates when the byte content
+        // changes. Keeping max-age=0 ensures a stale SW is never served.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          // Explicitly allow the SW to control the full origin. The default
+          // max-scope for a script at /sw.js is already /, but some strict
+          // browser interpretations appreciate an explicit header.
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
+  },
   images: {
     // In dev the local server can't always reach Cloudinary CDN (DNS), so let
     // the browser fetch images directly from their origin. In production

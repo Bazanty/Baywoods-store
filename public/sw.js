@@ -19,7 +19,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// --- Web Push (inactive until VAPID keys + a subscribe flow ship) ---
+// --- Web Push ---
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
@@ -35,13 +35,21 @@ self.addEventListener("push", (event) => {
     icon: payload.icon || "/icon-192.png",
     badge: payload.badge || "/icon-192.png",
     data: { url: payload.url || "/" },
+    // tag de-duplicates notifications from the same source (e.g. one restock
+    // alert per product, not one per push attempt).
+    tag: payload.tag || undefined,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
+  const rawUrl = (event.notification.data && event.notification.data.url) || "/";
+  // Resolve relative paths to absolute so client.navigate() and openWindow()
+  // work cross-browser. self.location.origin gives the SW origin.
+  const targetUrl = rawUrl.startsWith("http")
+    ? rawUrl
+    : self.location.origin + rawUrl;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

@@ -1,10 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Star, ThumbsUp, Pencil } from "lucide-react";
 import { Review } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/lib/authStore";
+
+// ---------------------------------------------------------------------------
+// Voter fingerprint — a UUID stored in localStorage so the "helpful" button
+// stays disabled across page refreshes without requiring a login.
+// The server also enforces uniqueness via review_helpful_votes, so this is
+// just a UX layer on top of the authoritative DB constraint.
+// ---------------------------------------------------------------------------
+
+const VOTER_KEY = "bw_voter_id";
+const VOTED_KEY = "bw_helpful_votes_v1";
+
+function getOrCreateVoterId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const stored = localStorage.getItem(VOTER_KEY);
+    if (stored) return stored;
+    // Simple UUID v4 via crypto
+    const id = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(VOTER_KEY, id);
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+function getVotedIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(VOTED_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v): v is string => typeof v === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+function markVoted(reviewId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const ids = getVotedIds();
+    ids.add(reviewId);
+    localStorage.setItem(VOTED_KEY, JSON.stringify([...ids]));
+  } catch {
+    // quota exceeded — best effort
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 interface ReviewSectionProps {
   reviews: Review[];
@@ -14,8 +64,18 @@ interface ReviewSectionProps {
 }
 
 export default function ReviewSection({ reviews: initial, rating, reviewCount, productId }: ReviewSectionProps) {
-  const reviews = initial;
-  const [helpful, setHelpful] = useState<Record<string, boolean>>({});
+  // Mutable per-review helpful counts, updated optimistically after a confirmed
+  // server response.
+  const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initial.map((r) => [r.id, r.helpful]))
+  );
+
+  // IDs the current browser has already voted on (loaded from localStorage).
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+
+  // Tracks which reviews have an in-flight request.
+  const [voting, setVoting] = useState<Set<string>>(new Set());
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ rating: 5, title: "", body: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -23,11 +83,58 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
   const [error, setError] = useState("");
   const { user } = useAuthStore();
 
+  // Hydrate voted IDs from localStorage after mount (avoids SSR mismatch).
+  useEffect(() => {
+    setVotedIds(getVotedIds());
+  }, []);
+
   const distribution = [5, 4, 3, 2, 1].map((star) => ({
     star,
-    count: reviews.filter((r) => r.rating === star).length,
-    pct: (reviews.filter((r) => r.rating === star).length / Math.max(1, reviews.length)) * 100,
+    count: initial.filter((r) => r.rating === star).length,
+    pct: (initial.filter((r) => r.rating === star).length / Math.max(1, initial.length)) * 100,
   }));
+
+  const handleHelpful = useCallback(async (reviewId: string) => {
+    // Optimistic guard: already voted or in-flight → no-op.
+    if (votedIds.has(reviewId) || voting.has(reviewId)) return;
+
+    const fingerprint = getOrCreateVoterId();
+    if (!fingerprint) return;
+
+    setVoting((prev) => new Set(prev).add(reviewId));
+
+    try {
+      const res = await fetch("/api/reviews/helpful", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId, fingerprint }),
+      });
+
+      if (!res.ok) return; // server error — leave counts unchanged, user can retry
+
+      const data = await res.json();
+
+      if (data.ok) {
+        // Server accepted the vote — update count from authoritative response.
+        setHelpfulCounts((prev) => ({ ...prev, [reviewId]: data.helpful }));
+        markVoted(reviewId);
+        setVotedIds((prev) => new Set(prev).add(reviewId));
+      }
+      // If data.alreadyVoted the server already has the vote; mark locally too.
+      if (data.alreadyVoted) {
+        markVoted(reviewId);
+        setVotedIds((prev) => new Set(prev).add(reviewId));
+      }
+    } catch {
+      // Network error — silently swallow, button stays enabled for retry.
+    } finally {
+      setVoting((prev) => {
+        const next = new Set(prev);
+        next.delete(reviewId);
+        return next;
+      });
+    }
+  }, [votedIds, voting]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,63 +313,74 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
       )}
 
       <div className="space-y-0">
-        {reviews.map((review, i) => (
-          <div key={review.id} className="border-t border-ink/15 py-6 first:border-t-0 first:pt-0">
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <div className="flex items-baseline gap-3">
-                <span className="font-mono text-[10px] tracking-[0.2em] text-muted">
-                  /{String(i + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-display text-base tracking-[-0.01em] text-ink">{review.author}</p>
-                    {review.verified && (
-                      <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-ink bg-citrine px-1.5 py-0.5">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={11}
-                        className={i < review.rating ? "fill-ink text-ink" : "text-ink/15 fill-ink/15"}
-                      />
-                    ))}
+        {initial.map((review, i) => {
+          const isVoted = votedIds.has(review.id);
+          const isVoting = voting.has(review.id);
+          const count = helpfulCounts[review.id] ?? review.helpful;
+
+          return (
+            <div key={review.id} className="border-t border-ink/15 py-6 first:border-t-0 first:pt-0">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-[10px] tracking-[0.2em] text-muted">
+                    /{String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-display text-base tracking-[-0.01em] text-ink">{review.author}</p>
+                      {review.verified && (
+                        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-ink bg-citrine px-1.5 py-0.5">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={11}
+                          className={i < review.rating ? "fill-ink text-ink" : "text-ink/15 fill-ink/15"}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted shrink-0">
+                  {new Date(review.date).toLocaleDateString("en-KE", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
               </div>
-              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted shrink-0">
-                {new Date(review.date).toLocaleDateString("en-KE", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </p>
+              {review.title && (
+                <p className="font-display text-base tracking-[-0.01em] text-ink pl-0 sm:pl-12 mb-1">{review.title}</p>
+              )}
+              <p className="text-sm text-ink/80 leading-relaxed pl-0 sm:pl-12">{review.body}</p>
+              {review.storeReply && (
+                <div className="mt-3 sm:ml-12 border-l-2 border-citrine pl-4 py-2 bg-beige-dark/30">
+                  <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink mb-1">/ Baywoods replied</p>
+                  <p className="text-sm text-ink/85 leading-relaxed">{review.storeReply}</p>
+                </div>
+              )}
+              <button
+                onClick={() => handleHelpful(review.id)}
+                disabled={isVoted || isVoting}
+                aria-label={isVoted ? "Already marked helpful" : "Mark as helpful"}
+                className={`flex items-center gap-2 mt-4 sm:ml-12 font-mono text-[10px] tracking-[0.16em] uppercase transition-colors disabled:cursor-default ${
+                  isVoted
+                    ? "text-ink opacity-50"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                <ThumbsUp size={11} className={isVoted ? "fill-ink/40" : ""} />
+                Helpful ({count})
+              </button>
             </div>
-            {review.title && (
-              <p className="font-display text-base tracking-[-0.01em] text-ink pl-0 sm:pl-12 mb-1">{review.title}</p>
-            )}
-            <p className="text-sm text-ink/80 leading-relaxed pl-0 sm:pl-12">{review.body}</p>
-            {review.storeReply && (
-              <div className="mt-3 sm:ml-12 border-l-2 border-citrine pl-4 py-2 bg-beige-dark/30">
-                <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink mb-1">/ Baywoods replied</p>
-                <p className="text-sm text-ink/85 leading-relaxed">{review.storeReply}</p>
-              </div>
-            )}
-            <button
-              onClick={() => setHelpful((h) => ({ ...h, [review.id]: true }))}
-              disabled={helpful[review.id]}
-              className="flex items-center gap-2 mt-4 sm:ml-12 font-mono text-[10px] tracking-[0.16em] uppercase text-muted hover:text-ink transition-colors disabled:opacity-50"
-            >
-              <ThumbsUp size={11} />
-              Helpful ({helpful[review.id] ? review.helpful + 1 : review.helpful})
-            </button>
-          </div>
-        ))}
+          );
+        })}
 
-        {reviews.length === 0 && !showForm && (
+        {initial.length === 0 && !showForm && (
           <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted py-8 text-center border-y border-ink/15">
             / No reviews yet.{" "}
             {user ? (

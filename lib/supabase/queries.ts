@@ -410,6 +410,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
       rating,
       title,
       body,
+      helpful,
       is_verified,
       is_approved,
       store_reply,
@@ -433,7 +434,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
     title: r.title ?? undefined,
     body: r.body ?? "",
     verified: r.is_verified,
-    helpful: 0, // not tracked in schema yet
+    helpful: r.helpful ?? 0,
     storeReply: r.store_reply ?? undefined,
     storeReplyAt: r.store_reply_at ?? undefined,
   }));
