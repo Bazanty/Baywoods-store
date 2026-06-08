@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Instagram, Twitter } from "lucide-react";
+import { ArrowUpRight, Instagram, Twitter } from "lucide-react";
 
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -12,6 +12,7 @@ const TikTokIcon = () => (
 
 const columns = [
   {
+    n: "01",
     title: "Shop",
     links: [
       { label: "New Arrivals", href: "/new-arrivals" },
@@ -23,6 +24,7 @@ const columns = [
     ],
   },
   {
+    n: "02",
     title: "Help",
     links: [
       { label: "FAQ", href: "/contact#faq" },
@@ -34,7 +36,8 @@ const columns = [
     ],
   },
   {
-    title: "Company",
+    n: "03",
+    title: "Studio",
     links: [
       { label: "About Baywoods", href: "/about" },
       { label: "Privacy Policy", href: "/privacy" },
@@ -67,42 +70,44 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-ink text-white mt-16 lg:mt-20">
+    <footer className="mt-20 lg:mt-24 border-t border-ink/15 bg-cream text-ink">
       {/* Newsletter strip */}
-      <div className="border-b border-white/10">
-        <div className="container-px py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div className="border-b border-ink/15">
+        <div className="container-px py-12 grid gap-6 md:grid-cols-[1.2fr_1fr] md:items-end">
           <div>
-            <p className="font-serif text-2xl">Stay in the loop.</p>
-            <p className="text-sm text-white/50 mt-1">
-              New drops, exclusive deals, no spam.
-            </p>
+            <p className="section-kicker mb-4">00 — STAY POSTED</p>
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-[-0.02em] leading-[0.96]">
+              Drops, before <br className="hidden sm:inline" />everyone else.
+            </h2>
           </div>
-          <form
-            onSubmit={handleNewsletter}
-            className="w-full sm:w-auto"
-          >
-            <div className="flex gap-0">
+          <form onSubmit={handleNewsletter} className="w-full">
+            <div className="flex items-center border-b-2 border-ink">
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="flex-1 sm:w-64 bg-white/10 border border-white/20 text-white text-sm px-4 py-3 outline-none placeholder:text-white/40 focus:border-white/40 transition-colors"
+                className="flex-1 bg-transparent text-ink text-base px-0 py-3 outline-none placeholder:text-muted"
               />
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="px-5 py-3 bg-forest text-white text-sm font-medium hover:bg-forest-dark transition-colors shrink-0 disabled:opacity-60"
+                className="px-4 py-3 font-mono text-[10px] tracking-[0.2em] uppercase text-ink hover:text-citrine transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                {status === "loading" ? "Joining..." : "Subscribe"}
+                {status === "loading" ? "Joining" : "Join"}
+                <ArrowUpRight size={12} />
               </button>
             </div>
             {status === "success" && (
-              <p className="text-xs text-white/60 mt-2">You&apos;re on the list.</p>
+              <p className="mt-2 font-mono text-[10px] tracking-[0.16em] uppercase text-ink">
+                / You&apos;re on the list.
+              </p>
             )}
             {status === "error" && (
-              <p className="text-xs text-red-200 mt-2">Could not subscribe. Try again.</p>
+              <p className="mt-2 font-mono text-[10px] tracking-[0.16em] uppercase text-danger">
+                / Could not subscribe. Try again.
+              </p>
             )}
           </form>
         </div>
@@ -110,61 +115,52 @@ export default function Footer() {
 
       {/* Main footer */}
       <div className="container-px py-14">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-2 md:grid-cols-12 gap-y-10 md:gap-x-8">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-2 md:col-span-4">
             <Link
               href="/"
-              className="font-serif text-2xl font-semibold tracking-wider text-white"
+              className="font-display text-3xl tracking-[-0.02em] font-semibold text-ink"
             >
               BAYWOODS
             </Link>
-            <p className="text-sm text-white/50 mt-4 leading-relaxed max-w-xs">
-              Kenyan streetwear for the culture. Quality pieces, fair prices, delivered to your door.
+            <p className="text-sm text-muted mt-4 leading-relaxed max-w-xs">
+              Kenyan streetwear, assembled with intention. Real rotation pieces, fair prices, delivered nationwide.
             </p>
-            <div className="flex gap-4 mt-6">
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/50 hover:text-white transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram size={18} />
-              </a>
-              <a
-                href="https://tiktok.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/50 hover:text-white transition-colors"
-                aria-label="TikTok"
-              >
-                <TikTokIcon />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white/50 hover:text-white transition-colors"
-                aria-label="Twitter/X"
-              >
-                <Twitter size={18} />
-              </a>
+            <div className="flex gap-3 mt-6">
+              {[
+                { Icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+                { Icon: TikTokIcon, href: "https://tiktok.com", label: "TikTok" },
+                { Icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+              ].map(({ Icon, href, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 flex items-center justify-center border border-ink/20 text-ink/70 hover:bg-ink hover:text-citrine hover:border-ink transition-colors"
+                >
+                  <Icon />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Links */}
+          {/* Link columns */}
           {columns.map((col) => (
-            <div key={col.title}>
-              <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-white/40 mb-5">
+            <div key={col.title} className="md:col-span-2">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-5">
+                <span className="text-ink">{col.n}</span>
+                {" / "}
                 {col.title}
               </p>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-white/60 hover:text-white transition-colors"
+                      className="text-sm text-ink/75 hover:text-ink hover:underline-citrine transition-all"
                     >
                       {link.label}
                     </Link>
@@ -173,18 +169,32 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Contact block */}
+          <div className="col-span-2 md:col-span-2">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-5">
+              <span className="text-ink">04</span> / Locate
+            </p>
+            <p className="text-sm text-ink/75 leading-relaxed">
+              Nairobi, Kenya<br />
+              Mon–Sat · 9am – 7pm EAT
+            </p>
+            <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mt-3">
+              support@baywoods.co.ke
+            </p>
+          </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-white/30">
-            Copyright {new Date().getFullYear()} Baywoods Store. All rights reserved.
+        <div className="mt-14 pt-6 border-t border-ink/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted">
+            © {new Date().getFullYear()} Baywoods Store · Nairobi
           </p>
-          <div className="flex items-center gap-3">
-            {["Visa", "Mastercard", "M-Pesa", "PayPal"].map((method) => (
+          <div className="flex items-center gap-2">
+            {["M-Pesa"].map((method) => (
               <span
                 key={method}
-                className="text-[10px] font-medium text-white/40 border border-white/10 px-2 py-0.5"
+                className="font-mono text-[10px] tracking-[0.12em] uppercase text-ink/60 border border-ink/20 px-2 py-1"
               >
                 {method}
               </span>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import CartDrawer from "./CartDrawer";
+import PWARegistrar from "./PWARegistrar";
 import ChatWidget from "@/components/chat/ChatWidget";
 import { useAuthStore } from "@/lib/authStore";
 
@@ -26,6 +27,7 @@ export default function StoreShell({ children }: { children: React.ReactNode }) 
       <Footer />
       <CartDrawer />
       <ChatWidget />
+      <PWARegistrar />
     </>
   );
 }

@@ -66,20 +66,8 @@ export async function POST(req: NextRequest) {
       ).limit(1);
 
       if (!invRows || invRows.length === 0) {
-        // No inventory row — product is untracked. Insert a placeholder reservation
-        // (with null variant_id to avoid FK issues) so consume_reservations gets
-        // the right count. If the insert also fails, just skip — the orders route
-        // will handle it via expectedConsumed.
-        const { error: phErr } = await supabaseAdmin.from("cart_reservations").insert({
-          session_id: sessionId,
-          product_id: item.productId,
-          variant_id: null,
-          quantity: item.quantity,
-          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        });
-        if (!phErr) reservedCount++;
-        // If placeholder fails, don't increment — orders route uses reservedCount
-        // and won't expect this item to be consumed.
+        // No inventory row — product has no stock tracking, allow through.
+        reservedCount++;
         continue;
       }
 

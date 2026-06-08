@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Package, MapPin, Check, Truck, FileDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Button from "@/components/ui/Button";
 import { formatPrice } from "@/lib/utils";
+import { normalizeOrderStatus, orderStatusLabel, type OrderStatus } from "@/lib/orderStatus";
 
 interface TrackedOrder {
   id: string;
@@ -26,7 +26,7 @@ interface TrackedOrder {
   }[];
 }
 
-const STEPS = ["pending", "processing", "shipped", "delivered"] as const;
+const STEPS: OrderStatus[] = ["PAID", "VERIFIED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"];
 
 export default function OrderTrackingPage() {
   const [orderId, setOrderId] = useState("");
@@ -56,14 +56,19 @@ export default function OrderTrackingPage() {
     setOrder(json.order);
   }
 
-  const currentStep = order ? STEPS.indexOf(order.status as (typeof STEPS)[number]) : -1;
+  const currentStep = order ? Math.max(0, STEPS.indexOf(normalizeOrderStatus(order.status))) : -1;
 
   return (
-    <div className="pt-24 pb-20 container-px max-w-3xl mx-auto">
-      <h1 className="font-serif text-display-lg text-ink mb-2">Track your order</h1>
-      <p className="text-sm text-muted mb-10">
-        Enter your order ID and the email address used at checkout.
-      </p>
+    <div className="pt-20 lg:pt-24 pb-20 container-px max-w-3xl mx-auto">
+      <div className="border-b border-ink/15 pb-6 mb-10">
+        <p className="section-kicker mb-4">TRACK</p>
+        <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.92] text-ink text-5xl sm:text-6xl">
+          Where&apos;s my <br className="hidden sm:inline" />order?
+        </h1>
+        <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted mt-4">
+          / Enter your order ID and email used at checkout.
+        </p>
+      </div>
 
       <form onSubmit={lookup} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mb-10">
         <input
@@ -81,14 +86,14 @@ export default function OrderTrackingPage() {
           placeholder="Email"
           className="input-base"
         />
-        <Button type="submit" loading={loading}>
-          Track
-        </Button>
+        <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50">
+          {loading ? "Tracking…" : "Track →"}
+        </button>
       </form>
 
       {error && (
-        <div className="bg-danger/10 border border-danger/20 text-danger text-sm px-4 py-3 mb-8">
-          {error}
+        <div className="border-l-2 border-danger pl-4 py-2 mb-8">
+          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-danger">/ {error}</p>
         </div>
       )}
 
@@ -98,16 +103,16 @@ export default function OrderTrackingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="border border-stone p-8"
+            className="border border-ink/20 bg-cream p-8"
           >
             <div className="flex items-start justify-between mb-8 gap-4">
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted">Order</p>
-                <p className="font-mono text-sm text-ink">{order.id.slice(0, 8)}</p>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">/ Order</p>
+                <p className="font-mono text-sm tracking-[0.1em] uppercase text-ink mt-1">#BW-{order.id.slice(0, 8).toUpperCase()}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs uppercase tracking-wider text-muted">Total</p>
-                <p className="font-serif text-xl text-ink">{formatPrice(order.total)}</p>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">/ Total</p>
+                <p className="font-display text-2xl tracking-[-0.02em] text-ink mt-1 tabular-nums">{formatPrice(order.total)}</p>
               </div>
             </div>
 
@@ -115,36 +120,40 @@ export default function OrderTrackingPage() {
             <div className="relative flex justify-between mb-2">
               {STEPS.map((step, i) => {
                 const reached = i <= currentStep;
+                const active = i === currentStep;
                 return (
                   <div key={step} className="flex flex-col items-center z-10 flex-1">
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-colors ${
-                        reached
-                          ? "bg-forest border-forest text-white"
-                          : "bg-white border-stone text-muted"
+                      className={`w-9 h-9 flex items-center justify-center transition-colors ${
+                        active
+                          ? "bg-ink text-citrine"
+                          : reached
+                          ? "bg-ink text-cream"
+                          : "border border-ink/25 bg-cream text-muted"
                       }`}
                     >
-                      {step === "pending" && <Package size={15} />}
-                      {step === "processing" && <Check size={15} />}
-                      {step === "shipped" && <Truck size={15} />}
-                      {step === "delivered" && <MapPin size={15} />}
+                      {step === "PAID" && <Package size={14} />}
+                      {step === "VERIFIED" && <Check size={14} />}
+                      {step === "PACKED" && <Check size={14} />}
+                      {step === "OUT_FOR_DELIVERY" && <Truck size={14} />}
+                      {step === "DELIVERED" && <MapPin size={14} />}
                     </div>
-                    <span className="text-[10px] mt-1.5 uppercase tracking-wider text-muted">
-                      {step}
+                    <span className={`font-mono text-[10px] tracking-[0.16em] uppercase mt-2 text-center ${reached ? "text-ink" : "text-muted"}`}>
+                      {orderStatusLabel(step)}
                     </span>
                   </div>
                 );
               })}
-              <div className="absolute left-0 right-0 top-[18px] h-[2px] bg-stone -z-0" />
+              <div className="absolute left-0 right-0 top-[18px] h-px bg-ink/15 -z-0" />
               <div
-                className="absolute left-0 top-[18px] h-[2px] bg-forest -z-0 transition-all duration-500"
-                style={{ width: `${Math.max(0, currentStep) * 33.3}%` }}
+                className="absolute left-0 top-[18px] h-px bg-ink -z-0 transition-all duration-500"
+                style={{ width: `${Math.max(0, currentStep) * 25}%` }}
               />
             </div>
 
             {order.tracking_number && (
-              <p className="text-sm text-muted mt-6">
-                Tracking: <span className="font-mono text-ink">{order.tracking_number}</span>
+              <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mt-8">
+                / Tracking <span className="text-ink">{order.tracking_number}</span>
               </p>
             )}
 
@@ -152,23 +161,23 @@ export default function OrderTrackingPage() {
               href={`/api/invoice/${order.id}?email=${encodeURIComponent(email)}`}
               target="_blank"
               rel="noopener"
-              className="inline-flex items-center gap-2 mt-6 text-xs font-medium text-forest hover:text-forest-dark underline underline-offset-4"
+              className="inline-flex items-center gap-2 mt-4 font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine underline-citrine"
             >
-              <FileDown size={13} />
+              <FileDown size={11} />
               Download invoice (PDF)
             </a>
 
-            <div className="mt-8 pt-6 border-t border-stone">
-              <p className="text-xs uppercase tracking-wider text-muted mb-3">Items</p>
-              <div className="space-y-2">
+            <div className="mt-8 pt-6 border-t border-ink/15">
+              <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted mb-4">/ Items</p>
+              <div className="space-y-2 font-mono text-xs">
                 {order.order_items.map((it, i) => (
-                  <div key={i} className="flex justify-between text-sm">
+                  <div key={i} className="flex justify-between gap-3">
                     <span className="text-ink">
-                      {it.product_name}
-                      {it.variant_name && <span className="text-muted"> • {it.variant_name}</span>}
+                      <span className="text-muted">/{String(i + 1).padStart(2, "0")}</span> {it.product_name}
+                      {it.variant_name && <span className="text-muted"> · {it.variant_name}</span>}
                       <span className="text-muted"> × {it.quantity}</span>
                     </span>
-                    <span className="text-ink">{formatPrice(it.line_total)}</span>
+                    <span className="tabular-nums text-ink">{formatPrice(it.line_total)}</span>
                   </div>
                 ))}
               </div>

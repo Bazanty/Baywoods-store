@@ -7,11 +7,12 @@ import {
 import ProductClient from "./ProductClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
-  const product = await getProductBySlugServer(params.slug).catch(() => null);
+  const { slug } = await params;
+  const product = await getProductBySlugServer(slug).catch(() => null);
   if (!product) return { title: "Product Not Found" };
 
   const desc =
@@ -39,7 +40,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const product = await getProductBySlugServer(params.slug).catch(() => null);
+  const { slug } = await params;
+  const product = await getProductBySlugServer(slug).catch(() => null);
   if (!product) notFound();
 
   const [related, reviews] = await Promise.all([

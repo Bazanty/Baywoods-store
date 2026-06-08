@@ -9,6 +9,7 @@
 
 import { supabase } from "./client";
 import type { Category, Order, Product, ProductColor, ProductVariant, Review } from "../types";
+import { normalizeOrderStatus } from "../orderStatus";
 
 // ---------------------------------------------------------------------------
 // Internal DB shape returned by the nested select
@@ -19,11 +20,16 @@ export type RawProduct = {
   name: string;
   slug: string;
   description: string | null;
+  material_care?: string | null;
   base_price: number;
   compare_price: number | null;
   is_featured: boolean;
+  verification_status?: Product["verificationStatus"] | null;
+  verification_notes?: string | null;
+  verified_at?: string | null;
+  verified_by?: string | null;
   created_at: string;
-  categories: { slug: string; name: string } | null;
+  categories: { slug: string; name: string; parent: { slug: string } | null } | null;
   product_images: { url: string; is_primary: boolean; sort_order: number }[];
   inventory: { quantity: number; reserved: number }[];
   product_variants: {
@@ -80,8 +86,10 @@ export function mapProduct(raw: RawProduct): Product {
       : 0;
 
   // Stock from base-product inventory row (variant_id IS NULL)
-  const stock = raw.inventory?.[0];
-  const availableStock = stock ? stock.quantity - stock.reserved : 0;
+  const availableStock = (raw.inventory ?? []).reduce(
+    (sum, stock) => sum + Math.max(0, stock.quantity - stock.reserved),
+    0
+  );
 
   // Badge priority: sale → hot → new → undefined
   let badge: Product["badge"];
@@ -93,23 +101,32 @@ export function mapProduct(raw: RawProduct): Product {
     badge = "new";
   }
 
+  const hasComparePrice =
+    raw.compare_price != null && Number(raw.compare_price) > Number(raw.base_price);
+
   return {
     id: raw.id,
     name: raw.name,
     slug: raw.slug,
-    category: (raw.categories?.slug ?? "accessories") as Category,
-    price: raw.base_price,
-    salePrice: raw.compare_price ?? undefined,
+    category: ((raw.categories?.parent?.slug ?? raw.categories?.slug) ?? "accessories") as Category,
+    brand: raw.categories?.parent ? raw.categories?.name ?? undefined : undefined,
+    price: hasComparePrice ? Number(raw.compare_price) : Number(raw.base_price),
+    salePrice: hasComparePrice ? Number(raw.base_price) : undefined,
     images,
     sizes: Array.from(sizesSet),
     colors,
     variants,
     description: raw.description ?? "",
+    materialCare: raw.material_care ?? undefined,
     badge,
     rating,
     reviewCount: ratings.length,
     inStock: availableStock > 0,
     stockCount: availableStock > 0 ? availableStock : undefined,
+    verificationStatus: raw.verification_status ?? "PENDING",
+    verificationNotes: raw.verification_notes,
+    verifiedAt: raw.verified_at,
+    verifiedBy: raw.verified_by,
   };
 }
 
@@ -117,16 +134,17 @@ export function mapProduct(raw: RawProduct): Product {
 // Shared select string (keeps queries DRY)
 // ---------------------------------------------------------------------------
 
-export const PRODUCT_SELECT = `
+export const PRODUCT_SELECT_WITHOUT_VERIFICATION = `
   id,
   name,
   slug,
   description,
+  material_care,
   base_price,
   compare_price,
   is_featured,
   created_at,
-  categories!category_id ( slug, name ),
+  categories!category_id ( slug, name, parent:categories!parent_id ( slug ) ),
   product_images ( url, is_primary, sort_order ),
   inventory ( quantity, reserved ),
   product_variants (
@@ -137,33 +155,93 @@ export const PRODUCT_SELECT = `
   reviews ( rating )
 ` as const;
 
+export const PRODUCT_SELECT = `
+  id,
+  name,
+  slug,
+  description,
+  material_care,
+  base_price,
+  compare_price,
+  is_featured,
+  verification_status,
+  verification_notes,
+  verified_at,
+  verified_by,
+  created_at,
+  categories!category_id ( slug, name, parent:categories!parent_id ( slug ) ),
+  product_images ( url, is_primary, sort_order ),
+  inventory ( quantity, reserved ),
+  product_variants (
+    id,
+    is_active,
+    variant_options ( option_name, option_value )
+  ),
+  reviews ( rating )
+` as const;
+
+type ProductQueryError = { code?: string; message?: string } | null;
+
+export function isMissingProductVerificationColumns(error: ProductQueryError): boolean {
+  const message = error?.message ?? "";
+  return message.includes("products.verification_status") || message.includes("verification_status");
+}
+
+export async function runProductQuery<T>(
+  buildQuery: (select: string) => PromiseLike<any>,
+  label: string,
+  options: { allowMissingRow?: boolean } = {}
+): Promise<T | null> {
+  const primary = (await buildQuery(PRODUCT_SELECT)) as {
+    data: T | null;
+    error: ProductQueryError;
+  };
+  if (!primary.error) return primary.data as T;
+  if (options.allowMissingRow && primary.error.code === "PGRST116") return null;
+  if (!isMissingProductVerificationColumns(primary.error)) {
+    throw new Error(`${label}: ${primary.error.message}`);
+  }
+
+  const fallback = (await buildQuery(PRODUCT_SELECT_WITHOUT_VERIFICATION)) as {
+    data: T | null;
+    error: ProductQueryError;
+  };
+  if (!fallback.error) return fallback.data as T;
+  if (options.allowMissingRow && fallback.error.code === "PGRST116") return null;
+  throw new Error(`${label}: ${fallback.error.message}`);
+}
+
 // ---------------------------------------------------------------------------
 // Product queries
 // ---------------------------------------------------------------------------
 
 export async function getAllProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false }),
+    "getAllProducts"
+  );
 
-  if (error) throw new Error(`getAllProducts: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") return null; // row not found
-    throw new Error(`getProductBySlug: ${error.message}`);
-  }
+  const data = await runProductQuery<RawProduct>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("slug", slug)
+        .eq("is_active", true)
+        .single(),
+    "getProductBySlug",
+    { allowMissingRow: true }
+  );
+  if (!data) return null;
   return mapProduct(data as unknown as RawProduct);
 }
 
@@ -187,54 +265,66 @@ export async function getProductsByCategory(categorySlug: string): Promise<Produ
 
   const categoryIds = [parent.id, ...(children ?? []).map((c) => c.id)];
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .in("category_id", categoryIds)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .in("category_id", categoryIds)
+        .order("created_at", { ascending: false }),
+    "getProductsByCategory"
+  );
 
-  if (error) throw new Error(`getProductsByCategory: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .eq("is_featured", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .eq("is_featured", true)
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    "getFeaturedProducts"
+  );
 
-  if (error) throw new Error(`getFeaturedProducts: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getNewArrivals(limit = 12): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    "getNewArrivals"
+  );
 
-  if (error) throw new Error(`getNewArrivals: ${error.message}`);
-  return (data as unknown as RawProduct[])
+  return (data ?? [])
     .map(mapProduct)
     .filter((p) => p.badge === "new");
 }
 
 export async function getSaleProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .not("compare_price", "is", null)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .not("compare_price", "is", null)
+        .order("created_at", { ascending: false }),
+    "getSaleProducts"
+  );
 
-  if (error) throw new Error(`getSaleProducts: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getRelatedProducts(
@@ -242,29 +332,35 @@ export async function getRelatedProducts(
   categorySlug: string,
   limit = 4
 ): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .neq("id", productId)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .neq("id", productId)
+        .order("created_at", { ascending: false }),
+    "getRelatedProducts"
+  );
 
-  if (error) throw new Error(`getRelatedProducts: ${error.message}`);
-  return (data as unknown as RawProduct[])
+  return (data ?? [])
     .filter((p) => p.categories?.slug === categorySlug)
     .slice(0, limit)
     .map(mapProduct);
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      supabase
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .or(`name.ilike.%${query}%,description.ilike.%${query}%`),
+    "searchProducts"
+  );
 
-  if (error) throw new Error(`searchProducts: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 // ---------------------------------------------------------------------------
@@ -316,6 +412,8 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
       body,
       is_verified,
       is_approved,
+      store_reply,
+      store_reply_at,
       created_at,
       users ( first_name, last_name )
     `)
@@ -332,9 +430,12 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
       : "Anonymous",
     rating: r.rating,
     date: r.created_at.slice(0, 10),
+    title: r.title ?? undefined,
     body: r.body ?? "",
     verified: r.is_verified,
     helpful: 0, // not tracked in schema yet
+    storeReply: r.store_reply ?? undefined,
+    storeReplyAt: r.store_reply_at ?? undefined,
   }));
 }
 
@@ -373,7 +474,7 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   return (data ?? []).map((o: any) => ({
     id: o.id,
     date: o.created_at.slice(0, 10),
-    status: o.status,
+    status: normalizeOrderStatus(o.status),
     total: o.total,
     trackingNumber: o.tracking_number ?? undefined,
     items: (o.order_items ?? []).map((item: any) => {

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import { sendOrderConfirmation, sendAdminOrderNotification } from "@/lib/email";
-import { sendOrderSms } from "@/lib/sms";
 import { getClientIp, rateLimit } from "@/lib/security";
+import { signOrderToken } from "@/lib/orderAccessToken";
+import {
+  recomputeOrder,
+  validateReservedStock,
+  TOTAL_TOLERANCE_KES,
+  type CreateOrderPayload,
+} from "@/lib/orderPricing";
 
 function getAdmin() {
   return createClient(
@@ -12,41 +17,9 @@ function getAdmin() {
   );
 }
 
-interface OrderItem {
-  productId: string;
-  variantId?: string | null;
-  productName: string;
-  variantName: string;
-  unitPrice: number;
-  quantity: number;
-  lineTotal: number;
-}
-
-interface CreateOrderPayload {
-  userId?: string;
-  email: string;
-  phone: string;
-  shippingAddress: {
-    firstName: string;
-    lastName: string;
-    address: string;
-    city: string;
-    county: string;
-  };
-  shippingMethod: "standard" | "express";
-  shippingCost: number;
-  subtotal: number;
-  discountAmount?: number;
-  total: number;
-  paymentMethod: "mpesa" | "card";
-  checkoutRequestId?: string;
-  stripePaymentIntentId?: string;
-  items: OrderItem[];
-  // When the client reserved stock up-front, it sends back the same sessionId
-  // so we can atomically consume those reservations instead of running a fresh
-  // decrement (which would fail because the user's own reservation blocks it).
-  sessionId?: string;
-  expectedConsumed?: number;
+async function releaseReservationSession(db: ReturnType<typeof getAdmin>, sessionId?: string) {
+  if (!sessionId) return;
+  await db.rpc("release_session_reservations", { p_session_id: sessionId });
 }
 
 export async function POST(req: NextRequest) {
@@ -61,205 +34,118 @@ export async function POST(req: NextRequest) {
     }
 
     const payload: CreateOrderPayload = await req.json();
-    const { userId, email, phone, shippingAddress, shippingMethod, shippingCost, subtotal, discountAmount = 0, total, paymentMethod, checkoutRequestId, stripePaymentIntentId, items, sessionId, expectedConsumed } = payload;
+    const {
+      userId,
+      email,
+      phone,
+      shippingAddress,
+      paymentMethod,
+      items,
+      sessionId,
+    } = payload;
 
     if (!items?.length) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
-
-    const supabaseAdmin = getAdmin();
-
-    // Stock handling — two paths tried in order:
-    //   1. Reservation path: atomically consume the session's cart_reservations rows,
-    //      which both decrements quantity and releases the reserved hold in one shot.
-    //      Used when the client reserved stock at the shipping step.
-    //   2. Direct decrement path: per-item variant-aware decrement with rollback.
-    //      Used when no session (guest fast-checkout) OR when consume_reservations
-    //      found 0 rows (TTL expired between reservation and payment).
-    //      Untracked products (no inventory row) are skipped gracefully.
-
-    let inventoryHandledByReservation = false;
-
-    if (sessionId) {
-      const { data: consumed, error: consumeErr } = await supabaseAdmin.rpc(
-        "consume_reservations",
-        { p_session_id: sessionId }
-      );
-      if (consumeErr) {
-        Sentry.captureException(consumeErr);
-        console.error("[orders] consume_reservations error:", consumeErr);
-        // Fall through to direct decrement below
-      } else if ((consumed ?? 0) > 0) {
-        // At least some reservations were consumed — inventory is handled.
-        // Untracked items (placeholder rows) are no-ops and still counted.
-        inventoryHandledByReservation = true;
-      }
-      // consumed === 0: all reservations expired, fall through to direct decrement
+    if (!email || !phone || !shippingAddress?.firstName || !shippingAddress?.address) {
+      return NextResponse.json({ error: "Missing customer or shipping details" }, { status: 400 });
+    }
+    if (paymentMethod !== "mpesa") {
+      return NextResponse.json({ error: "Only M-Pesa checkout is currently supported." }, { status: 400 });
     }
 
-    const decremented: { productId: string; variantId: string | null; qty: number }[] = [];
+    const db = getAdmin();
 
-    if (!inventoryHandledByReservation) {
-      for (const item of items) {
-        const { data, error } = await supabaseAdmin.rpc("decrement_inventory_v2", {
-          p_product_id: item.productId,
-          p_variant_id: item.variantId ?? null,
-          p_qty: item.quantity,
-        });
+    // Recompute every monetary value server-side from authoritative DB rows.
+    const result = await recomputeOrder(db, payload);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    const resolved = result.order;
 
-        if (error || data === false) {
-          // Check whether this product has an inventory row at all.
-          const { data: invRows } = await supabaseAdmin
-            .from("inventory")
-            .select("id")
-            .eq("product_id", item.productId)
-            .limit(1);
-
-          if (!invRows || invRows.length === 0) {
-            // Untracked product — no inventory to manage, skip.
-            continue;
-          }
-
-          // Inventory row exists but stock is insufficient — rollback and fail.
-          for (const dec of decremented) {
-            await supabaseAdmin.rpc("restore_inventory_v2", {
-              p_product_id: dec.productId,
-              p_variant_id: dec.variantId,
-              p_qty: dec.qty,
-            });
-          }
-          return NextResponse.json(
-            { error: `"${item.productName}" is out of stock or insufficient quantity.` },
-            { status: 409 }
-          );
-        }
-
-        decremented.push({ productId: item.productId, variantId: item.variantId ?? null, qty: item.quantity });
+    // Sanity-check the totals the client believed in so a tampered cart can
+    // never silently push through with a stale (too-low) total.
+    if (typeof payload.total === "number") {
+      const drift = Math.abs(payload.total - resolved.total);
+      if (drift > TOTAL_TOLERANCE_KES) {
+        return NextResponse.json(
+          {
+            code: "PRICE_MISMATCH",
+            error: "Your cart total has changed. Please review and try again.",
+            serverTotal: resolved.total,
+          },
+          { status: 409 }
+        );
       }
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin
+    const reservationError = await validateReservedStock(db, sessionId, resolved.items);
+    if (reservationError) return reservationError;
+
+    const { data: order, error: orderError } = await db
       .from("orders")
       .insert({
-        user_id:          userId ?? null,
+        user_id: userId ?? null,
         email,
-        status:           "pending",
-        payment_method:   paymentMethod,
-        payment_status:   "pending",
-        // Shipping address — map to schema columns
-        shipping_name:    `${shippingAddress.firstName} ${shippingAddress.lastName}`,
-        shipping_line1:   shippingAddress.address,
-        shipping_city:    shippingAddress.city,
-        shipping_state:   shippingAddress.county,
-        shipping_postal:  "00100",
+        status: "PENDING_PAYMENT",
+        payment_method: "mpesa",
+        payment_status: "pending",
+        reservation_session_id: sessionId ?? null,
+        shipping_name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+        shipping_line1: shippingAddress.address,
+        shipping_city: shippingAddress.city,
+        shipping_state: shippingAddress.county,
+        shipping_postal: shippingAddress.postal?.trim() || null,
         shipping_country: "KE",
-        shipping_phone:   phone,
-        shipping_method:  shippingMethod,
-        // Totals
-        subtotal,
-        discount_amount:  discountAmount,
-        shipping_cost:    shippingCost,
-        tax_amount:       0,
-        total,
+        shipping_phone: phone,
+        shipping_method: resolved.shippingMethod,
+        subtotal: resolved.subtotal,
+        discount_amount: resolved.discountAmount,
+        shipping_cost: resolved.shippingCost,
+        tax_amount: 0,
+        total: resolved.total,
+        coupon_id: resolved.couponId,
       })
       .select("id")
       .single();
 
     if (orderError || !order) {
-      // Roll back inventory since order failed.
-      // Reservation path is already destroyed by consume_reservations, so we
-      // restore each item directly using whatever the client sent.
-      if (sessionId) {
-        for (const item of items) {
-          await supabaseAdmin.rpc("restore_inventory_v2", {
-            p_product_id: item.productId,
-            p_variant_id: item.variantId ?? null,
-            p_qty: item.quantity,
-          });
-        }
-      } else {
-        for (const dec of decremented) {
-          await supabaseAdmin.rpc("restore_inventory_v2", {
-            p_product_id: dec.productId,
-            p_variant_id: dec.variantId,
-            p_qty: dec.qty,
-          });
-        }
-      }
-      console.error("Order insert error:", orderError);
+      await releaseReservationSession(db, sessionId);
+      console.error("[orders] insert error:", orderError);
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
     }
 
     const orderId = order.id;
 
-    // Insert order items
-    await supabaseAdmin.from("order_items").insert(
-      items.map((item) => ({
-        order_id:     orderId,
-        product_id:   item.productId,
-        variant_id:   item.variantId ?? null,
+    const { error: itemsError } = await db.from("order_items").insert(
+      resolved.items.map((item) => ({
+        order_id: orderId,
+        product_id: item.productId,
+        variant_id: item.variantId,
         product_name: item.productName,
         variant_name: item.variantName,
-        unit_price:   item.unitPrice,
-        quantity:     item.quantity,
-        line_total:   item.lineTotal,
+        unit_price: item.unitPrice,
+        quantity: item.quantity,
+        line_total: item.lineTotal,
       }))
     );
 
-    // Create payment record
-    if (paymentMethod === "mpesa" && checkoutRequestId) {
-      await supabaseAdmin.from("payments").insert({
-        order_id:            orderId,
-        method:              "mpesa",
-        amount:              total,
-        currency:            "KES",
-        status:              "pending",
-        checkout_request_id: checkoutRequestId,
-      });
-    } else if (paymentMethod === "card" && stripePaymentIntentId) {
-      await supabaseAdmin.from("payments").insert({
-        order_id:                   orderId,
-        method:                     "card",
-        amount:                     total,
-        currency:                   "KES",
-        status:                     "pending",
-        stripe_payment_intent_id:   stripePaymentIntentId,
-      });
+    if (itemsError) {
+      await db.from("orders").delete().eq("id", orderId);
+      await releaseReservationSession(db, sessionId);
+      return NextResponse.json({ error: "Failed to create order items" }, { status: 500 });
     }
 
-    // Fire notifications (non-blocking)
-    const customerName = `${shippingAddress.firstName} ${shippingAddress.lastName}`;
-    Promise.allSettled([
-      sendOrderConfirmation({
-        orderId,
-        customerName,
-        email,
-        items: items.map((i) => ({ name: i.productName, variant: i.variantName, qty: i.quantity, price: i.unitPrice })),
-        subtotal,
-        shippingCost,
-        discount: discountAmount,
-        total,
-        shippingAddress: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.county}`,
-        paymentMethod,
-      }),
-      sendOrderSms({
-        phone,
-        customerName,
-        orderId,
-        total,
-      }),
-      sendAdminOrderNotification({
-        orderId,
-        customerName,
-        email,
-        total,
-        paymentMethod,
-        items: items.map((i) => ({ name: i.productName, variant: i.variantName, qty: i.quantity, price: i.unitPrice })),
-        shippingAddress: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.county}`,
-      }),
-    ]).catch(() => {});
+    const accessToken = signOrderToken(orderId);
 
-    return NextResponse.json({ orderId });
+    return NextResponse.json({
+      orderId,
+      accessToken,
+      total: resolved.total,
+      subtotal: resolved.subtotal,
+      shippingCost: resolved.shippingCost,
+      discountAmount: resolved.discountAmount,
+    });
   } catch (err: unknown) {
     Sentry.captureException(err);
     const message = err instanceof Error ? err.message : "Unknown error";

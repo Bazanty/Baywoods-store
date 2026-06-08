@@ -5,7 +5,6 @@ import { Star, ThumbsUp, Pencil } from "lucide-react";
 import { Review } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/lib/authStore";
-import Button from "@/components/ui/Button";
 
 interface ReviewSectionProps {
   reviews: Review[];
@@ -65,50 +64,57 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
   };
 
   return (
-    <div className="pt-8 border-t border-stone">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="font-serif text-2xl text-ink">Customer Reviews</h2>
+    <div className="pt-10 border-t border-ink/15">
+      <div className="flex items-end justify-between mb-10 border-b border-ink/15 pb-6">
+        <div>
+          <p className="section-kicker mb-4">REVIEWS</p>
+          <h2 className="section-title">What people say.</h2>
+        </div>
         {user && !submitted && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-1.5 text-sm text-forest hover:text-forest-dark transition-colors"
+            className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine transition-colors inline-flex items-center gap-2"
           >
-            <Pencil size={13} />
-            Write a Review
+            <Pencil size={11} />
+            Write review
           </button>
         )}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-10 mb-10">
-        <div className="shrink-0 text-center md:text-left">
-          <p className="font-serif text-6xl font-medium text-ink">{rating.toFixed(1)}</p>
-          <div className="flex gap-0.5 justify-center md:justify-start mt-2">
+      {/* Rating summary */}
+      <div className="grid grid-cols-12 gap-8 mb-12">
+        <div className="col-span-12 md:col-span-4">
+          <p className="font-display text-7xl font-medium tracking-[-0.03em] text-ink leading-none">
+            {rating.toFixed(1)}
+          </p>
+          <div className="flex gap-0.5 mt-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
                 size={14}
-                className={i < Math.round(rating) ? "fill-forest text-forest" : "text-stone fill-stone"}
+                className={i < Math.round(rating) ? "fill-ink text-ink" : "text-ink/15 fill-ink/15"}
               />
             ))}
           </div>
-          <p className="text-xs text-muted mt-1">{reviewCount} reviews</p>
+          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mt-3">
+            / Based on {reviewCount} reviews
+          </p>
         </div>
 
-        <div className="flex-1 space-y-2">
+        <div className="col-span-12 md:col-span-8 space-y-2 md:pt-2">
           {distribution.map(({ star, count, pct }) => (
             <div key={star} className="flex items-center gap-3">
-              <span className="text-xs text-muted w-3 shrink-0">{star}</span>
-              <Star size={10} className="fill-forest text-forest shrink-0" />
-              <div className="flex-1 h-1.5 bg-stone rounded-full overflow-hidden">
+              <span className="font-mono text-[10px] text-muted w-6 shrink-0">{star}★</span>
+              <div className="flex-1 h-[3px] bg-ink/10 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   whileInView={{ width: `${pct}%` }}
                   transition={{ duration: 0.6, delay: (5 - star) * 0.08 }}
                   viewport={{ once: true }}
-                  className="h-full bg-forest rounded-full"
+                  className="h-full bg-ink"
                 />
               </div>
-              <span className="text-xs text-muted w-4 shrink-0">{count}</span>
+              <span className="font-mono text-[10px] tabular-nums text-muted w-8 shrink-0 text-right">{count}</span>
             </div>
           ))}
         </div>
@@ -123,12 +129,13 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
             onSubmit={handleSubmitReview}
-            className="border border-stone bg-cream p-6 mb-8 overflow-hidden"
+            className="border border-ink bg-cream p-6 mb-10 overflow-hidden"
           >
-            <h3 className="font-serif text-lg text-ink mb-5">Your Review</h3>
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ Compose</p>
+            <h3 className="font-display text-2xl tracking-[-0.02em] text-ink mb-6">Your review</h3>
 
-            <div className="mb-4">
-              <label className="label-base mb-2 block">Rating</label>
+            <div className="mb-5">
+              <p className="label-base">Rating</p>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <button
@@ -139,15 +146,15 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
                   >
                     <Star
                       size={22}
-                      className={s <= form.rating ? "fill-forest text-forest" : "text-stone fill-stone"}
+                      className={s <= form.rating ? "fill-ink text-ink" : "text-ink/20 fill-ink/20"}
                     />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="label-base">Title (optional)</label>
+            <div className="mb-5">
+              <p className="label-base">Title (optional)</p>
               <input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -156,8 +163,8 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
               />
             </div>
 
-            <div className="mb-5">
-              <label className="label-base">Review</label>
+            <div className="mb-6">
+              <p className="label-base">Review</p>
               <textarea
                 required
                 value={form.body}
@@ -168,82 +175,102 @@ export default function ReviewSection({ reviews: initial, rating, reviewCount, p
               />
             </div>
 
-            <p className="text-xs text-muted mb-4">
-              Your review will be visible after moderation.
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mb-4">
+              / Visible after moderation
             </p>
 
-            {error && <p className="text-xs font-medium text-danger mb-4">{error}</p>}
+            {error && (
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger mb-4">
+                / {error}
+              </p>
+            )}
 
-            <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="w-1/3">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowForm(false)} className="btn-outline">
                 Cancel
-              </Button>
-              <Button type="submit" loading={submitting} className="flex-1">
-                Submit Review
-              </Button>
+              </button>
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 disabled:opacity-50">
+                {submitting ? "Submitting…" : "Submit review"}
+              </button>
             </div>
           </motion.form>
         )}
       </AnimatePresence>
 
       {submitted && (
-        <div className="bg-forest/10 border border-forest/20 px-4 py-3 text-sm text-forest mb-6">
-          Thanks for your review! It&apos;ll appear after moderation.
+        <div className="border-l-2 border-citrine pl-4 py-3 mb-8">
+          <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink">
+            / Thanks. Your review will appear after moderation.
+          </p>
         </div>
       )}
 
-      <div className="space-y-6">
-        {reviews.map((review) => (
-          <div key={review.id} className="border-b border-stone pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-semibold text-ink">{review.author}</p>
-                  {review.verified && (
-                    <span className="text-[10px] font-medium text-forest bg-forest-muted px-1.5 py-0.5">
-                      Verified
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      size={11}
-                      className={i < review.rating ? "fill-forest text-forest" : "text-stone fill-stone"}
-                    />
-                  ))}
+      <div className="space-y-0">
+        {reviews.map((review, i) => (
+          <div key={review.id} className="border-t border-ink/15 py-6 first:border-t-0 first:pt-0">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="flex items-baseline gap-3">
+                <span className="font-mono text-[10px] tracking-[0.2em] text-muted">
+                  /{String(i + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-display text-base tracking-[-0.01em] text-ink">{review.author}</p>
+                    {review.verified && (
+                      <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-ink bg-citrine px-1.5 py-0.5">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={11}
+                        className={i < review.rating ? "fill-ink text-ink" : "text-ink/15 fill-ink/15"}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-muted shrink-0">
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted shrink-0">
                 {new Date(review.date).toLocaleDateString("en-KE", {
-                  day: "numeric",
+                  day: "2-digit",
                   month: "short",
                   year: "numeric",
                 })}
               </p>
             </div>
-            <p className="text-sm text-ink/80 mt-3 leading-relaxed">{review.body}</p>
+            {review.title && (
+              <p className="font-display text-base tracking-[-0.01em] text-ink pl-0 sm:pl-12 mb-1">{review.title}</p>
+            )}
+            <p className="text-sm text-ink/80 leading-relaxed pl-0 sm:pl-12">{review.body}</p>
+            {review.storeReply && (
+              <div className="mt-3 sm:ml-12 border-l-2 border-citrine pl-4 py-2 bg-beige-dark/30">
+                <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink mb-1">/ Baywoods replied</p>
+                <p className="text-sm text-ink/85 leading-relaxed">{review.storeReply}</p>
+              </div>
+            )}
             <button
               onClick={() => setHelpful((h) => ({ ...h, [review.id]: true }))}
               disabled={helpful[review.id]}
-              className="flex items-center gap-1.5 mt-3 text-xs text-muted hover:text-ink transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 mt-4 sm:ml-12 font-mono text-[10px] tracking-[0.16em] uppercase text-muted hover:text-ink transition-colors disabled:opacity-50"
             >
-              <ThumbsUp size={12} />
+              <ThumbsUp size={11} />
               Helpful ({helpful[review.id] ? review.helpful + 1 : review.helpful})
             </button>
           </div>
         ))}
 
         {reviews.length === 0 && !showForm && (
-          <p className="text-sm text-muted py-6 text-center">
-            No reviews yet.{" "}
+          <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted py-8 text-center border-y border-ink/15">
+            / No reviews yet.{" "}
             {user ? (
-              <button onClick={() => setShowForm(true)} className="text-forest underline underline-offset-2">
-                Be the first to review
+              <button onClick={() => setShowForm(true)} className="text-ink underline-citrine">
+                Be the first →
               </button>
             ) : (
-              "Be the first to review this product."
+              "Be the first to review."
             )}
           </p>
         )}

@@ -15,18 +15,15 @@ interface ProductCardProps {
 }
 
 const cardVariant = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
 };
-
-const FALLBACK_PRODUCT_IMAGE =
-  "https://res.cloudinary.com/dltbrta8h/image/upload/v1775887092/baywoodstore/nike/ak9wc1v6af5lvckiithw.jpg";
 
 export default function ProductCard({ product }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const { toggleWishlist, isWishlisted, addItem } = useCartStore();
   const wishlisted = isWishlisted(product.id);
-  const primaryImage = product.images[0] ?? FALLBACK_PRODUCT_IMAGE;
+  const primaryImage = product.images[0];
   const secondaryImage = product.images[1];
   const hasSecondImage = Boolean(secondaryImage);
   const discount = product.salePrice
@@ -52,79 +49,91 @@ export default function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      <div className="relative aspect-square bg-beige-dark overflow-hidden">
+      <div className="relative aspect-square bg-beige-dark overflow-hidden border border-ink/10">
         <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0">
-          <Image
-            src={primaryImage}
-            alt={product.name}
-            width={500}
-            height={500}
-            quality={90}
-            className={cn(
-              "w-full h-full object-cover transition-all duration-500 ease-out-expo",
-              hovered && hasSecondImage ? "opacity-0 scale-[1.04]" : "opacity-100 scale-100"
-            )}
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
-          />
-          {hasSecondImage && secondaryImage && (
-            <Image
-              src={secondaryImage}
-              alt={`${product.name} alternate view`}
-              width={500}
-              height={500}
-              quality={90}
-              className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out-expo",
-                hovered ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
+          {primaryImage ? (
+            <>
+              <Image
+                src={primaryImage}
+                alt={product.name}
+                width={500}
+                height={500}
+                quality={90}
+                className={cn(
+                  "w-full h-full object-cover transition-all duration-500 ease-out-expo",
+                  hovered && hasSecondImage ? "opacity-0 scale-[1.04]" : "opacity-100 scale-100"
+                )}
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
+              />
+              {hasSecondImage && secondaryImage && (
+                <Image
+                  src={secondaryImage}
+                  alt={`${product.name} alternate view`}
+                  width={500}
+                  height={500}
+                  quality={90}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out-expo",
+                    hovered ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
+                  )}
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
+                />
               )}
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
-            />
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-beige-dark">
+              <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted/60">
+                {product.name.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
           )}
         </Link>
 
-        {/* Badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
+        {/* Top-left: badges */}
+        <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 pointer-events-none">
+          {product.verificationStatus === "VERIFIED_ORIGINAL" && <Badge variant="verified" />}
           {product.badge && <Badge variant={product.badge} />}
           {discount && product.badge !== "sale" && <Badge variant="sale" />}
         </div>
 
-        {/* Wishlist */}
+        {/* Top-right: wishlist */}
         <button
           onClick={handleWishlist}
-          className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:bg-white [&>svg]:text-neutral-800"
+          className={cn(
+            "absolute top-2.5 right-2.5 z-10 w-8 h-8 flex items-center justify-center transition-all duration-200 border",
+            wishlisted
+              ? "bg-ink border-ink text-citrine"
+              : "bg-cream/95 border-ink/15 text-ink hover:border-ink"
+          )}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart
-            size={14}
-            className={cn(
-              "transition-colors",
-              wishlisted ? "fill-danger text-danger" : "text-neutral-800"
-            )}
-          />
+          <Heart size={13} className={cn(wishlisted && "fill-citrine")} />
         </button>
 
-        {/* Quick add / Sold out */}
+        {/* Bottom: quick add / sold out */}
         {!product.inStock ? (
-          <div className="absolute bottom-0 left-0 right-0 z-10 bg-stone/90 backdrop-blur-sm py-2.5 text-center pointer-events-none">
-            <span className="text-xs font-medium text-muted tracking-wide">Sold Out</span>
+          <div className="absolute bottom-0 left-0 right-0 z-10 bg-ink/90 py-2.5 text-center pointer-events-none">
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-cream/80">
+              Sold out
+            </span>
           </div>
         ) : (
           <motion.button
             onClick={handleQuickAdd}
             initial={false}
             animate={{ y: hovered ? 0 : "100%" }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-0 left-0 right-0 z-10 bg-neutral-900 text-white py-2.5 flex items-center justify-center gap-2 text-xs font-medium tracking-wide hover:bg-forest transition-colors"
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute bottom-0 left-0 right-0 z-10 bg-ink text-cream py-2.5 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase hover:bg-citrine hover:text-ink transition-colors"
           >
-            <Plus size={12} />
-            Quick Add
+            <Plus size={11} strokeWidth={2.5} />
+            Quick add
           </motion.button>
         )}
 
         {/* Stock warning */}
         {product.inStock && product.stockCount && product.stockCount <= 5 && (
-          <div className="absolute bottom-10 left-3 z-10 pointer-events-none">
-            <span className="text-[10px] font-medium text-white bg-amber-500 px-2 py-0.5">
+          <div className="absolute bottom-10 left-2.5 z-10 pointer-events-none">
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink bg-citrine px-2 py-0.5">
               Only {product.stockCount} left
             </span>
           </div>
@@ -132,45 +141,52 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Info */}
-      <Link href={`/product/${product.slug}`} className="block mt-3 space-y-1">
-        <p className="text-[10px] font-medium tracking-widest uppercase text-muted">
-          {product.category}
-        </p>
-        <h3 className="text-sm font-medium text-ink group-hover:text-forest transition-colors line-clamp-1">
+      <Link href={`/product/${product.slug}`} className="block mt-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted truncate">
+            {product.category}
+          </p>
+          {/* color swatches — squares */}
+          {product.colors.length > 0 && (
+            <div className="flex items-center gap-0.5 shrink-0">
+              {product.colors.slice(0, 4).map((color) => (
+                <span
+                  key={color.name}
+                  title={color.name}
+                  className="w-2.5 h-2.5 border border-ink/20"
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+              {product.colors.length > 4 && (
+                <span className="font-mono text-[9px] text-muted ml-0.5">
+                  +{product.colors.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <h3 className="font-display text-base tracking-[-0.01em] text-ink group-hover:underline-citrine line-clamp-1 mt-1.5">
           {product.name}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-baseline gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold text-danger">
+              <span className="price text-sm font-medium text-ink">
                 {formatPrice(product.salePrice)}
               </span>
-              <span className="text-xs text-muted line-through">
+              <span className="price text-xs text-muted line-through">
                 {formatPrice(product.price)}
               </span>
               {discount && (
-                <span className="text-[10px] font-semibold text-danger">
+                <span className="font-mono text-[10px] tracking-[0.16em] text-ink bg-citrine px-1.5 py-0.5">
                   -{discount}%
                 </span>
               )}
             </>
           ) : (
-            <span className="text-sm font-semibold text-ink">
+            <span className="price text-sm font-medium text-ink">
               {formatPrice(product.price)}
             </span>
-          )}
-        </div>
-        <div className="flex gap-1.5 pt-1">
-          {product.colors.slice(0, 4).map((color) => (
-            <span
-              key={color.name}
-              title={color.name}
-              className="w-3 h-3 rounded-full border border-stone/70"
-              style={{ backgroundColor: color.hex }}
-            />
-          ))}
-          {product.colors.length > 4 && (
-            <span className="text-[10px] text-muted">+{product.colors.length - 4}</span>
           )}
         </div>
       </Link>

@@ -47,7 +47,7 @@ export default function NewCategoryForm() {
         type="submit"
         disabled={pending}
         className={cn(
-          "w-full flex items-center justify-center gap-2 bg-ink text-white text-sm py-2.5 transition-colors",
+          "w-full flex items-center justify-center gap-2 bg-ink text-cream text-sm py-2.5 transition-colors",
           pending ? "opacity-70 cursor-not-allowed" : "hover:bg-ink/90"
         )}
       >

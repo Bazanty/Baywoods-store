@@ -39,21 +39,19 @@ export default function WhyChooseUs() {
     <section className="mt-24 bg-beige lg:mt-28">
       <div className="container-px py-16 lg:py-20">
         {/* Header */}
-        <div className="mb-14 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-xl">
-            <p className="section-kicker mb-3">The Baywoods promise</p>
-            <h2 className="font-serif text-3xl leading-[1.05] text-ink lg:text-5xl">
-              Why thousands of Kenyans
-              <br className="hidden lg:inline" /> shop with us.
+        <div className="mb-14 grid grid-cols-12 gap-6 items-end border-b border-ink/15 pb-6">
+          <div className="col-span-12 lg:col-span-7">
+            <h2 className="font-display font-medium tracking-[-0.025em] leading-[0.94] text-ink text-4xl sm:text-5xl lg:text-[3.5rem]">
+              Why thousands of Kenyans <br className="hidden lg:inline" /> shop with us.
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-7 text-muted lg:text-right">
-            Built for Kenya, from checkout to delivery. M-Pesa accepted, returns handled, authenticity guaranteed.
+          <p className="col-span-12 lg:col-span-5 lg:text-right font-mono text-[11px] tracking-[0.16em] uppercase text-muted leading-relaxed">
+            Built for Kenya, from checkout to delivery. M-Pesa, returns, authenticity &mdash; handled.
           </p>
         </div>
 
         {/* Reason grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-stone">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-ink/15">
           {reasons.map((reason, i) => (
             <motion.div
               key={reason.title}
@@ -61,22 +59,26 @@ export default function WhyChooseUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="group border-b border-r border-stone p-7 lg:p-8 hover:bg-beige-dark transition-colors duration-300 last:border-r-0 sm:[&:nth-child(2)]:border-r-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0"
+              className="group relative border-b border-r border-ink/15 p-7 lg:p-8 hover:bg-beige-dark transition-colors duration-300 last:border-r-0 sm:[&:nth-child(2)]:border-r-0 lg:[&:nth-child(2)]:border-r lg:[&:nth-child(4)]:border-r-0"
             >
-              {/* Stat number */}
-              <div className="mb-6 flex items-end justify-between">
-                <span className="font-serif text-4xl leading-none text-ink">{reason.stat}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+              {/* Numbered chapter */}
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">
+                / {String(i + 1).padStart(2, "0")}
+              </p>
+
+              <div className="mt-6 flex items-end justify-between">
+                <span className="font-display text-5xl leading-none tracking-[-0.03em] text-ink">{reason.stat}</span>
+                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted">
                   {reason.statLabel}
                 </span>
               </div>
 
               <reason.icon
                 size={20}
-                strokeWidth={1.4}
-                className="mb-4 text-forest group-hover:scale-110 transition-transform duration-500"
+                strokeWidth={1.5}
+                className="mt-6 mb-4 text-ink group-hover:text-citrine transition-colors duration-300"
               />
-              <h3 className="text-sm font-semibold text-ink mb-2">{reason.title}</h3>
+              <h3 className="font-display text-lg tracking-[-0.01em] text-ink mb-2">{reason.title}</h3>
               <p className="text-xs leading-relaxed text-muted">{reason.body}</p>
             </motion.div>
           ))}

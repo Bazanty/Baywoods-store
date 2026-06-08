@@ -141,8 +141,9 @@ function Invoice({ order }: { order: Order }) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
+  const { orderId } = await params;
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
   if (!email) {
@@ -158,7 +159,7 @@ export async function GET(
       subtotal, shipping_cost, discount_amount, total,
       order_items ( product_name, variant_name, quantity, unit_price, line_total )
     `)
-    .eq("id", params.orderId)
+    .eq("id", orderId)
     .eq("email", email)
     .maybeSingle();
 
@@ -172,7 +173,7 @@ export async function GET(
   return new NextResponse(body, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="baywoods-${params.orderId.slice(0, 8)}.pdf"`,
+      "Content-Disposition": `inline; filename="baywoods-${orderId.slice(0, 8)}.pdf"`,
     },
   });
 }

@@ -15,26 +15,26 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-center px-6 bg-beige">
-      <p className="text-[10px] font-semibold tracking-[0.25em] uppercase text-danger mb-3">
-        Something went wrong
+    <div className="min-h-screen flex flex-col items-center justify-center text-center px-6 bg-cream">
+      <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-danger mb-6">/ ERROR · 500</p>
+      <p className="font-display font-medium text-[clamp(6rem,16vw,12rem)] text-ink tracking-[-0.04em] leading-none select-none">
+        Oops.
       </p>
-      <h1 className="font-serif text-4xl text-ink mb-4">Unexpected Error</h1>
-      <p className="text-sm text-muted max-w-sm mb-8">
-        We hit an unexpected error. Please try again, or contact support if the problem persists.
+      <h1 className="font-display text-3xl tracking-[-0.02em] text-ink mt-4 mb-4">Something went wrong.</h1>
+      <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted max-w-sm mb-6">
+        / Please try again, or contact support if it persists.
       </p>
       {error.digest && (
-        <p className="text-[11px] text-muted mb-5">Reference: {error.digest}</p>
+        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted mb-6">
+          / REF · <span className="text-ink">{error.digest}</span>
+        </p>
       )}
       <div className="flex flex-wrap justify-center gap-3">
-        <button
-          onClick={reset}
-          className="px-6 py-3 bg-forest text-white text-sm font-medium hover:bg-forest-dark transition-colors"
-        >
-          Try Again
+        <button onClick={reset} className="btn-primary">
+          Try again →
         </button>
-        <Link href="/" className="px-6 py-3 border border-stone text-sm font-medium text-ink hover:border-ink transition-colors">
-          Go Home
+        <Link href="/" className="btn-outline">
+          Go home
         </Link>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import type { OrderStatus } from "./orderStatus";
+
 export type Category =
   | "shoes"
   | "hoodies"
@@ -14,6 +16,7 @@ export interface Product {
   name: string;
   slug: string;
   category: Category;
+  brand?: string;
   price: number;
   salePrice?: number;
   images: string[];
@@ -22,12 +25,23 @@ export interface Product {
   variants?: ProductVariant[];
   description: string;
   material?: string;
+  materialCare?: string;
   badge?: "new" | "sale" | "hot";
   rating: number;
   reviewCount: number;
   inStock: boolean;
   stockCount?: number;
+  verificationStatus?: ProductVerificationStatus;
+  verificationNotes?: string | null;
+  verifiedAt?: string | null;
+  verifiedBy?: string | null;
 }
+
+export type ProductVerificationStatus =
+  | "PENDING"
+  | "VERIFIED_ORIGINAL"
+  | "NEEDS_REVIEW"
+  | "REJECTED";
 
 export interface ProductColor {
   name: string;
@@ -54,15 +68,18 @@ export interface Review {
   author: string;
   rating: number;
   date: string;
+  title?: string;
   body: string;
   verified: boolean;
   helpful: number;
+  storeReply?: string;
+  storeReplyAt?: string;
 }
 
 export interface Order {
   id: string;
   date: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status: OrderStatus;
   items: CartItem[];
   total: number;
   trackingNumber?: string;
@@ -70,6 +87,7 @@ export interface Order {
 
 export interface FilterState {
   categories: Category[];
+  brands: string[];
   sizes: string[];
   colors: string[];
   priceRange: [number, number];

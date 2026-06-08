@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "./server";
-import { PRODUCT_SELECT, mapProduct, type RawProduct } from "./queries";
+import { mapProduct, runProductQuery, type RawProduct } from "./queries";
 import type { Product, Review } from "../types";
 
 function db() {
@@ -7,14 +7,17 @@ function db() {
 }
 
 export async function getAllProductsServer(): Promise<Product[]> {
-  const { data, error } = await db()
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      db()
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false }),
+    "getAllProductsServer"
+  );
 
-  if (error) throw new Error(`getAllProductsServer: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getProductsByCategoryServer(categorySlug: string): Promise<Product[]> {
@@ -36,30 +39,34 @@ export async function getProductsByCategoryServer(categorySlug: string): Promise
 
   const categoryIds = [parent.id, ...(children ?? []).map((c: { id: string }) => c.id)];
 
-  const { data, error } = await client
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .in("category_id", categoryIds)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      client
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .in("category_id", categoryIds)
+        .order("created_at", { ascending: false }),
+    "getProductsByCategoryServer"
+  );
 
-  if (error) throw new Error(`getProductsByCategoryServer: ${error.message}`);
-  return (data as unknown as RawProduct[]).map(mapProduct);
+  return (data ?? []).map(mapProduct);
 }
 
 export async function getProductBySlugServer(slug: string): Promise<Product | null> {
-  const { data, error } = await db()
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
+  const data = await runProductQuery<RawProduct>(
+    (select) =>
+      db()
+        .from("products")
+        .select(select)
+        .eq("slug", slug)
+        .eq("is_active", true)
+        .single(),
+    "getProductBySlugServer",
+    { allowMissingRow: true }
+  );
 
-  if (error) {
-    if (error.code === "PGRST116") return null;
-    throw new Error(`getProductBySlugServer: ${error.message}`);
-  }
-  return mapProduct(data as unknown as RawProduct);
+  return data ? mapProduct(data as unknown as RawProduct) : null;
 }
 
 export async function getRelatedProductsServer(
@@ -67,18 +74,38 @@ export async function getRelatedProductsServer(
   categorySlug: string,
   limit = 4
 ): Promise<Product[]> {
-  const { data, error } = await db()
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .neq("id", productId)
-    .order("created_at", { ascending: false });
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      db()
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .neq("id", productId)
+        .order("created_at", { ascending: false }),
+    "getRelatedProductsServer"
+  );
 
-  if (error) throw new Error(`getRelatedProductsServer: ${error.message}`);
-  return (data as unknown as RawProduct[])
+  return (data ?? [])
     .filter((p) => p.categories?.slug === categorySlug)
     .slice(0, limit)
     .map(mapProduct);
+}
+
+export async function getProductsBySlugsServer(slugs: string[]): Promise<Product[]> {
+  if (!slugs || slugs.length === 0) return [];
+  const data = await runProductQuery<RawProduct[]>(
+    (select) =>
+      db()
+        .from("products")
+        .select(select)
+        .eq("is_active", true)
+        .in("slug", slugs),
+    "getProductsBySlugsServer"
+  );
+  const map = new Map<string, Product>();
+  for (const raw of data ?? []) map.set(raw.slug, mapProduct(raw));
+  // Preserve the requested order (most recent first).
+  return slugs.map((s) => map.get(s)).filter((p): p is Product => Boolean(p));
 }
 
 export async function getProductReviewsServer(productId: string): Promise<Review[]> {

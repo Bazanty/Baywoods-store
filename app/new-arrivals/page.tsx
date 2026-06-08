@@ -8,23 +8,29 @@ export default async function NewArrivalsPage() {
   const products = await getNewArrivals(24).catch(() => []);
 
   return (
-    <div className="pt-24 lg:pt-28 pb-24">
-      <div className="container-px py-8">
-        <div className="mb-10">
-          <p className="text-[10px] font-semibold tracking-[0.25em] uppercase text-forest mb-2">
-            Just Landed
-          </p>
-          <h1 className="font-serif text-5xl lg:text-6xl text-ink">New Arrivals</h1>
-          <p className="text-sm text-muted mt-3 max-w-md">
-            Fresh drops, added weekly. Be the first to cop the latest pieces from Baywoods.
-          </p>
+    <div className="pt-20 lg:pt-24 pb-24">
+      <div className="container-px py-10 border-b border-ink/15">
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-4">
+          <span className="text-ink">/</span> JUST LANDED
+        </p>
+        <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.9] text-ink text-5xl sm:text-6xl lg:text-7xl">
+          New arrivals.
+        </h1>
+        <div className="mt-4 flex items-baseline gap-6 font-mono text-[11px] tracking-[0.14em] uppercase">
+          <span className="text-ink">{String(products.length).padStart(3, "0")} pieces</span>
+          <span className="text-muted max-w-md">· Fresh drops, added weekly</span>
         </div>
+      </div>
 
+      <div className="container-px py-8">
         {products.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted mb-5">New arrivals coming soon - stay tuned.</p>
+          <div className="text-center py-20 border-y border-ink/15">
+            <p className="font-display text-2xl tracking-[-0.02em] text-ink mb-2">Drops loading.</p>
+            <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mb-6">
+              Stay tuned
+            </p>
             <Link href="/shop" className="btn-outline">
-              Browse All Products
+              Browse all products
             </Link>
           </div>
         ) : (

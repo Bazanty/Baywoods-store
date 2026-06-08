@@ -7,6 +7,8 @@ import { restockInventory } from "@/app/admin/actions";
 interface Row {
   id: string;
   productId: string;
+  variantId?: string | null;
+  variantName?: string | null;
   productName: string;
   quantity: number;
   reserved: number;
@@ -21,7 +23,7 @@ export default function RestockRow({ row }: { row: Row }) {
   const apply = () => {
     if (delta === 0) return;
     startTransition(async () => {
-      await restockInventory(row.productId, delta);
+      await restockInventory(row.id, delta);
       setDelta(0);
       setSaved(true);
       setTimeout(() => setSaved(false), 1600);
@@ -33,7 +35,14 @@ export default function RestockRow({ row }: { row: Row }) {
 
   return (
     <tr className="border-b border-stone/60 hover:bg-cream/40">
-      <td className="px-5 py-3 text-ink">{row.productName}</td>
+      <td className="px-5 py-3 text-ink">
+        {row.productName}
+        {row.variantName && (
+          <span className="block font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
+            {row.variantName}
+          </span>
+        )}
+      </td>
       <td className="px-5 py-3 text-right tabular-nums">{row.quantity}</td>
       <td className="px-5 py-3 text-right tabular-nums text-muted">{row.reserved}</td>
       <td className={`px-5 py-3 text-right tabular-nums font-medium ${tone}`}>
@@ -65,7 +74,7 @@ export default function RestockRow({ row }: { row: Row }) {
             type="button"
             onClick={apply}
             disabled={isPending || delta === 0}
-            className="ml-2 px-3 h-7 bg-forest text-white text-xs disabled:opacity-40 flex items-center gap-1"
+            className="ml-2 px-3 h-7 bg-ink text-cream text-xs disabled:opacity-40 flex items-center gap-1"
           >
             {saved ? <Check size={12} /> : isPending ? "…" : "Apply"}
           </button>

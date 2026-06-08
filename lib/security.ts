@@ -18,6 +18,12 @@ const SAFARICOM_CALLBACK_IPS = new Set([
   "196.201.212.133",
 ]);
 
+export const SAFARICOM_CALLBACK_IP_LIST = [...SAFARICOM_CALLBACK_IPS];
+
+export function isKnownSafaricomIp(ip: string | null): boolean {
+  return !!ip && SAFARICOM_CALLBACK_IPS.has(ip);
+}
+
 export function getClientIp(req: NextRequest): string | null {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim();
@@ -29,7 +35,7 @@ export function getClientIp(req: NextRequest): string | null {
 export function isSafaricomIp(ip: string | null): boolean {
   if (!ip) return false;
   if (process.env.MPESA_SKIP_IP_CHECK === "true") return true;
-  return SAFARICOM_CALLBACK_IPS.has(ip);
+  return isKnownSafaricomIp(ip);
 }
 
 // Lightweight in-memory rate limiter.

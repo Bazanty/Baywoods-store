@@ -2,38 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CSS variables outside @layer so they are always highest-specificity */
+/* Tokens live outside @layer so they always win the cascade */
 :root {
-  --font-cormorant: "Cormorant Garamond", Georgia, serif;
-  --font-inter: "Inter", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter Tight", system-ui, sans-serif;
+  --font-sans:    "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --c-cream:        252 252 248;
-  --c-ink:          17 24 39;
-  --c-beige:        244 244 239;
-  --c-beige-dark:   232 236 230;
-  --c-forest:       45 106 79;
-  --c-forest-dark:  27 67 50;
-  --c-forest-light: 82 183 136;
-  --c-forest-muted: 216 243 220;
-  --c-stone:        225 228 232;
-  --c-stone-light:  238 241 243;
-  --c-muted:        100 116 139;
-  --c-danger:       192 57 43;
+  /* Atelier Brutalist — Paper / Carbon / Citrine + smoke grays */
+  --c-cream:        244 241 234;   /* paper */
+  --c-beige:        237 234 224;   /* paper soft */
+  --c-beige-dark:   221 217 204;   /* smoke-1 */
+  --c-ink:           14  14  12;   /* carbon */
+  --c-forest:        14  14  12;   /* carbon (primary action) */
+  --c-forest-dark:    0   0   0;   /* pure black */
+  --c-forest-light: 220 250  56;   /* citrine — the only pop */
+  --c-forest-muted: 234 244 191;   /* citrine washed */
+  --c-stone:        220 217 207;   /* hairline rule */
+  --c-stone-light:  232 229 220;
+  --c-muted:        110 107  97;   /* smoke-deep */
+  --c-danger:       193  47  47;
 }
 
 .dark {
-  --c-cream:        14 14 12;
-  --c-ink:          237 235 229;
-  --c-beige:        22 22 20;
-  --c-beige-dark:   30 30 28;
-  --c-forest:       82 183 136;
-  --c-forest-dark:  45 106 79;
-  --c-forest-light: 116 198 157;
-  --c-forest-muted: 21 43 31;
-  --c-stone:        42 41 39;
-  --c-stone-light:  34 33 32;
-  --c-muted:        126 138 150;
-  --c-danger:       224 92 92;
+  --c-cream:         12  12  10;
+  --c-beige:         20  20  18;
+  --c-beige-dark:    28  28  25;
+  --c-ink:          240 237 226;
+  --c-forest:       240 237 226;
+  --c-forest-dark:  255 255 255;
+  --c-forest-light: 220 250  56;
+  --c-forest-muted:  42  48  20;
+  --c-stone:         48  48  42;
+  --c-stone-light:   34  34  30;
+  --c-muted:        148 144 132;
+  --c-danger:       224  92  92;
 }
 
 @layer base {
@@ -49,11 +51,12 @@
   }
 
   ::selection {
-    @apply bg-forest text-white;
+    @apply bg-ink text-cream;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -61,11 +64,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-stone rounded-full;
+    @apply bg-ink;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted;
+    background: rgb(var(--c-forest-light));
   }
 }
 
@@ -74,36 +77,49 @@
     @apply px-4 sm:px-6 lg:px-10 xl:px-16;
   }
 
+  /* Brutalist buttons — flat, hard edges, square corners */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-forest text-white font-sans text-sm font-medium tracking-wide px-6 py-3 transition-colors duration-200 hover:bg-forest-dark active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 bg-ink text-cream font-mono text-xs font-medium uppercase tracking-[0.16em] px-6 py-3.5 transition-all duration-200 hover:bg-forest-dark active:translate-y-[1px];
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 border border-ink text-ink font-sans text-sm font-medium tracking-wide px-6 py-3 transition-colors duration-200 hover:bg-ink hover:text-white active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 border border-ink text-ink font-mono text-xs font-medium uppercase tracking-[0.16em] px-6 py-3.5 transition-all duration-200 hover:bg-ink hover:text-cream active:translate-y-[1px];
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 text-ink font-sans text-sm font-medium tracking-wide px-4 py-2 transition-colors duration-200 hover:bg-stone/50;
+    @apply inline-flex items-center justify-center gap-2 text-ink font-mono text-xs font-medium uppercase tracking-[0.16em] px-4 py-2 transition-colors duration-200 hover:text-forest-light;
   }
 
   .input-base {
-    @apply w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none transition-colors duration-150 focus:border-ink placeholder:text-muted;
+    @apply w-full bg-transparent border-0 border-b border-ink/30 text-ink text-sm px-0 py-3 outline-none transition-colors duration-150 focus:border-ink placeholder:text-muted rounded-none;
   }
 
   .label-base {
-    @apply block text-xs font-medium tracking-widest uppercase text-muted mb-2;
+    @apply block font-mono text-[10px] font-medium tracking-[0.22em] uppercase text-muted mb-2;
   }
 
+  /* Display headline — grotesk, tight leading, mass */
   .section-title {
-    @apply font-serif text-3xl text-ink leading-tight sm:text-4xl lg:text-display-lg;
+    @apply font-display font-medium text-ink leading-[0.92] tracking-[-0.02em] text-4xl sm:text-5xl lg:text-display-lg;
   }
 
+  /* Numbered chapter marker — replaces the old kicker */
   .section-kicker {
-    @apply text-[10px] font-semibold tracking-[0.22em] uppercase text-forest;
+    @apply inline-flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.18em] uppercase text-ink before:content-['/'] before:text-forest-light before:font-bold;
+  }
+
+  /* Hairline rule used everywhere as section divider */
+  .rule {
+    @apply h-px w-full bg-ink/15;
   }
 
   .tag {
-    @apply inline-block text-[10px] font-sans font-semibold tracking-[0.15em] uppercase px-2.5 py-1;
+    @apply inline-flex items-center font-mono text-[10px] font-medium tracking-[0.18em] uppercase px-2 py-1;
+  }
+
+  /* Mono price treatment */
+  .price {
+    @apply font-mono tabular-nums text-ink;
   }
 }
 
@@ -119,5 +135,27 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Grain — subtle paper texture for hero/feature blocks */
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Marquee for ticker — sharper, harder */
+  .underline-citrine {
+    background-image: linear-gradient(rgb(var(--c-forest-light)), rgb(var(--c-forest-light)));
+    background-size: 100% 30%;
+    background-position: 0 88%;
+    background-repeat: no-repeat;
   }
 }

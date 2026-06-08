@@ -144,7 +144,6 @@ export default function ImageUploader({ value, onChange }: Props) {
               key={img.publicId}
               className="relative group aspect-square bg-stone-light rounded overflow-hidden"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={img.url}
                 alt={`Product image ${i + 1}`}
@@ -153,7 +152,7 @@ export default function ImageUploader({ value, onChange }: Props) {
 
               {/* Primary badge */}
               {img.isPrimary && (
-                <span className="absolute top-1 left-1 bg-forest text-white text-[9px] tracking-wider uppercase px-1.5 py-0.5 rounded-sm font-medium">
+                <span className="absolute top-1 left-1 bg-ink text-citrine text-[9px] tracking-wider uppercase px-1.5 py-0.5 rounded-sm font-medium">
                   Primary
                 </span>
               )}
@@ -165,7 +164,7 @@ export default function ImageUploader({ value, onChange }: Props) {
                     type="button"
                     onClick={() => setPrimary(i)}
                     title="Set as primary"
-                    className="p-1.5 bg-white/90 rounded hover:bg-white transition-colors"
+                    className="p-1.5 bg-cream/95 rounded hover:bg-cream transition-colors"
                   >
                     <Star size={12} className="text-ink" />
                   </button>
@@ -175,7 +174,7 @@ export default function ImageUploader({ value, onChange }: Props) {
                     type="button"
                     onClick={() => moveImage(i, i - 1)}
                     title="Move left"
-                    className="p-1.5 bg-white/90 rounded hover:bg-white transition-colors text-xs font-medium text-ink"
+                    className="p-1.5 bg-cream/95 rounded hover:bg-cream transition-colors text-xs font-medium text-ink"
                   >
                     ←
                   </button>
@@ -185,7 +184,7 @@ export default function ImageUploader({ value, onChange }: Props) {
                     type="button"
                     onClick={() => moveImage(i, i + 1)}
                     title="Move right"
-                    className="p-1.5 bg-white/90 rounded hover:bg-white transition-colors text-xs font-medium text-ink"
+                    className="p-1.5 bg-cream/95 rounded hover:bg-cream transition-colors text-xs font-medium text-ink"
                   >
                     →
                   </button>
@@ -194,7 +193,7 @@ export default function ImageUploader({ value, onChange }: Props) {
                   type="button"
                   onClick={() => removeImage(i)}
                   title="Remove"
-                  className="p-1.5 bg-white/90 rounded hover:bg-danger/90 hover:text-white transition-colors"
+                  className="p-1.5 bg-cream/95 rounded hover:bg-danger/90 hover:text-cream transition-colors"
                 >
                   <X size={12} className="text-ink group-hover:text-inherit" />
                 </button>

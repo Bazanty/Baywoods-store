@@ -17,25 +17,27 @@ export default function SizeSelector({
 }: SizeSelectorProps) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <label className="label-base">Size</label>
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted">
+          <span className="text-ink">02</span> / Size
+        </p>
         <button
           onClick={onGuideOpen}
-          className="text-xs text-forest underline underline-offset-2 hover:text-forest-dark transition-colors"
+          className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine transition-colors"
         >
-          Size Guide
+          Size guide →
         </button>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {sizes.map((size) => (
           <button
             key={size}
             onClick={() => onSelect(size)}
             className={cn(
-              "px-3 py-2 text-sm border transition-all duration-150 min-w-[44px] text-center",
+              "min-w-[3rem] px-3 py-2.5 font-mono text-[11px] tracking-[0.12em] uppercase border transition-colors duration-150",
               selected === size
-                ? "bg-ink text-white border-ink"
-                : "border-stone text-ink hover:border-ink"
+                ? "bg-ink text-citrine border-ink"
+                : "border-ink/25 text-ink hover:border-ink"
             )}
           >
             {size}
@@ -43,7 +45,9 @@ export default function SizeSelector({
         ))}
       </div>
       {!selected && (
-        <p className="text-xs text-danger mt-2">Please select a size</p>
+        <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-danger mt-3">
+          / Pick a size to add
+        </p>
       )}
     </div>
   );

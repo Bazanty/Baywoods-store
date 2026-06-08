@@ -17,6 +17,7 @@ function parseFilters(
 ): FilterState {
   return {
     categories: [],
+    brands: params?.getAll("brand") ?? [],
     sizes: params?.getAll("size") ?? [],
     colors: params?.getAll("color") ?? [],
     priceRange: [0, Number(params?.get("priceMax")) || priceMax],
@@ -27,6 +28,7 @@ function parseFilters(
 function buildParams(filters: FilterState, sort: SortOption, priceMax: number): string {
   const p = new URLSearchParams();
   if (sort !== "newest") p.set("sort", sort);
+  filters.brands.forEach((b) => p.append("brand", b));
   filters.sizes.forEach((s) => p.append("size", s));
   filters.colors.forEach((c) => p.append("color", c));
   if (filters.priceRange[1] < priceMax) p.set("priceMax", String(filters.priceRange[1]));
@@ -42,9 +44,12 @@ function EmptyState({
 }: {
   filters: FilterState;
   onReset: () => void;
-  onClearType: (type: "sizes" | "colors" | "stock") => void;
+  onClearType: (type: "brands" | "sizes" | "colors" | "stock") => void;
 }) {
-  const chips: { label: string; type: "sizes" | "colors" | "stock" }[] = [
+  const chips: { label: string; type: "brands" | "sizes" | "colors" | "stock" }[] = [
+    ...(filters.brands.length > 0
+      ? [{ label: filters.brands.join(", "), type: "brands" as const }]
+      : []),
     ...(filters.sizes.length > 0
       ? [{ label: `Size: ${filters.sizes.join(", ")}`, type: "sizes" as const }]
       : []),
@@ -55,25 +60,28 @@ function EmptyState({
   ];
 
   return (
-    <div className="py-16 text-center">
-      <p className="text-ink font-medium mb-1">No products match your filters</p>
-      <p className="text-sm text-muted mb-5">Try removing one of the active filters below</p>
+    <div className="py-20 text-center border-y border-ink/15">
+      <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ 404</p>
+      <p className="font-display text-2xl tracking-[-0.02em] text-ink mb-2">Nothing matches.</p>
+      <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mb-6">
+        Try dropping a filter
+      </p>
       {chips.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2 mb-6">
           {chips.map((chip) => (
             <button
               key={chip.type}
               onClick={() => onClearType(chip.type)}
-              className="flex items-center gap-1.5 text-xs border border-stone px-3 py-1.5 text-ink/70 hover:border-ink hover:text-ink transition-colors"
+              className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.16em] uppercase border border-ink/30 px-3 py-1.5 text-ink/70 hover:border-ink hover:text-ink transition-colors"
             >
-              <X size={11} />
+              <X size={10} />
               {chip.label}
             </button>
           ))}
         </div>
       )}
-      <button onClick={onReset} className="text-xs text-forest underline underline-offset-2">
-        Clear all filters
+      <button onClick={onReset} className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink hover:text-citrine underline-citrine">
+        Clear all
       </button>
     </div>
   );
@@ -92,17 +100,20 @@ function CategoryInner({
   const pathname = usePathname();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const { availableSizes, availableColors, priceMax } = useMemo(() => {
+  const { availableBrands, availableSizes, availableColors, priceMax } = useMemo(() => {
+    const brandSet = new Set<string>();
     const sizes = new Set<string>();
     const colorMap = new Map<string, string>();
     let max = 0;
     for (const p of initialProducts) {
+      if (p.brand) brandSet.add(p.brand);
       p.sizes.forEach((s) => sizes.add(s));
       p.colors.forEach((c) => colorMap.set(c.name, c.hex));
       const price = p.salePrice ?? p.price;
       if (price > max) max = price;
     }
     return {
+      availableBrands: Array.from(brandSet).sort((a, b) => a.localeCompare(b)),
       availableSizes: Array.from(sizes),
       availableColors: Array.from(colorMap.entries()).map(([name, hex]) => ({ name, hex })),
       priceMax: Math.ceil(max / 1000) * 1000 || 15000,
@@ -136,12 +147,13 @@ function CategoryInner({
   );
 
   const resetFilters = useCallback(() => {
-    pushURL({ categories: [], sizes: [], colors: [], priceRange: [0, priceMax], inStockOnly: false }, sort);
+    pushURL({ categories: [], brands: [], sizes: [], colors: [], priceRange: [0, priceMax], inStockOnly: false }, sort);
   }, [pushURL, sort, priceMax]);
 
   const clearType = useCallback(
-    (type: "sizes" | "colors" | "stock") => {
+    (type: "brands" | "sizes" | "colors" | "stock") => {
       const updated = { ...filters };
+      if (type === "brands") updated.brands = [];
       if (type === "sizes") updated.sizes = [];
       if (type === "colors") updated.colors = [];
       if (type === "stock") updated.inStockOnly = false;
@@ -154,6 +166,7 @@ function CategoryInner({
     let list = initialProducts.filter((p) => {
       const price = p.salePrice ?? p.price;
       return (
+        (filters.brands.length === 0 || (p.brand != null && filters.brands.includes(p.brand))) &&
         (filters.sizes.length === 0 || p.sizes.some((s) => filters.sizes.includes(s))) &&
         (filters.colors.length === 0 || p.colors.some((c) => filters.colors.includes(c.name))) &&
         (!filters.inStockOnly || p.inStock) &&
@@ -181,38 +194,41 @@ function CategoryInner({
   }, [initialProducts, filters, sort]);
 
   const activeCount =
+    filters.brands.length +
     filters.sizes.length +
     filters.colors.length +
     (filters.inStockOnly ? 1 : 0) +
     (filters.priceRange[1] < priceMax ? 1 : 0);
 
   return (
-    <div className="pt-24 lg:pt-28">
-      <div className="container-px py-8 border-b border-stone">
-        <p className="text-[10px] font-semibold tracking-[0.25em] uppercase text-forest mb-1">
-          Shop
-        </p>
-        <h1 className="font-serif text-4xl lg:text-5xl text-ink capitalize">{label}</h1>
-        <p className="text-sm text-muted mt-2">
-          {sorted.length} {sorted.length === 1 ? "product" : "products"}
+    <div className="pt-20 lg:pt-24">
+      <div className="container-px py-10 border-b border-ink/15">
+        <div className="flex items-baseline justify-between mb-4 font-mono text-[10px] tracking-[0.2em] uppercase text-muted">
+          <span><span className="text-ink">/ SHOP</span> &nbsp; → &nbsp; {label.toUpperCase()}</span>
+        </div>
+        <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.92] text-ink text-5xl sm:text-6xl lg:text-7xl capitalize">
+          {label}.
+        </h1>
+        <div className="mt-4 flex items-baseline gap-6 font-mono text-[11px] tracking-[0.14em] uppercase">
+          <span className="text-ink">{String(sorted.length).padStart(3, "0")} pieces</span>
           {activeCount > 0 && (
-            <span className="text-muted/70">
-              {" "}· {activeCount} filter{activeCount > 1 ? "s" : ""} active
+            <span className="text-muted">
+              · {activeCount} filter{activeCount > 1 ? "s" : ""}
             </span>
           )}
-        </p>
+        </div>
       </div>
 
       <div className="container-px py-8">
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => setMobileFiltersOpen(true)}
-            className="lg:hidden flex items-center gap-2 text-sm border border-stone px-3 py-2 text-ink hover:border-ink transition-colors"
+            className="lg:hidden flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase border border-ink/30 px-3 py-2.5 text-ink hover:border-ink transition-colors"
           >
-            <SlidersHorizontal size={14} />
+            <SlidersHorizontal size={12} />
             Filters
             {activeCount > 0 && (
-              <span className="bg-forest text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full leading-none">
+              <span className="bg-ink text-citrine font-mono text-[10px] w-4 h-4 flex items-center justify-center leading-none">
                 {activeCount}
               </span>
             )}
@@ -229,6 +245,7 @@ function CategoryInner({
               onChange={setFilters}
               onReset={resetFilters}
               showCategories={false}
+              availableBrands={availableBrands}
               availableSizes={availableSizes}
               availableColors={availableColors}
               priceMax={priceMax}
@@ -269,12 +286,12 @@ function CategoryInner({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 w-[min(288px,85vw)] bg-cream z-50 overflow-y-auto p-6 lg:hidden"
+              className="fixed top-0 left-0 bottom-0 w-[min(320px,90vw)] bg-cream z-50 overflow-y-auto p-6 lg:hidden border-r border-ink/20"
             >
-              <div className="flex items-center justify-between mb-6">
-                <p className="font-medium text-sm">Filters</p>
+              <div className="flex items-center justify-between mb-6 border-b border-ink pb-3">
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink">/ Filters</p>
                 <button onClick={() => setMobileFiltersOpen(false)} aria-label="Close filters">
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
               <FilterSidebar
@@ -287,6 +304,7 @@ function CategoryInner({
                   setMobileFiltersOpen(false);
                 }}
                 showCategories={false}
+                availableBrands={availableBrands}
                 availableSizes={availableSizes}
                 availableColors={availableColors}
                 priceMax={priceMax}

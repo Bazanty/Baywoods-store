@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
           { label: "Total revenue", value: formatPrice(totalRevenue) },
           { label: "Avg. order value", value: customers.length > 0 ? formatPrice(totalRevenue / customers.reduce((s, c) => s + c.orderCount, 0) || 0) : "—" },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-white rounded p-4">
+          <div key={label} className="bg-cream rounded p-4">
             <p className="text-xs text-muted uppercase tracking-wider mb-1">{label}</p>
             <p className="font-serif text-xl text-ink">{value}</p>
           </div>
@@ -63,7 +64,7 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            className="w-full text-xs border border-stone bg-white pl-7 pr-7 py-2 text-ink outline-none focus:border-ink placeholder:text-muted"
+            className="w-full text-xs border border-stone bg-cream pl-7 pr-7 py-2 text-ink outline-none focus:border-ink placeholder:text-muted"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink">
@@ -74,7 +75,7 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="text-xs border border-stone bg-white px-2.5 py-2 text-ink outline-none focus:border-ink"
+          className="text-xs border border-stone bg-cream px-2.5 py-2 text-ink outline-none focus:border-ink"
         >
           <option value="recent">Sort: Most recent</option>
           <option value="spent">Sort: Highest spend</option>
@@ -86,7 +87,7 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
       </div>
 
       {/* Table */}
-      <div className="border border-stone bg-white overflow-x-auto">
+      <div className="border border-stone bg-cream overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-cream border-b border-stone">
             <tr className="text-left text-xs uppercase tracking-wider text-muted">
@@ -107,7 +108,18 @@ export default function CustomersClient({ customers }: { customers: Customer[] }
             )}
             {visible.map((c) => (
               <tr key={c.email || c.userId} className="border-b border-stone/60 hover:bg-cream/40">
-                <td className="px-5 py-3 text-ink">{c.name || "—"}</td>
+                <td className="px-5 py-3 text-ink">
+                  {c.email ? (
+                    <Link
+                      href={`/admin/customers/${encodeURIComponent(c.email)}`}
+                      className="hover:text-citrine transition-colors underline-citrine"
+                    >
+                      {c.name || "—"}
+                    </Link>
+                  ) : (
+                    c.name || "—"
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   <a href={`mailto:${c.email}`} className="text-muted hover:text-forest transition-colors text-xs">
                     {c.email || "guest"}

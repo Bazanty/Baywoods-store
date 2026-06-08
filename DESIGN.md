@@ -26,7 +26,7 @@ Dark mode inverts the palette to near-black backgrounds with reversed cream/ink 
 | Pale Slate | `#EEF1F3` | Lighter border contexts, nested container fills |
 | Slate Grey | `#64748B` | Metadata, labels, secondary text, placeholder copy |
 | Worn Red | `#C0392B` | Sale pricing, danger states, error messages, "Sale" badges |
-| Cobalt Blue | `#2563EB` | Payment/Stripe accent only — not part of general UI palette |
+| Cobalt Blue | `#2563EB` | Payment/accent only - not part of general UI palette |
 
 **Dark mode overrides (`.dark`):**
 Cream → `#0E0E0C`, Ink → `#EDE3E5`, Beige → `#161614`, Forest → `#52B788`, Stone → `#2A2927`.

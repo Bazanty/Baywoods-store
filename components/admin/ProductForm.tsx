@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { createProduct, updateProduct, type UploadedImage, type ColorOption, type ProductPayload } from "@/app/admin/actions";
+import type { ProductVerificationStatus } from "@/lib/types";
 import ImageUploader from "./ImageUploader";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -24,6 +25,7 @@ interface FormState {
   name: string;
   description: string;
   shortDescription: string;
+  materialCare: string;
   categorySlug: string;
   basePrice: string;
   comparePrice: string;
@@ -34,12 +36,15 @@ interface FormState {
   sizes: string[];
   colors: ColorOption[];
   stockQuantity: string;
+  verificationStatus: ProductVerificationStatus;
+  verificationNotes: string;
 }
 
 const defaultState: FormState = {
   name: "",
   description: "",
   shortDescription: "",
+  materialCare: "",
   categorySlug: "shirts",
   basePrice: "",
   comparePrice: "",
@@ -50,6 +55,8 @@ const defaultState: FormState = {
   sizes: [],
   colors: [],
   stockQuantity: "0",
+  verificationStatus: "PENDING",
+  verificationNotes: "",
 };
 
 export default function ProductForm({ productId, initial }: Props) {
@@ -105,6 +112,7 @@ export default function ProductForm({ productId, initial }: Props) {
       name: form.name,
       description: form.description,
       shortDescription: form.shortDescription,
+      materialCare: form.materialCare,
       categorySlug: form.categorySlug,
       basePrice,
       comparePrice,
@@ -115,6 +123,8 @@ export default function ProductForm({ productId, initial }: Props) {
       sizes: form.sizes,
       colors: form.colors,
       stockQuantity: parseInt(form.stockQuantity) || 0,
+      verificationStatus: form.verificationStatus,
+      verificationNotes: form.verificationNotes,
     };
 
     startTransition(async () => {
@@ -223,6 +233,19 @@ export default function ProductForm({ productId, initial }: Props) {
               className="w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none focus:border-ink transition-colors placeholder:text-muted resize-y"
             />
           </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium tracking-widest uppercase text-muted mb-2">
+              Material & Care
+            </label>
+            <textarea
+              value={form.materialCare}
+              onChange={(e) => set("materialCare", e.target.value)}
+              rows={3}
+              placeholder="Leave blank to use site default. Shown in PDP accordion."
+              className="w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none focus:border-ink transition-colors placeholder:text-muted resize-y"
+            />
+          </div>
         </div>
       </Section>
 
@@ -248,7 +271,7 @@ export default function ProductForm({ productId, initial }: Props) {
             step={50}
             value={form.comparePrice}
             onChange={(e) => set("comparePrice", e.target.value)}
-            placeholder="Optional — shows strikethrough"
+            placeholder="Optional - shows strikethrough"
           />
           <Input
             label="Stock Quantity"
@@ -370,7 +393,7 @@ export default function ProductForm({ productId, initial }: Props) {
           <p className="mt-3 text-xs text-muted">
             Will generate{" "}
             <strong>{form.sizes.length * form.colors.length}</strong> variants (
-            {form.sizes.length} sizes × {form.colors.length} colors)
+            {form.sizes.length} sizes x {form.colors.length} colors)
           </p>
         )}
       </Section>
@@ -387,7 +410,7 @@ export default function ProductForm({ productId, initial }: Props) {
             />
             <span className="text-sm text-ink">
               Active{" "}
-              <span className="text-muted">— visible in the store</span>
+              <span className="text-muted">- visible in the store</span>
             </span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
@@ -399,9 +422,40 @@ export default function ProductForm({ productId, initial }: Props) {
             />
             <span className="text-sm text-ink">
               Featured{" "}
-              <span className="text-muted">— shows &ldquo;Hot&rdquo; badge, appears in trending</span>
+              <span className="text-muted">- shows &ldquo;Hot&rdquo; badge, appears in trending</span>
             </span>
           </label>
+        </div>
+      </Section>
+
+      <Section title="Verification">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-muted mb-2">
+              Verification Status
+            </label>
+            <select
+              value={form.verificationStatus}
+              onChange={(e) => set("verificationStatus", e.target.value as ProductVerificationStatus)}
+              className="w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none focus:border-ink transition-colors"
+            >
+              <option value="PENDING">Pending</option>
+              <option value="VERIFIED_ORIGINAL">Verified Original</option>
+              <option value="NEEDS_REVIEW">Needs Review</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-muted mb-2">
+              Verification Notes
+            </label>
+            <input
+              value={form.verificationNotes}
+              onChange={(e) => set("verificationNotes", e.target.value)}
+              placeholder="Authenticator notes"
+              className="w-full bg-cream border border-stone text-ink text-sm px-4 py-3 outline-none focus:border-ink transition-colors placeholder:text-muted"
+            />
+          </div>
         </div>
       </Section>
 
@@ -409,7 +463,7 @@ export default function ProductForm({ productId, initial }: Props) {
       <div className="flex items-center gap-3 pt-2 border-t border-stone">
         <Button type="submit" loading={isPending}>
           {isPending
-            ? productId ? "Saving…" : "Creating…"
+            ? productId ? "Saving..." : "Creating..."
             : productId ? "Save Changes" : "Create Product"}
         </Button>
         <Button

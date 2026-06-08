@@ -122,6 +122,90 @@ export async function initiateStkPush(opts: {
   return res.json();
 }
 
+// -----------------------------------------------------------------------
+// Transaction Reversal (B2C refund)
+// -----------------------------------------------------------------------
+// Reverses a successful M-Pesa transaction back to the customer's account.
+// Async: Safaricom acks the request synchronously, then fires the result to
+// the configured ResultURL minutes (sometimes longer) later.
+//
+// Required env vars on top of the standard MPESA_* set:
+//   MPESA_INITIATOR_NAME             — operator username with reversal privilege
+//   MPESA_SECURITY_CREDENTIAL        — initiator password encrypted with the
+//                                       Safaricom RSA cert (NOT the plain pwd)
+//   MPESA_REVERSAL_RESULT_URL        — public HTTPS URL Safaricom POSTs to
+//   MPESA_REVERSAL_TIMEOUT_URL       — public HTTPS URL for queue timeouts
+//   MPESA_REVERSAL_RECEIVER_TYPE     — "11" for Till, "4" for Paybill (default "11")
+//
+// Sandbox initiator + credential values (only used when MPESA_ENVIRONMENT != production):
+//   Initiator name: testapi
+//   SecurityCredential: Safaricom999!*! encrypted with the sandbox cert; or
+//   set MPESA_SECURITY_CREDENTIAL to the pre-encrypted blob from the portal.
+
+export function isReversalConfigured(): boolean {
+  return (
+    !!process.env.MPESA_INITIATOR_NAME &&
+    !!process.env.MPESA_SECURITY_CREDENTIAL &&
+    !!process.env.MPESA_REVERSAL_RESULT_URL &&
+    !!process.env.MPESA_REVERSAL_TIMEOUT_URL
+  );
+}
+
+export interface ReversalResult {
+  OriginatorConversationID: string;
+  ConversationID: string;
+  ResponseCode: string;
+  ResponseDescription: string;
+}
+
+export async function initiateReversal(opts: {
+  receipt: string;     // original M-Pesa receipt to reverse
+  amount: number;
+  remarks?: string;
+  orderId?: string;    // for occasion / cross-ref
+}): Promise<ReversalResult> {
+  if (!isReversalConfigured()) {
+    throw new Error("M-Pesa reversal is not configured (missing initiator / security credential / callback URLs)");
+  }
+
+  const token = await getAccessToken();
+  const isProd = process.env.MPESA_ENVIRONMENT === "production";
+  const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
+  const receiverType = process.env.MPESA_REVERSAL_RECEIVER_TYPE ?? "11";
+
+  const body = {
+    Initiator: process.env.MPESA_INITIATOR_NAME!,
+    SecurityCredential: process.env.MPESA_SECURITY_CREDENTIAL!,
+    CommandID: "TransactionReversal",
+    TransactionID: opts.receipt,
+    Amount: Math.ceil(opts.amount),
+    ReceiverParty: shortcode,
+    RecieverIdentifierType: receiverType, // Safaricom's spelling, not ours
+    ResultURL: process.env.MPESA_REVERSAL_RESULT_URL!,
+    QueueTimeOutURL: process.env.MPESA_REVERSAL_TIMEOUT_URL!,
+    Remarks: (opts.remarks ?? "Refund").slice(0, 100),
+    Occasion: (opts.orderId ? `BW-${opts.orderId.slice(0, 8)}` : "Refund").slice(0, 100),
+  };
+
+  const res = await fetch(`${BASE}/mpesa/reversal/v1/request`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "BaywoodsStore/1.0",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Reversal request failed: ${err}`);
+  }
+
+  return res.json();
+}
+
 export interface StkQueryResult {
   ResponseCode: string;
   ResponseDescription: string;

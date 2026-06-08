@@ -38,7 +38,7 @@ Important env vars:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `RESEND_API_KEY`
 - `RESEND_AUDIENCE_ID`
-- Stripe, M-Pesa, Cloudinary, and admin auth values as listed in `.env.example`.
+- M-Pesa, Cloudinary, and admin auth values as listed in `.env.example`.
 
 ## Implementation Notes
 

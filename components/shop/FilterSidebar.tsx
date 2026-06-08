@@ -27,20 +27,24 @@ interface FilterSidebarProps {
   onReset: () => void;
   showCategories?: boolean;
   availableCategories?: Category[];
+  availableBrands?: string[];
   availableSizes?: string[];
   availableColors?: { name: string; hex: string }[];
   priceMax?: number;
 }
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterGroup({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="border-b border-stone py-4">
+    <div className="border-b border-ink/15 py-5">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between text-sm font-medium text-ink"
+        className="w-full flex items-center justify-between text-ink group"
       >
-        {title}
+        <span className="flex items-baseline gap-2">
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">{n}</span>
+          <span className="font-display text-base tracking-[-0.01em]">{title}</span>
+        </span>
         <ChevronDown
           size={14}
           className={cn("text-muted transition-transform duration-200", open && "rotate-180")}
@@ -59,18 +63,18 @@ function SizeGroup({ label, sizes, selected, onToggle }: {
 }) {
   if (sizes.length === 0) return null;
   return (
-    <div className="mb-3">
-      <p className="text-[10px] font-semibold tracking-widest uppercase text-muted mb-2">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
+    <div className="mb-4 last:mb-0">
+      <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted mb-2">/ {label}</p>
+      <div className="flex flex-wrap gap-1">
         {sizes.map((size) => (
           <button
             key={size}
             onClick={() => onToggle(size)}
             className={cn(
-              "px-2.5 py-1 text-xs border transition-colors duration-150",
+              "min-w-[2.25rem] px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase border transition-colors duration-150",
               selected.includes(size)
-                ? "bg-ink text-white border-ink"
-                : "border-stone text-ink hover:border-ink"
+                ? "bg-ink text-citrine border-ink"
+                : "border-ink/25 text-ink hover:border-ink"
             )}
           >
             {size}
@@ -87,6 +91,7 @@ export default function FilterSidebar({
   onReset,
   showCategories = true,
   availableCategories,
+  availableBrands,
   availableSizes,
   availableColors,
   priceMax = 15000,
@@ -107,9 +112,11 @@ export default function FilterSidebar({
   );
 
   const colors = availableColors ?? [];
+  const brands = availableBrands ?? [];
 
   const activeCount =
     (showCategories ? filters.categories.length : 0) +
+    filters.brands.length +
     filters.sizes.length +
     filters.colors.length +
     (filters.inStockOnly ? 1 : 0) +
@@ -122,6 +129,16 @@ export default function FilterSidebar({
       categories: exists
         ? filters.categories.filter((c) => c !== cat)
         : [...filters.categories, cat],
+    });
+  };
+
+  const toggleBrand = (brand: string) => {
+    const exists = filters.brands.includes(brand);
+    onChange({
+      ...filters,
+      brands: exists
+        ? filters.brands.filter((b) => b !== brand)
+        : [...filters.brands, brand],
     });
   };
 
@@ -142,41 +159,79 @@ export default function FilterSidebar({
   };
 
   return (
-    <aside className="w-56 shrink-0">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold tracking-widest uppercase text-ink">Filters</p>
+    <aside className="w-60 shrink-0">
+      <div className="flex items-baseline justify-between mb-1 border-b border-ink pb-2">
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink">/ Filters</p>
         {activeCount > 0 && (
           <button
             onClick={onReset}
-            className="flex items-center gap-1 text-xs text-muted hover:text-danger transition-colors"
+            className="flex items-center gap-1 font-mono text-[10px] tracking-[0.16em] uppercase text-muted hover:text-ink transition-colors"
           >
-            <X size={12} /> Clear ({activeCount})
+            <X size={10} /> Clear ({activeCount})
           </button>
         )}
       </div>
 
       {showCategories && categories.length > 0 && (
-        <FilterGroup title="Category">
-          <div className="space-y-2.5">
-            {categories.map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={filters.categories.includes(value)}
-                  onChange={() => toggleCategory(value)}
-                  className="w-3.5 h-3.5 accent-forest cursor-pointer"
-                />
-                <span className="text-sm text-ink/70 group-hover:text-ink transition-colors">
-                  {label}
-                </span>
-              </label>
-            ))}
+        <FilterGroup n="01" title="Category">
+          <div className="space-y-2">
+            {categories.map(({ value, label }) => {
+              const active = filters.categories.includes(value);
+              return (
+                <label
+                  key={value}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer group py-0.5",
+                  )}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={() => toggleCategory(value)}
+                      className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
+                    />
+                    <span className={cn("text-sm transition-colors", active ? "text-ink" : "text-ink/70 group-hover:text-ink")}>
+                      {label}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </FilterGroup>
+      )}
+
+      {brands.length > 0 && (
+        <FilterGroup n="02" title="Brand">
+          <div className="space-y-2">
+            {brands.map((brand) => {
+              const active = filters.brands.includes(brand);
+              return (
+                <label
+                  key={brand}
+                  className="flex items-center justify-between cursor-pointer group py-0.5"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={() => toggleBrand(brand)}
+                      className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
+                    />
+                    <span className={cn("text-sm transition-colors", active ? "text-ink" : "text-ink/70 group-hover:text-ink")}>
+                      {brand}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </FilterGroup>
       )}
 
       {allSizes.length > 0 && (
-        <FilterGroup title="Size">
+        <FilterGroup n="03" title="Size">
           <SizeGroup label="Clothing" sizes={clothing} selected={filters.sizes} onToggle={toggleSize} />
           <SizeGroup label="Bottoms" sizes={waist} selected={filters.sizes} onToggle={toggleSize} />
           <SizeGroup label="Shoes (EU)" sizes={shoes} selected={filters.sizes} onToggle={toggleSize} />
@@ -185,29 +240,33 @@ export default function FilterSidebar({
       )}
 
       {colors.length > 0 && (
-        <FilterGroup title="Color">
+        <FilterGroup n="04" title="Color">
           <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-            {colors.map(({ name, hex }) => (
-              <label key={name} className="flex items-center gap-2 cursor-pointer group">
-                <span
-                  className={cn(
-                    "w-4 h-4 rounded-full border-2 shrink-0 transition-all",
-                    filters.colors.includes(name)
-                      ? "border-ink scale-110"
-                      : "border-transparent ring-1 ring-stone group-hover:ring-ink"
-                  )}
-                  style={{ backgroundColor: hex }}
-                />
-                <span className="text-xs text-ink/70 group-hover:text-ink transition-colors truncate">
-                  {name}
-                </span>
-              </label>
-            ))}
+            {colors.map(({ name, hex }) => {
+              const active = filters.colors.includes(name);
+              return (
+                <label key={name} className="flex items-center gap-2 cursor-pointer group">
+                  <button
+                    type="button"
+                    onClick={() => toggleColor(name)}
+                    className={cn(
+                      "w-4 h-4 shrink-0 transition-all border",
+                      active ? "border-ink ring-1 ring-ink ring-offset-2 ring-offset-cream" : "border-ink/30 group-hover:border-ink"
+                    )}
+                    style={{ backgroundColor: hex }}
+                    aria-pressed={active}
+                  />
+                  <span className={cn("text-xs transition-colors truncate", active ? "text-ink" : "text-ink/70 group-hover:text-ink")}>
+                    {name}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </FilterGroup>
       )}
 
-      <FilterGroup title="Price">
+      <FilterGroup n="05" title="Price">
         <div className="space-y-3">
           <input
             type="range"
@@ -221,24 +280,24 @@ export default function FilterSidebar({
                 priceRange: [filters.priceRange[0], Number(e.target.value)],
               })
             }
-            className="w-full accent-forest"
+            className="w-full accent-ink"
           />
-          <div className="flex justify-between text-xs text-muted">
+          <div className="flex justify-between font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
             <span>KSh 0</span>
-            <span>KSh {filters.priceRange[1].toLocaleString()}</span>
+            <span className="text-ink">KSh {filters.priceRange[1].toLocaleString()}</span>
           </div>
         </div>
       </FilterGroup>
 
-      <FilterGroup title="Availability">
+      <FilterGroup n="06" title="Availability">
         <label className="flex items-center gap-2.5 cursor-pointer">
           <input
             type="checkbox"
             checked={filters.inStockOnly}
             onChange={(e) => onChange({ ...filters, inStockOnly: e.target.checked })}
-            className="w-3.5 h-3.5 accent-forest"
+            className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
           />
-          <span className="text-sm text-ink/70">In Stock Only</span>
+          <span className="text-sm text-ink/70">In stock only</span>
         </label>
       </FilterGroup>
     </aside>

@@ -4,13 +4,18 @@
 export type UserRole = "customer" | "admin" | "staff";
 export type OrderStatus =
   | "pending" | "confirmed" | "processing" | "shipped"
-  | "delivered" | "cancelled" | "refunded";
+  | "delivered" | "cancelled" | "refunded"
+  | "PENDING_PAYMENT" | "PAID" | "VERIFICATION_PENDING" | "VERIFIED"
+  | "PACKED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED"
+  | "REFUNDED" | "FAILED";
 export type PaymentStatus =
   | "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
 export type PaymentMethod =
   | "mpesa" | "card" | "bank_transfer" | "paypal" | "crypto" | "cash_on_delivery";
 export type AddressType = "shipping" | "billing" | "both";
 export type DiscountType = "percentage" | "fixed";
+export type ProductVerificationStatus =
+  | "PENDING" | "VERIFIED_ORIGINAL" | "NEEDS_REVIEW" | "REJECTED";
 
 // ---------------------------------------------------------------------------
 // Row types
@@ -36,6 +41,8 @@ export interface ProductRow {
   description: string | null; short_description: string | null;
   base_price: number; compare_price: number | null; sku: string | null;
   weight_kg: number | null; is_active: boolean; is_featured: boolean;
+  verification_status: ProductVerificationStatus; verification_notes: string | null;
+  verified_at: string | null; verified_by: string | null;
   meta_title: string | null; meta_description: string | null;
   created_at: string; updated_at: string;
 }
@@ -83,6 +90,8 @@ export interface OrderRow {
   subtotal: number; discount_amount: number; shipping_cost: number;
   tax_amount: number; total: number; coupon_id: string | null;
   notes: string | null; tracking_number: string | null;
+  reservation_session_id: string | null; payment_confirmed_at: string | null;
+  failed_reason: string | null;
   shipped_at: string | null; delivered_at: string | null; cancelled_at: string | null;
   created_at: string; updated_at: string;
 }
@@ -100,6 +109,9 @@ export interface PaymentRow {
   amount: number; currency: string; provider_tx_id: string | null;
   provider_response: Record<string, unknown> | null;
   checkout_request_id: string | null; mpesa_receipt: string | null;
+  merchant_request_id: string | null; mpesa_phone: string | null;
+  mpesa_amount: number | null; raw_callback: Record<string, unknown> | null;
+  callback_received_at: string | null; failure_code: string | null;
   result_desc: string | null;
   stripe_payment_intent_id: string | null;
   paid_at: string | null; refunded_at: string | null; refund_amount: number | null;
@@ -169,6 +181,7 @@ export interface Database {
       payment_method: PaymentMethod;
       address_type: AddressType;
       discount_type: DiscountType;
+      product_verification_status: ProductVerificationStatus;
     };
     CompositeTypes: Record<string, never>;
   };

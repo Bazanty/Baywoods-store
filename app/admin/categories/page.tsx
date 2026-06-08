@@ -9,35 +9,32 @@ export default async function AdminCategories() {
   const categories = await getAdminCategories();
 
   return (
-    <div className="px-8 py-10">
-      <div className="mb-7 max-w-5xl">
-        <h1 className="font-serif text-2xl text-ink">Categories</h1>
-        <p className="text-sm text-muted mt-0.5">
-          {categories.length} total — brands are used as categories on this store.
+    <div className="px-6 lg:px-10 py-10">
+      <div className="border-b border-ink/15 pb-6 mb-8 max-w-5xl">
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-3">
+          <span className="text-ink">/</span> CATEGORIES
         </p>
+        <div className="flex items-end justify-between flex-wrap gap-4">
+          <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.92] text-ink text-4xl sm:text-5xl">Categories &amp; brands.</h1>
+          <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-ink">{String(categories.length).padStart(2, "0")} total</p>
+        </div>
       </div>
 
-      <div className="grid gap-8 max-w-5xl lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 max-w-5xl lg:grid-cols-[1fr_320px]">
         {/* List */}
-        <div className="bg-white rounded overflow-hidden">
+        <div className="border border-ink/15 overflow-hidden">
           {categories.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-20 text-muted">
-              <Tag size={32} strokeWidth={1} />
-              <p className="text-sm">No categories yet.</p>
+              <Tag size={28} strokeWidth={1.25} />
+              <p className="font-mono text-[10px] tracking-[0.16em] uppercase">/ No categories yet.</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-stone text-left">
-                  <th className="px-5 py-3.5 text-xs font-medium text-muted tracking-wider uppercase">
-                    Name
-                  </th>
-                  <th className="px-4 py-3.5 text-xs font-medium text-muted tracking-wider uppercase">
-                    Slug
-                  </th>
-                  <th className="px-4 py-3.5 text-xs font-medium text-muted tracking-wider uppercase text-right">
-                    Products
-                  </th>
+                <tr className="border-b border-ink/15 text-left bg-beige-dark">
+                  <th className="px-5 py-3.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted">Name</th>
+                  <th className="px-4 py-3.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted">Slug</th>
+                  <th className="px-4 py-3.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted text-right">Products</th>
                   <th className="px-5 py-3.5" />
                 </tr>
               </thead>
@@ -45,31 +42,21 @@ export default async function AdminCategories() {
                 {categories.map((c, i) => (
                   <tr
                     key={c.id}
-                    className={`hover:bg-stone/20 transition-colors ${
-                      i < categories.length - 1 ? "border-b border-stone/50" : ""
+                    className={`hover:bg-beige-dark transition-colors ${
+                      i < categories.length - 1 ? "border-b border-ink/10" : ""
                     }`}
                   >
                     <td className="px-5 py-3.5">
-                      <span className="font-medium text-ink">{c.name}</span>
+                      <span className="font-display text-base tracking-[-0.01em] text-ink">{c.name}</span>
                     </td>
                     <td className="px-4 py-3.5 text-muted font-mono text-xs">{c.slug}</td>
                     <td className="px-4 py-3.5 text-right">
-                      <span
-                        className={
-                          c.productCount === 0
-                            ? "text-muted"
-                            : "font-medium text-ink"
-                        }
-                      >
+                      <span className={`font-mono text-sm tabular-nums ${c.productCount === 0 ? "text-muted" : "text-ink"}`}>
                         {c.productCount}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <DeleteCategoryButton
-                        categoryId={c.id}
-                        name={c.name}
-                        productCount={c.productCount}
-                      />
+                      <DeleteCategoryButton categoryId={c.id} name={c.name} productCount={c.productCount} />
                     </td>
                   </tr>
                 ))}
@@ -79,14 +66,13 @@ export default async function AdminCategories() {
         </div>
 
         {/* Create form */}
-        <aside className="bg-white rounded p-5 h-fit">
-          <h2 className="text-xs font-medium tracking-widest uppercase text-muted mb-4 pb-2 border-b border-stone">
-            Add Category
-          </h2>
+        <aside className="border border-ink/15 p-5 h-fit">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-4 pb-3 border-b border-ink/15">
+            / Add category
+          </p>
           <NewCategoryForm />
-          <p className="mt-4 text-xs text-muted/80 leading-relaxed">
-            New categories can also be brands — e.g. Puma, Converse. They appear as
-            a category option when creating products.
+          <p className="mt-4 font-mono text-[10px] tracking-[0.14em] uppercase text-muted leading-relaxed">
+            / New categories can also be brands &mdash; e.g. Puma, Converse. They appear when creating products.
           </p>
         </aside>
       </div>

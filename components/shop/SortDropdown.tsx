@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { SortOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const options: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "best-selling", label: "Best Selling" },
-  { value: "price-asc", label: "Price: Low to High" },
-  { value: "price-desc", label: "Price: High to Low" },
+  { value: "price-asc", label: "Price ↑" },
+  { value: "price-desc", label: "Price ↓" },
   { value: "rating", label: "Top Rated" },
 ];
 
@@ -28,20 +28,23 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
         onClick={() => setOpen(!open)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex items-center gap-2 text-sm text-ink border border-stone px-3 py-2 hover:border-ink transition-colors"
+        className={cn(
+          "flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase text-ink border px-3 py-2.5 transition-colors",
+          open ? "border-ink bg-ink text-cream" : "border-ink/30 hover:border-ink"
+        )}
       >
-        <span className="text-muted text-xs">Sort:</span>
+        <span className={cn("transition-colors", open ? "text-citrine" : "text-muted")}>Sort /</span>
         {selected?.label}
-        <ChevronDown
-          size={14}
-          className={cn("text-muted transition-transform", open && "rotate-180")}
-        />
+        <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-cream border border-stone shadow-lg z-20" role="listbox">
+          <div
+            className="absolute right-0 top-full mt-1 w-52 bg-cream border border-ink z-20"
+            role="listbox"
+          >
             {options.map((opt) => (
               <button
                 key={opt.value}
@@ -52,13 +55,14 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
                   setOpen(false);
                 }}
                 className={cn(
-                  "w-full text-left px-4 py-2.5 text-sm transition-colors",
+                  "w-full text-left px-3 py-2.5 font-mono text-[11px] tracking-[0.14em] uppercase transition-colors flex items-center justify-between",
                   opt.value === value
-                    ? "text-forest font-medium bg-forest-muted"
-                    : "text-ink hover:bg-stone/50"
+                    ? "text-ink bg-citrine"
+                    : "text-ink hover:bg-beige-dark"
                 )}
               >
                 {opt.label}
+                {opt.value === value && <Check size={12} />}
               </button>
             ))}
           </div>

@@ -6,18 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Lock } from "lucide-react";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import { useCartStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/authStore";
 import { formatPrice } from "@/lib/utils";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import StripeCardForm from "@/components/checkout/StripeCardForm";
-
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
+import { supabase } from "@/lib/supabase/client";
+import { KENYA_COUNTIES } from "@/lib/kenya";
 
 type Step = "shipping" | "payment" | "review";
 type MpesaStatus = "idle" | "pending" | "success" | "failed";
@@ -36,7 +31,21 @@ interface ShippingForm {
   address: string;
   city: string;
   county: string;
+  postal: string;
   method: "standard" | "express";
+}
+
+interface SavedAddress {
+  id: string;
+  label: string;
+  first_name: string;
+  last_name: string;
+  address: string;
+  city: string;
+  county: string;
+  postal: string;
+  phone: string;
+  is_default: boolean;
 }
 
 const SHIPPING_COSTS = { standard: 350, express: 800 };
@@ -45,25 +54,16 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCartStore();
   const { user } = useAuthStore();
+  const userId = user?.id ?? null;
   const [step, setStep] = useState<Step>("shipping");
-  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
   const savedMpesaNumbers: { phone: string; label: string }[] =
     user?.user_metadata?.mpesa_numbers ?? [];
   const [mpesaPhone, setMpesaPhone] = useState(
     savedMpesaNumbers.length > 0 ? savedMpesaNumbers[0].phone : "07"
   );
   const [loading, setLoading] = useState(false);
-  // Stable per-tab pseudo order reference passed to M-Pesa as AccountReference.
-  // Real persisted order id is generated server-side after STK push succeeds.
-  const [orderNumber] = useState(() =>
-    typeof window !== "undefined" && window.crypto?.randomUUID
-      ? window.crypto.randomUUID().slice(0, 12)
-      : `ref-${Date.now().toString(36)}`
-  );
   const [mpesaStatus, setMpesaStatus] = useState<MpesaStatus>("idle");
   const [mpesaMessage, setMpesaMessage] = useState("");
-  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
-  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoMsg, setPromoMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -71,6 +71,8 @@ export default function CheckoutPage() {
   const [reserveError, setReserveError] = useState<string | null>(null);
   const [reserving, setReserving] = useState(false);
   const [mpesaPhoneError, setMpesaPhoneError] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "new" | null>(null);
 
   // Stable per-tab session id used to tie cart reservations to this checkout
   // attempt. Generated lazily so SSR doesn't try to touch crypto.
@@ -131,14 +133,90 @@ export default function CheckoutPage() {
     address: "",
     city: "",
     county: "Nairobi",
+    postal: "",
     method: "standard",
   });
+
+  // Pull the user's saved addresses so logged-in shoppers don't retype them.
+  // Mirrors how saved M-Pesa numbers prefill the payment step.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("addresses")
+        .select("id, label, first_name, last_name, full_name, address, line1, city, county, state, postal_code, phone, is_default")
+        .eq("user_id", userId)
+        .order("is_default", { ascending: false });
+      if (cancelled || error || !data?.length) return;
+      const mapped: SavedAddress[] = data.map((row: Record<string, unknown>) => {
+        const fullName = (row.full_name as string | null) ?? "";
+        const [first = "", ...rest] = fullName.trim().split(/\s+/);
+        const postal = (row.postal_code as string) ?? "";
+        return {
+          id: row.id as string,
+          label: (row.label as string) ?? "Home",
+          first_name: (row.first_name as string) ?? first,
+          last_name: (row.last_name as string) ?? rest.join(" "),
+          address: (row.address as string) ?? (row.line1 as string) ?? "",
+          city: (row.city as string) ?? "",
+          county: (row.county as string) ?? (row.state as string) ?? "",
+          postal: postal === "00100" ? "" : postal,
+          phone: (row.phone as string) ?? "",
+          is_default: !!row.is_default,
+        };
+      });
+      setSavedAddresses(mapped);
+      const def = mapped.find((a) => a.is_default) ?? mapped[0];
+      if (def) {
+        setSelectedAddressId(def.id);
+        setShipping((prev) => ({
+          ...prev,
+          firstName: def.first_name || prev.firstName,
+          lastName: def.last_name || prev.lastName,
+          address: def.address || prev.address,
+          city: def.city || prev.city,
+          county: def.county || prev.county || "Nairobi",
+          postal: def.postal || prev.postal,
+          phone: def.phone || prev.phone,
+        }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const applySavedAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id);
+    setShipping((prev) => ({
+      ...prev,
+      firstName: addr.first_name,
+      lastName: addr.last_name,
+      address: addr.address,
+      city: addr.city,
+      county: addr.county || "Nairobi",
+      postal: addr.postal,
+      phone: addr.phone || prev.phone,
+    }));
+  };
+
+  const useNewAddress = () => {
+    setSelectedAddressId("new");
+    setShipping((prev) => ({
+      ...prev,
+      firstName: "",
+      lastName: "",
+      address: "",
+      city: "",
+      county: "Nairobi",
+      postal: "",
+    }));
+  };
 
   const sub = subtotal();
   const shippingCost = sub >= 5000 ? 0 : SHIPPING_COSTS[shipping.method];
   const total = sub + shippingCost - promoDiscount;
 
-  const buildOrderPayload = (resolvedCheckoutRequestId?: string) => ({
+  const buildOrderPayload = () => ({
     userId: user?.id,
     email: shipping.email,
     phone: shipping.phone,
@@ -148,40 +226,36 @@ export default function CheckoutPage() {
       address: shipping.address,
       city: shipping.city,
       county: shipping.county,
+      postal: shipping.postal.trim() || undefined,
     },
     shippingMethod: shipping.method,
     shippingCost,
     subtotal: sub,
     discountAmount: promoDiscount,
     total,
-    paymentMethod,
-    checkoutRequestId: resolvedCheckoutRequestId,
+    paymentMethod: "mpesa",
     sessionId: reservedRef.current ? sessionIdRef.current : undefined,
     expectedConsumed: reservedRef.current ? reservedCountRef.current : undefined,
+    couponCode: promoDiscount > 0 ? promoCode.trim().toUpperCase() : undefined,
     items: items.map((item) => ({
       productId: item.product.id,
       variantId: item.variantId ?? null,
       productName: item.product.name,
       variantName: `${item.size} / ${item.color.name}`,
-      unitPrice: item.product.salePrice ?? item.product.price,
       quantity: item.quantity,
-      lineTotal: (item.product.salePrice ?? item.product.price) * item.quantity,
     })),
   });
 
-  const persistOrder = async (
-    resolvedCheckoutRequestId?: string,
-    stripePaymentIntentId?: string
-  ): Promise<string | null> => {
+  const persistOrder = async (): Promise<{ orderId: string; accessToken: string; total: number } | null> => {
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...buildOrderPayload(resolvedCheckoutRequestId), stripePaymentIntentId }),
+        body: JSON.stringify(buildOrderPayload()),
       });
       const data = await res.json();
       if (!res.ok) {
-        // Reservation TTL ran out between reserving and finalising — drop
+        // Reservation TTL ran out between reserving and finalising - drop
         // the dead session id and bounce the user back to shipping so they
         // can re-reserve fresh stock.
         if (data?.code === "RESERVATION_EXPIRED") {
@@ -191,7 +265,7 @@ export default function CheckoutPage() {
             `${Date.now()}-${Math.random().toString(36).slice(2)}`;
           setStep("shipping");
           setReserveError(
-            "Your item hold timed out (15 min). Your cart is unchanged — confirm details and try again."
+            "Your item hold timed out (15 min). Your cart is unchanged - confirm details and try again."
           );
         }
         setMpesaStatus("failed");
@@ -199,14 +273,22 @@ export default function CheckoutPage() {
         setLoading(false);
         return null;
       }
-      return data.orderId ?? null;
+      if (!data.orderId || !data.accessToken) return null;
+      return {
+        orderId: data.orderId,
+        accessToken: data.accessToken,
+        total: typeof data.total === "number" ? data.total : total,
+      };
     } catch {
+      setMpesaStatus("failed");
+      setMpesaMessage("Network error creating order. Please try again.");
+      setLoading(false);
       return null;
     }
   };
 
-  const goToOrder = (orderId: string | null) => {
-    // Reservation has been consumed server-side — make sure unmount cleanup
+  const goToOrder = (orderId: string | null, token?: string) => {
+    // Reservation has been consumed server-side - make sure unmount cleanup
     // doesn't try to release stock that's now permanently decremented.
     reservedRef.current = false;
     sessionStorage.removeItem("bw_checkout_sid");
@@ -219,7 +301,8 @@ export default function CheckoutPage() {
     }
     clearCart();
     if (orderId) {
-      router.push(`/order/${orderId}`);
+      const qs = token ? `?t=${encodeURIComponent(token)}` : "";
+      router.push(`/order/${orderId}${qs}`);
     } else {
       // Fallback: still clear and send to orders list if persistence failed
       router.push("/account/orders");
@@ -250,7 +333,7 @@ export default function CheckoutPage() {
         }),
       });
     } catch {
-      // best-effort — don't block checkout on snapshot failures
+      // best-effort - don't block checkout on snapshot failures
     }
   };
 
@@ -305,7 +388,7 @@ export default function CheckoutPage() {
         setPromoDiscount(result.discountAmount);
         setPromoMsg({
           type: "success",
-          text: `${formatPrice(result.discountAmount)} discount applied${result.description ? ` — ${result.description}` : ""}!`,
+          text: `${formatPrice(result.discountAmount)} discount applied${result.description ? ` - ${result.description}` : ""}!`,
         });
       } else {
         setPromoDiscount(0);
@@ -326,41 +409,12 @@ export default function CheckoutPage() {
   };
 
   const handleOrder = async () => {
-    if (paymentMethod === "mpesa") {
-      const err = validateMpesaPhone(mpesaPhone);
-      if (err) { setMpesaPhoneError(err); return; }
-      await handleMpesaPayment();
+    const err = validateMpesaPhone(mpesaPhone);
+    if (err) {
+      setMpesaPhoneError(err);
+      return;
     }
-    // card is handled by StripeCardForm inline
-  };
-
-  const handleStripePayment = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stripe/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: total, currency: "kes" }),
-      });
-      const { clientSecret, error: piError } = await res.json();
-      if (piError) throw new Error(piError);
-      setStripeClientSecret(clientSecret);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Could not initialise payment";
-      setMpesaStatus("failed");
-      setMpesaMessage(msg);
-    }
-    setLoading(false);
-  };
-
-  const handleStripeSuccess = async (paymentIntentId: string) => {
-    const orderId = await persistOrder(undefined, paymentIntentId);
-    goToOrder(orderId);
-  };
-
-  const handleStripeError = (message: string) => {
-    setMpesaStatus("failed");
-    setMpesaMessage(message);
+    await handleMpesaPayment();
   };
 
   const handleMpesaPayment = async () => {
@@ -369,10 +423,16 @@ export default function CheckoutPage() {
     setMpesaMessage("");
 
     try {
+      const persisted = await persistOrder();
+      if (!persisted) return;
+      const { orderId, accessToken, total: serverTotal } = persisted;
+
+      reservedRef.current = false;
+
       const res = await fetch("/api/mpesa/stkpush", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: mpesaPhone, amount: total, orderId: String(orderNumber) }),
+        body: JSON.stringify({ phone: mpesaPhone, amount: serverTotal, orderId }),
       });
 
       const data = await res.json();
@@ -380,15 +440,17 @@ export default function CheckoutPage() {
       if (!res.ok) {
         setMpesaStatus("failed");
         setMpesaMessage(data.error ?? "Failed to initiate payment. Try again.");
+        setReserveError(data.error ?? "Failed to initiate payment. Confirm details and try again.");
+        setStep("shipping");
         setLoading(false);
         return;
       }
 
-      setCheckoutRequestId(data.checkoutRequestId);
       setMpesaStatus("pending");
       setMpesaMessage(data.customerMessage ?? "Check your phone and enter your M-Pesa PIN.");
 
-      // Poll for payment status every 4 seconds, up to 10 attempts
+      // Poll backend state only. The frontend observes paid/failed status; it
+      // never marks the order paid by itself.
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
@@ -396,34 +458,41 @@ export default function CheckoutPage() {
           const qRes = await fetch("/api/mpesa/query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ checkoutRequestId: data.checkoutRequestId }),
+            body: JSON.stringify({ checkoutRequestId: data.checkoutRequestId, orderId }),
           });
           const qData = await qRes.json();
 
-          if (qData.resultCode === "0") {
+          if (qData.paymentStatus === "paid") {
             clearInterval(poll);
             setMpesaStatus("success");
-            const orderId = await persistOrder(data.checkoutRequestId);
             setLoading(false);
-            goToOrder(orderId);
+            goToOrder(qData.orderId ?? orderId, accessToken);
             return;
           }
 
-          if (qData.resultCode && qData.resultCode !== "0") {
+          if (qData.paymentStatus === "failed" || qData.orderStatus === "FAILED") {
             clearInterval(poll);
             setMpesaStatus("failed");
             setMpesaMessage(qData.resultDesc ?? "Payment was not completed.");
+            setReserveError(qData.resultDesc ?? "Payment was not completed. Confirm details and try again.");
+            setStep("shipping");
             setLoading(false);
             return;
           }
+
+          if (qData.callbackPending) {
+            setMpesaMessage(qData.resultDesc ?? "Payment received. Waiting for secure confirmation.");
+          }
         } catch {
-          // Query error — keep polling
+          // Query error - keep polling
         }
 
-        if (attempts >= 10) {
+        if (attempts >= 15) {
           clearInterval(poll);
-          setMpesaStatus("failed");
-          setMpesaMessage("Payment timed out. Please try again.");
+          setMpesaStatus("pending");
+          setMpesaMessage(
+            `Payment confirmation is taking longer than usual. If you entered your PIN, keep order #BW-${orderId.slice(0, 8).toUpperCase()} and check again shortly.`
+          );
           setLoading(false);
         }
       }, 4000);
@@ -437,12 +506,10 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="pt-32 pb-24 flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
-        <h1 className="font-serif text-3xl text-ink mb-4">Your cart is empty</h1>
-        <Link
-          href="/shop"
-          className="inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-200 active:scale-[0.98] bg-forest text-white hover:bg-forest-dark text-sm px-6 py-3"
-        >
-          Shop Now
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-3">/ BAG</p>
+        <h1 className="font-display font-medium text-4xl tracking-[-0.025em] text-ink mb-6">Empty bag.</h1>
+        <Link href="/shop" className="btn-primary">
+          Browse shop
         </Link>
       </div>
     );
@@ -454,35 +521,35 @@ export default function CheckoutPage() {
     <div className="pt-20 lg:pt-24 pb-24">
       <div className="container-px py-8">
         {/* Header */}
-        <div className="mb-10">
-          <Link href="/" className="font-serif text-2xl tracking-wider text-ink">
-            BAYWOODS
+        <div className="mb-10 pb-6 border-b border-ink/15">
+          <Link href="/" className="font-display text-2xl tracking-[-0.02em] font-semibold text-ink">
+            BAYWOODS <span className="font-mono text-[10px] tracking-[0.18em] text-muted ml-2">/ CHECKOUT</span>
           </Link>
-          <div className="flex items-center gap-2 mt-6">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-2 mt-6">
             {STEPS.map((s, i) => (
-              <div key={s} className="flex items-center gap-2">
+              <div key={s} className="flex items-center gap-3">
                 <button
                   onClick={() => i < currentIdx && setStep(s)}
                   disabled={i >= currentIdx}
-                  className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                    s === step ? "text-ink" : i < currentIdx ? "text-forest cursor-pointer" : "text-muted"
+                  className={`flex items-center gap-2.5 font-mono text-[10px] tracking-[0.18em] uppercase transition-colors ${
+                    s === step ? "text-ink" : i < currentIdx ? "text-ink cursor-pointer" : "text-muted"
                   }`}
                 >
                   <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                    className={`w-6 h-6 flex items-center justify-center font-mono text-[10px] ${
                       i < currentIdx
-                        ? "bg-forest text-white"
+                        ? "bg-ink text-citrine"
                         : s === step
-                        ? "bg-ink text-white"
-                        : "bg-stone text-muted"
+                        ? "bg-ink text-cream"
+                        : "border border-ink/25 text-muted"
                     }`}
                   >
-                    {i < currentIdx ? <Check size={12} /> : i + 1}
+                    {i < currentIdx ? <Check size={11} /> : String(i + 1).padStart(2, "0")}
                   </span>
                   {STEP_LABELS[s]}
                 </button>
                 {i < STEPS.length - 1 && (
-                  <ChevronRight size={14} className="text-stone" />
+                  <ChevronRight size={12} className="text-muted" />
                 )}
               </div>
             ))}
@@ -501,18 +568,73 @@ export default function CheckoutPage() {
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h2 className="font-serif text-2xl text-ink mb-6">Shipping Information</h2>
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ 01 — SHIPPING</p>
+                  <h2 className="font-display font-medium text-3xl tracking-[-0.02em] text-ink mb-6">Where to.</h2>
 
-                  {/* Guest prompt — only shown when not signed in */}
+                  {/* Guest prompt */}
                   {!user && (
-                    <div className="bg-forest-muted border border-forest/20 p-4 mb-6">
-                      <p className="text-sm text-forest-dark">
-                        Have an account?{" "}
-                        <Link href="/auth/signin" className="font-semibold underline underline-offset-2">
-                          Sign in
+                    <div className="border-l-2 border-citrine bg-cream pl-4 py-3 mb-6">
+                      <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink">
+                        / Have an account?{" "}
+                        <Link href="/auth/signin" className="underline-citrine">
+                          Sign in →
                         </Link>{" "}
-                        to autofill your details.
+                        to autofill.
                       </p>
+                    </div>
+                  )}
+
+                  {user && savedAddresses.length > 0 && (
+                    <div className="mb-6">
+                      <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted mb-2">
+                        / Saved addresses
+                      </p>
+                      <div className="space-y-1">
+                        {savedAddresses.map((addr) => {
+                          const active = selectedAddressId === addr.id;
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => applySavedAddress(addr)}
+                              className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                                active ? "border-ink bg-cream" : "border-ink/20 hover:border-ink"
+                              }`}
+                            >
+                              <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${active ? "border-ink" : "border-ink/30"}`}>
+                                {active && <span className="w-2 h-2 bg-ink" />}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-display text-base tracking-[-0.01em] text-ink flex items-center gap-2 flex-wrap">
+                                  {addr.first_name} {addr.last_name}
+                                  {addr.is_default && (
+                                    <span className="font-mono text-[9px] tracking-[0.18em] uppercase bg-ink text-citrine px-1.5 py-0.5">
+                                      Default
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-0.5 truncate">
+                                  {addr.label} · {addr.address}, {addr.city}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={useNewAddress}
+                          className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                            selectedAddressId === "new" ? "border-ink bg-cream" : "border-ink/20 hover:border-ink"
+                          }`}
+                        >
+                          <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${selectedAddressId === "new" ? "border-ink" : "border-ink/30"}`}>
+                            {selectedAddressId === "new" && <span className="w-2 h-2 bg-ink" />}
+                          </span>
+                          <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted">
+                            Use a different address
+                          </p>
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -569,61 +691,66 @@ export default function CheckoutPage() {
                         onChange={(e) => setShipping({ ...shipping, county: e.target.value })}
                         className="input-base"
                       >
-                        {[
-                          "Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu",
-                          "Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho",
-                          "Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale",
-                          "Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit",
-                          "Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi",
-                          "Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya",
-                          "Taita-Taveta","Tana River","Tharaka-Nithi","Trans-Nzoia",
-                          "Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot",
-                        ].map((c) => (
+                        {KENYA_COUNTIES.map((c) => (
                           <option key={c} value={c}>{c}</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        label="Postal Code (optional)"
+                        value={shipping.postal}
+                        onChange={(e) => setShipping({ ...shipping, postal: e.target.value })}
+                        placeholder="00100"
+                      />
                     </div>
                   </div>
 
                   {/* Shipping method */}
                   <div className="mt-8">
-                    <p className="label-base mb-3">Delivery Method</p>
-                    <div className="space-y-3">
+                    <p className="label-base mb-3">Delivery method</p>
+                    <div className="space-y-2">
                       {[
-                        { value: "standard", label: "Standard Shipping", sub: "3–7 business days", cost: sub >= 5000 ? 0 : SHIPPING_COSTS.standard },
-                        { value: "express", label: "Express Shipping", sub: "1–2 business days", cost: sub >= 5000 ? 0 : SHIPPING_COSTS.express },
-                      ].map((opt) => (
-                        <label
-                          key={opt.value}
-                          className={`flex items-center justify-between p-4 border cursor-pointer transition-colors ${
-                            shipping.method === opt.value ? "border-ink bg-cream" : "border-stone hover:border-ink"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="shipping"
-                              value={opt.value}
-                              checked={shipping.method === (opt.value as "standard" | "express")}
-                              onChange={() => setShipping({ ...shipping, method: opt.value as "standard" | "express" })}
-                              className="accent-forest"
-                            />
-                            <div>
-                              <p className="text-sm font-medium text-ink">{opt.label}</p>
-                              <p className="text-xs text-muted">{opt.sub}</p>
+                        { value: "standard", label: "Standard", sub: "3–7 business days", cost: sub >= 5000 ? 0 : SHIPPING_COSTS.standard },
+                        { value: "express", label: "Express", sub: "1–2 business days", cost: sub >= 5000 ? 0 : SHIPPING_COSTS.express },
+                      ].map((opt) => {
+                        const active = shipping.method === opt.value;
+                        return (
+                          <label
+                            key={opt.value}
+                            className={`flex items-center justify-between p-4 border cursor-pointer transition-colors ${
+                              active ? "border-ink bg-cream" : "border-ink/20 hover:border-ink"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${active ? "border-ink" : "border-ink/30"}`}>
+                                {active && <span className="w-2 h-2 bg-ink" />}
+                              </span>
+                              <input
+                                type="radio"
+                                name="shipping"
+                                value={opt.value}
+                                checked={active}
+                                onChange={() => setShipping({ ...shipping, method: opt.value as "standard" | "express" })}
+                                className="sr-only"
+                              />
+                              <div>
+                                <p className="font-display text-base tracking-[-0.01em] text-ink">{opt.label}</p>
+                                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-0.5">{opt.sub}</p>
+                              </div>
                             </div>
-                          </div>
-                          <p className="text-sm font-semibold text-ink">
-                            {opt.cost === 0 ? "Free" : formatPrice(opt.cost)}
-                          </p>
-                        </label>
-                      ))}
+                            <p className="price text-sm font-medium text-ink">
+                              {opt.cost === 0 ? "Free" : formatPrice(opt.cost)}
+                            </p>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {reserveError && (
-                    <p className="mt-4 text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
-                      {reserveError}
+                    <p className="mt-4 font-mono text-[10px] tracking-[0.14em] uppercase text-danger border-l-2 border-danger pl-3 py-2">
+                      / {reserveError}
                     </p>
                   )}
                   <Button
@@ -639,7 +766,7 @@ export default function CheckoutPage() {
                     }}
                     disabled={!shipping.firstName || !shipping.lastName || !shipping.email || !shipping.phone || !shipping.address || !shipping.city}
                   >
-                    Continue to Payment
+                    Continue to payment →
                   </Button>
                 </motion.div>
               )}
@@ -652,90 +779,58 @@ export default function CheckoutPage() {
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h2 className="font-serif text-2xl text-ink mb-6">Payment</h2>
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ 02 — PAYMENT</p>
+                  <h2 className="font-display font-medium text-3xl tracking-[-0.02em] text-ink mb-6">How you&apos;re paying.</h2>
 
-                  {/* Method tabs */}
-                  <div className="flex border border-stone mb-6">
-                    {[
-                      { value: "mpesa", label: "M-Pesa" },
-                      { value: "card", label: "Card" },
-                    ].map((m) => (
-                      <button
-                        key={m.value}
-                        onClick={() => setPaymentMethod(m.value as typeof paymentMethod)}
-                        className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                          paymentMethod === m.value
-                            ? "bg-ink text-white"
-                            : "text-muted hover:text-ink hover:bg-stone/30"
-                        }`}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {paymentMethod === "mpesa" && (
-                    <div className="space-y-4">
-                      <div className="bg-forest-muted border border-forest/20 p-4">
-                        <p className="text-sm text-forest-dark font-medium mb-1">M-Pesa STK Push</p>
-                        <p className="text-xs text-muted">
+                  <div className="space-y-4">
+                      <div className="border-l-2 border-citrine bg-cream pl-4 py-3">
+                        <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink mb-1">/ M-Pesa STK push</p>
+                        <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-muted leading-relaxed">
                           {savedMpesaNumbers.length > 0
                             ? "Select a saved number or enter a new one."
-                            : "Enter your M-Pesa number. A payment prompt will be sent to your phone."}
+                            : "Enter your M-Pesa number. STK prompt will hit your phone."}
                         </p>
                       </div>
                       {savedMpesaNumbers.length > 0 && (
-                        <div className="space-y-1.5">
-                          {savedMpesaNumbers.map((num) => (
-                            <button
-                              key={num.phone}
-                              type="button"
-                              onClick={() => setMpesaPhone(num.phone)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
-                                mpesaPhone === num.phone
-                                  ? "border-forest bg-forest/5"
-                                  : "border-stone hover:border-ink"
-                              }`}
-                            >
-                              <span
-                                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                  mpesaPhone === num.phone
-                                    ? "border-forest"
-                                    : "border-stone"
+                        <div className="space-y-1">
+                          {savedMpesaNumbers.map((num) => {
+                            const active = mpesaPhone === num.phone;
+                            return (
+                              <button
+                                key={num.phone}
+                                type="button"
+                                onClick={() => setMpesaPhone(num.phone)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                                  active ? "border-ink bg-cream" : "border-ink/20 hover:border-ink"
                                 }`}
                               >
-                                {mpesaPhone === num.phone && (
-                                  <span className="w-2 h-2 rounded-full bg-forest" />
-                                )}
-                              </span>
-                              <div>
-                                <p className="text-sm font-medium text-ink">{num.phone}</p>
-                                <p className="text-xs text-muted">{num.label}</p>
-                              </div>
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => setMpesaPhone("07")}
-                            className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
-                              !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)
-                                ? "border-forest bg-forest/5"
-                                : "border-stone hover:border-ink"
-                            }`}
-                          >
-                            <span
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                !savedMpesaNumbers.some((n) => n.phone === mpesaPhone)
-                                  ? "border-forest"
-                                  : "border-stone"
-                              }`}
-                            >
-                              {!savedMpesaNumbers.some((n) => n.phone === mpesaPhone) && (
-                                <span className="w-2 h-2 rounded-full bg-forest" />
-                              )}
-                            </span>
-                            <p className="text-sm text-muted">Use a different number</p>
-                          </button>
+                                <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${active ? "border-ink" : "border-ink/30"}`}>
+                                  {active && <span className="w-2 h-2 bg-ink" />}
+                                </span>
+                                <div>
+                                  <p className="font-display text-base tracking-[-0.01em] text-ink">{num.phone}</p>
+                                  <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted">{num.label}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          {(() => {
+                            const other = !savedMpesaNumbers.some((n) => n.phone === mpesaPhone);
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setMpesaPhone("07")}
+                                className={`w-full flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
+                                  other ? "border-ink bg-cream" : "border-ink/20 hover:border-ink"
+                                }`}
+                              >
+                                <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${other ? "border-ink" : "border-ink/30"}`}>
+                                  {other && <span className="w-2 h-2 bg-ink" />}
+                                </span>
+                                <p className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted">Different number</p>
+                              </button>
+                            );
+                          })()}
                         </div>
                       )}
                       {(savedMpesaNumbers.length === 0 ||
@@ -753,50 +848,24 @@ export default function CheckoutPage() {
                             placeholder="0712 345 678"
                           />
                           {mpesaPhoneError && (
-                            <p className="text-xs text-danger mt-1">{mpesaPhoneError}</p>
+                            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger mt-2">
+                              / {mpesaPhoneError}
+                            </p>
                           )}
                         </div>
                       )}
                       {mpesaStatus === "pending" && mpesaMessage && (
-                        <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
-                          {mpesaMessage}
+                        <div className="border-l-2 border-citrine bg-cream pl-4 py-3 flex items-center gap-3">
+                          <div className="w-3 h-3 border-2 border-ink border-t-transparent animate-spin shrink-0" />
+                          <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-ink">{mpesaMessage}</p>
                         </div>
                       )}
                       {mpesaStatus === "failed" && mpesaMessage && (
-                        <p className="text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
-                          {mpesaMessage}
+                        <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger border-l-2 border-danger pl-3 py-2">
+                          / {mpesaMessage}
                         </p>
                       )}
                     </div>
-                  )}
-
-                  {paymentMethod === "card" && (
-                    <div className="space-y-4">
-                      {stripeClientSecret && stripePromise ? (
-                        <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
-                          <StripeCardForm
-                            clientSecret={stripeClientSecret}
-                            billingName={`${shipping.firstName} ${shipping.lastName}`}
-                            billingEmail={shipping.email}
-                            onSuccess={handleStripeSuccess}
-                            onError={handleStripeError}
-                          />
-                        </Elements>
-                      ) : (
-                        <div className="space-y-3">
-                          <p className="text-xs text-muted bg-stone/30 border border-stone px-4 py-3">
-                            Click &quot;Review Order&quot; to load the secure card payment form.
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted">
-                            <Lock size={11} className="text-forest" />
-                            Secured by Stripe — your card details are encrypted
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   <div className="flex gap-3 mt-8">
                     <Button
                       variant="outline"
@@ -810,15 +879,9 @@ export default function CheckoutPage() {
                       className="flex-1"
                       size="lg"
                       loading={loading}
-                      onClick={async () => {
-                        if (paymentMethod === "card" && !stripeClientSecret) {
-                          await handleStripePayment();
-                        } else {
-                          setStep("review");
-                        }
-                      }}
+                      onClick={() => setStep("review")}
                     >
-                      {paymentMethod === "card" && !stripeClientSecret ? "Load Card Form" : "Review Order"}
+                      Review order
                     </Button>
                   </div>
                 </motion.div>
@@ -832,99 +895,80 @@ export default function CheckoutPage() {
                   exit={{ opacity: 0, x: -12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h2 className="font-serif text-2xl text-ink mb-6">Review & Confirm</h2>
+                  <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ 03 — REVIEW</p>
+                  <h2 className="font-display font-medium text-3xl tracking-[-0.02em] text-ink mb-6">Confirm and pay.</h2>
 
                   {/* Shipping summary */}
-                  <div className="bg-cream border border-stone p-5 mb-4">
-                    <div className="flex justify-between items-start">
+                  <div className="border border-ink/20 p-5 mb-3">
+                    <div className="flex justify-between items-start gap-4">
                       <div>
-                        <p className="text-xs font-semibold tracking-widest uppercase text-muted mb-2">
-                          Shipping To
+                        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">
+                          / Shipping to
                         </p>
-                        <p className="text-sm font-medium text-ink">
+                        <p className="font-display text-base tracking-[-0.01em] text-ink">
                           {shipping.firstName} {shipping.lastName}
                         </p>
-                        <p className="text-sm text-muted">{shipping.address}, {shipping.city}</p>
+                        <p className="text-sm text-muted mt-1">{shipping.address}, {shipping.city}</p>
                         <p className="text-sm text-muted">{shipping.email}</p>
                       </div>
                       <button
                         onClick={() => setStep("shipping")}
-                        className="text-xs text-forest underline underline-offset-2"
+                        className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine"
                       >
-                        Edit
+                        Edit →
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-cream border border-stone p-5 mb-6">
-                    <div className="flex justify-between items-center">
+                  <div className="border border-ink/20 p-5 mb-6">
+                    <div className="flex justify-between items-center gap-4">
                       <div>
-                        <p className="text-xs font-semibold tracking-widest uppercase text-muted mb-2">
-                          Payment
+                        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">
+                          / Payment
                         </p>
-                        <p className="text-sm font-medium text-ink capitalize">{paymentMethod}</p>
-                        {paymentMethod === "mpesa" && (
-                          <p className="text-sm text-muted">{mpesaPhone}</p>
-                        )}
+                        <p className="font-display text-base tracking-[-0.01em] text-ink uppercase">M-Pesa</p>
+                        <p className="font-mono text-xs tabular-nums text-muted mt-1">{mpesaPhone}</p>
                       </div>
                       <button
                         onClick={() => setStep("payment")}
-                        className="text-xs text-forest underline underline-offset-2"
+                        className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine"
                       >
-                        Edit
+                        Edit →
                       </button>
                     </div>
                   </div>
 
                   {mpesaStatus === "pending" && (
-                    <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center gap-2 mb-4">
-                      <div className="w-3 h-3 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
-                      Waiting for M-Pesa payment…
+                    <div className="border-l-2 border-citrine bg-cream pl-4 py-3 mb-4 flex items-center gap-3">
+                      <div className="w-3 h-3 border-2 border-ink border-t-transparent animate-spin shrink-0" />
+                      <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-ink">Waiting for M-Pesa payment…</p>
                     </div>
                   )}
                   {mpesaStatus === "failed" && mpesaMessage && (
-                    <p className="text-xs text-danger bg-red-50 border border-red-100 px-3 py-2 mb-4">
-                      {mpesaMessage}
+                    <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger border-l-2 border-danger pl-3 py-2 mb-4">
+                      / {mpesaMessage}
                     </p>
                   )}
-
-                  {paymentMethod === "card" && stripeClientSecret && stripePromise ? (
-                    <div className="mt-2">
-                      <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
-                        <StripeCardForm
-                          clientSecret={stripeClientSecret}
-                          billingName={`${shipping.firstName} ${shipping.lastName}`}
-                          billingEmail={shipping.email}
-                          onSuccess={handleStripeSuccess}
-                          onError={handleStripeError}
-                        />
-                      </Elements>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setStep("payment")}
-                        className="w-1/3"
-                        disabled={loading}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        className="flex-1"
-                        size="lg"
-                        loading={loading}
-                        onClick={handleOrder}
-                      >
-                        {paymentMethod === "mpesa"
-                          ? `Pay ${formatPrice(total)} via M-Pesa`
-                          : `Place Order — ${formatPrice(total)}`}
-                      </Button>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-muted text-center mt-4 flex items-center justify-center gap-1">
-                    <Lock size={11} /> All transactions are encrypted and secure
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep("payment")}
+                      className="w-1/3"
+                      disabled={loading}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      size="lg"
+                      loading={loading}
+                      onClick={handleOrder}
+                    >
+                      Pay {formatPrice(total)} via M-Pesa
+                    </Button>
+                  </div>
+                  <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted text-center mt-4 flex items-center justify-center gap-2">
+                    <Lock size={10} /> All transactions encrypted and secure
                   </p>
                 </motion.div>
               )}
@@ -933,15 +977,13 @@ export default function CheckoutPage() {
 
           {/* Order summary sidebar */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <div className="bg-cream border border-stone p-6">
-              <p className="text-xs font-semibold tracking-widest uppercase text-muted mb-5">
-                Order Summary
-              </p>
+            <div className="border border-ink/20 p-6 bg-cream">
+              <p className="section-kicker mb-5">SUMMARY</p>
 
-              <ul className="space-y-4 mb-5">
+              <ul className="space-y-4 mb-6 border-t border-ink/15 pt-4">
                 {items.map((item) => (
                   <li key={`${item.product.id}-${item.size}-${item.color.name}`} className="flex gap-3">
-                    <div className="relative w-14 h-16 bg-beige shrink-0 overflow-hidden">
+                    <div className="relative w-14 h-16 bg-beige-dark shrink-0 overflow-hidden border border-ink/10">
                       <Image
                         src={item.product.images[0]}
                         alt={item.product.name}
@@ -949,14 +991,14 @@ export default function CheckoutPage() {
                         className="object-cover"
                         sizes="56px"
                       />
-                      <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-ink text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-ink text-citrine font-mono text-[10px] flex items-center justify-center">
                         {item.quantity}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-ink line-clamp-1">{item.product.name}</p>
-                      <p className="text-xs text-muted">{item.size} · {item.color.name}</p>
-                      <p className="text-xs font-semibold mt-0.5">
+                      <p className="font-display text-sm tracking-[-0.01em] text-ink line-clamp-1">{item.product.name}</p>
+                      <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-0.5">{item.size} · {item.color.name}</p>
+                      <p className="price text-xs font-medium text-ink mt-1">
                         {formatPrice((item.product.salePrice ?? item.product.price) * item.quantity)}
                       </p>
                     </div>
@@ -965,49 +1007,50 @@ export default function CheckoutPage() {
               </ul>
 
               {/* Promo */}
-              <div className="mb-5">
-                <div className="flex gap-2">
+              <div className="mb-5 border-t border-ink/15 pt-4">
+                <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted mb-2">/ Promo</p>
+                <div className="flex border-b border-ink">
                   <input
                     type="text"
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    placeholder="Promo code"
-                    className="input-base text-xs py-2"
+                    placeholder="Code"
+                    className="flex-1 bg-transparent font-mono text-xs tracking-[0.1em] uppercase text-ink py-2 outline-none placeholder:text-muted"
                   />
                   <button
                     onClick={handleApplyPromo}
                     disabled={promoLoading || !promoCode.trim()}
-                    className="px-3 py-2 bg-ink text-white text-xs font-medium hover:bg-ink/80 transition-colors shrink-0 disabled:opacity-50"
+                    className="px-3 py-2 font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine transition-colors disabled:opacity-50"
                   >
-                    {promoLoading ? "…" : "Apply"}
+                    {promoLoading ? "…" : "Apply →"}
                   </button>
                 </div>
                 {promoMsg && (
-                  <p className={`text-xs mt-1.5 ${promoMsg.type === "success" ? "text-forest" : "text-danger"}`}>
-                    {promoMsg.text}
+                  <p className={`font-mono text-[10px] tracking-[0.14em] uppercase mt-2 ${promoMsg.type === "success" ? "text-ink" : "text-danger"}`}>
+                    / {promoMsg.text}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-stone">
-                <div className="flex justify-between text-sm text-muted">
+              <div className="space-y-2 pt-4 border-t border-ink/15 font-mono text-[11px] tracking-[0.12em] uppercase">
+                <div className="flex justify-between text-muted">
                   <span>Subtotal</span>
-                  <span>{formatPrice(sub)}</span>
+                  <span className="tabular-nums text-ink">{formatPrice(sub)}</span>
                 </div>
-                <div className="flex justify-between text-sm text-muted">
-                  <span>Shipping</span>
-                  <span>{shippingCost === 0 ? "Free" : formatPrice(shippingCost)}</span>
+                <div className="flex justify-between text-muted">
+                  <span>Dispatch</span>
+                  <span className="tabular-nums text-ink">{shippingCost === 0 ? "Free" : formatPrice(shippingCost)}</span>
                 </div>
                 {promoDiscount > 0 && (
-                  <div className="flex justify-between text-sm text-forest">
+                  <div className="flex justify-between text-ink">
                     <span>Discount</span>
-                    <span>-{formatPrice(promoDiscount)}</span>
+                    <span className="tabular-nums">-{formatPrice(promoDiscount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-base font-semibold text-ink pt-2 border-t border-stone">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
+              </div>
+              <div className="flex justify-between items-baseline pt-4 mt-2 border-t border-ink/15">
+                <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">Total</span>
+                <span className="font-display text-2xl tracking-[-0.02em] tabular-nums text-ink">{formatPrice(total)}</span>
               </div>
             </div>
           </div>

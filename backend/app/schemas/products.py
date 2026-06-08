@@ -23,3 +23,7 @@ class Product(BaseModel):
     review_count: int
     in_stock: bool
     stock_count: int | None = None
+    verification_status: str = "PENDING"
+    verification_notes: str | None = None
+    verified_at: str | None = None
+    verified_by: str | None = None

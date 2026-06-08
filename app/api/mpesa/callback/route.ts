@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
+import { sendAdminOrderNotification, sendOrderConfirmation } from "@/lib/email";
+import { sendOrderSms } from "@/lib/sms";
 import { getClientIp, isSafaricomIp } from "@/lib/security";
 
 function getAdmin() {
@@ -10,96 +12,135 @@ function getAdmin() {
   );
 }
 
-// Always return 200 + ResultCode 0 — Safaricom retries aggressively on any
-// non-2xx response, and a retry storm will corrupt state. Log internally,
-// acknowledge externally.
 const ACK = NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
+
+function metadataValue(items: any[] | undefined, name: string): string | null {
+  const found = items?.find((item) => item?.Name === name);
+  if (found?.Value == null) return null;
+  return String(found.Value);
+}
+
+async function sendPaidNotifications(db: ReturnType<typeof getAdmin>, checkoutRequestId: string) {
+  const { data: payment } = await db
+    .from("payments")
+    .select(`
+      order_id,
+      orders (
+        id, email, shipping_name, shipping_line1, shipping_city, shipping_state,
+        shipping_phone, subtotal, shipping_cost, discount_amount, total, payment_method,
+        order_items ( product_name, variant_name, quantity, unit_price )
+      )
+    `)
+    .eq("checkout_request_id", checkoutRequestId)
+    .single();
+
+  const order = payment?.orders as any;
+  if (!order?.email) return;
+
+  const items = (order.order_items ?? []).map((item: any) => ({
+    name: item.product_name,
+    variant: item.variant_name,
+    qty: item.quantity,
+    price: Number(item.unit_price),
+  }));
+
+  await Promise.allSettled([
+    sendOrderConfirmation({
+      orderId: order.id,
+      customerName: order.shipping_name,
+      email: order.email,
+      items,
+      subtotal: Number(order.subtotal),
+      shippingCost: Number(order.shipping_cost),
+      discount: Number(order.discount_amount),
+      total: Number(order.total),
+      shippingAddress: `${order.shipping_line1}, ${order.shipping_city}, ${order.shipping_state}`,
+      paymentMethod: order.payment_method,
+    }),
+    order.shipping_phone
+      ? sendOrderSms({
+          phone: order.shipping_phone,
+          customerName: order.shipping_name,
+          orderId: order.id,
+          total: Number(order.total),
+        })
+      : Promise.resolve(),
+    sendAdminOrderNotification({
+      orderId: order.id,
+      customerName: order.shipping_name,
+      email: order.email,
+      total: Number(order.total),
+      paymentMethod: order.payment_method,
+      items,
+      shippingAddress: `${order.shipping_line1}, ${order.shipping_city}, ${order.shipping_state}`,
+    }),
+  ]);
+}
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   if (!isSafaricomIp(ip)) {
-    console.warn("Rejected M-Pesa callback from unknown IP:", ip);
+    console.warn("[mpesa callback] rejected unknown IP:", ip);
+    return ACK;
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch (err) {
+    Sentry.captureException(err);
+    console.error("[mpesa callback] invalid JSON:", err);
     return ACK;
   }
 
   try {
-    const body = await req.json();
     const callback = body?.Body?.stkCallback;
-    if (!callback?.CheckoutRequestID) return ACK;
-
-    const { MerchantRequestID, CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = callback;
-    const supabaseAdmin = getAdmin();
-
-    // Idempotency: if this payment is already settled, ignore duplicate callbacks.
-    const { data: existing } = await supabaseAdmin
-      .from("payments")
-      .select("id, status, order_id")
-      .eq("checkout_request_id", CheckoutRequestID)
-      .single();
-
-    if (!existing) {
-      console.warn("Callback for unknown CheckoutRequestID:", CheckoutRequestID);
-      return ACK;
-    }
-    if (existing.status === "paid" || existing.status === "failed") {
+    if (!callback?.CheckoutRequestID) {
+      console.warn("[mpesa callback] missing CheckoutRequestID:", body);
       return ACK;
     }
 
-    let mpesaReceipt: string | undefined;
-    let amount: number | undefined;
-    let phoneNumber: string | undefined;
-    if (ResultCode === 0 && Array.isArray(CallbackMetadata?.Item)) {
-      for (const item of CallbackMetadata.Item) {
-        if (item.Name === "MpesaReceiptNumber") mpesaReceipt = String(item.Value);
-        else if (item.Name === "Amount") amount = Number(item.Value);
-        else if (item.Name === "PhoneNumber") phoneNumber = String(item.Value);
-      }
+    const metadata = callback.CallbackMetadata?.Item;
+    const receipt = metadataValue(metadata, "MpesaReceiptNumber");
+    const amount = metadataValue(metadata, "Amount");
+    const phone = metadataValue(metadata, "PhoneNumber");
+    const resultCode = String(callback.ResultCode ?? "");
+    const checkoutRequestId = String(callback.CheckoutRequestID);
+    const merchantRequestId = callback.MerchantRequestID ? String(callback.MerchantRequestID) : null;
+
+    const db = getAdmin();
+    const { data: finalizeResult, error } = await db.rpc("finalize_mpesa_payment", {
+      p_checkout_request_id: checkoutRequestId,
+      p_merchant_request_id: merchantRequestId,
+      p_result_code: resultCode,
+      p_result_desc: String(callback.ResultDesc ?? ""),
+      p_receipt: receipt,
+      p_phone: phone,
+      p_amount: amount ? Number(amount) : null,
+      p_raw_callback: body,
+    });
+
+    if (error) {
+      Sentry.captureException(error);
+      console.error("[mpesa callback] finalize error:", error);
+      return ACK;
     }
 
-    const paymentStatus = ResultCode === 0 ? "paid" : "failed";
-    const nowIso = new Date().toISOString();
+    if (!finalizeResult?.ok) {
+      const reason = finalizeResult?.reason ?? "unknown";
+      Sentry.captureMessage(`M-Pesa callback could not be applied: ${reason}`);
+      console.warn("[mpesa callback] not applied:", finalizeResult);
+      return ACK;
+    }
 
-    await supabaseAdmin
-      .from("payments")
-      .update({
-        status:            paymentStatus,
-        mpesa_receipt:     mpesaReceipt ?? null,
-        result_desc:       ResultDesc,
-        provider_response: { MerchantRequestID, CheckoutRequestID, amount, phoneNumber },
-        provider_tx_id:    mpesaReceipt ?? null,
-        paid_at:           ResultCode === 0 ? nowIso : null,
-        updated_at:        nowIso,
-      })
-      .eq("id", existing.id);
-
-    if (ResultCode === 0 && existing.order_id) {
-      await supabaseAdmin
-        .from("orders")
-        .update({ status: "processing", payment_status: "paid", updated_at: nowIso })
-        .eq("id", existing.order_id);
-    } else if (ResultCode !== 0 && existing.order_id) {
-      // Payment failed — release reserved stock so the order doesn't hold inventory.
-      const { data: items } = await supabaseAdmin
-        .from("order_items")
-        .select("product_id, variant_id, quantity")
-        .eq("order_id", existing.order_id);
-      for (const it of items ?? []) {
-        await supabaseAdmin.rpc("restore_inventory_v2", {
-          p_product_id: it.product_id,
-          p_variant_id: it.variant_id ?? null,
-          p_qty:        it.quantity,
-        });
-      }
-      await supabaseAdmin
-        .from("orders")
-        .update({ status: "cancelled", payment_status: "failed", updated_at: nowIso })
-        .eq("id", existing.order_id);
+    if (!finalizeResult.duplicate && finalizeResult.payment_status === "paid") {
+      await sendPaidNotifications(db, checkoutRequestId);
     }
 
     return ACK;
   } catch (err) {
     Sentry.captureException(err);
-    console.error("M-Pesa callback error:", err);
+    console.error("[mpesa callback] unhandled error:", err);
     return ACK;
   }
 }

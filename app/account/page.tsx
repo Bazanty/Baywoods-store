@@ -11,26 +11,23 @@ import {
   Settings,
   LogOut,
   CreditCard,
+  ArrowUpRight,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 import { getUserOrders } from "@/lib/supabase/queries";
+import { supabase } from "@/lib/supabase/client";
+import { ORDER_STATUS_STYLES, orderStatusLabel, normalizeOrderStatus } from "@/lib/orderStatus";
 import type { Order } from "@/lib/types";
-
-const statusColors: Record<Order["status"], string> = {
-  delivered: "text-forest bg-forest/10",
-  shipped: "text-amber-700 bg-amber-50",
-  processing: "text-ink bg-stone",
-  pending: "text-muted bg-stone/50",
-  cancelled: "text-danger bg-red-50",
-};
+import RecentlyViewed from "@/components/product/RecentlyViewed";
 
 export default function AccountPage() {
   const { user, signOut } = useAuthStore();
   const wishlistCount = useCartStore((s) => s.wishlist.length);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [addressCount, setAddressCount] = useState(0);
   const router = useRouter();
 
   const meta = user?.user_metadata ?? {};
@@ -39,12 +36,13 @@ export default function AccountPage() {
   const fullName = [firstName, lastName].filter(Boolean).join(" ") || "My Account";
   const initials = [firstName[0], lastName[0]].filter(Boolean).join("").toUpperCase() || "?";
   const email = user?.email ?? "";
+  const paymentCount: number = Array.isArray(meta.mpesa_numbers) ? meta.mpesa_numbers.length : 0;
 
   const cards = [
-    { icon: Package, label: "Orders", href: "/account/orders", count: orders.length },
-    { icon: Heart, label: "Wishlist", href: "/account/wishlist", count: wishlistCount },
-    { icon: MapPin, label: "Addresses", href: "/account/addresses", count: 0 },
-    { icon: CreditCard, label: "Payment Methods", href: "/account/payments", count: 0 },
+    { n: "01", icon: Package, label: "Orders", href: "/account/orders", count: orders.length },
+    { n: "02", icon: Heart, label: "Wishlist", href: "/account/wishlist", count: wishlistCount },
+    { n: "03", icon: MapPin, label: "Addresses", href: "/account/addresses", count: addressCount },
+    { n: "04", icon: CreditCard, label: "Payment", href: "/account/payments", count: paymentCount },
   ];
 
   useEffect(() => {
@@ -54,6 +52,16 @@ export default function AccountPage() {
       .then(setOrders)
       .catch(() => setOrders([]))
       .finally(() => setOrdersLoading(false));
+
+    let cancelled = false;
+    supabase
+      .from("addresses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .then(({ count }) => {
+        if (!cancelled) setAddressCount(count ?? 0);
+      });
+    return () => { cancelled = true; };
   }, [user]);
 
   const handleSignOut = async () => {
@@ -62,106 +70,127 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="pt-24 lg:pt-28 pb-24">
+    <div className="pt-20 lg:pt-24 pb-24">
       <div className="container-px py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="flex items-center gap-5 mb-10"
-        >
-          <div className="w-14 h-14 bg-ink rounded-full flex items-center justify-center">
-            <span className="font-serif text-xl text-white">{initials}</span>
-          </div>
-          <div>
-            <h1 className="font-serif text-2xl text-ink">{fullName}</h1>
-            <p className="text-sm text-muted">{email}</p>
-          </div>
-        </motion.div>
+        {/* Header */}
+        <div className="border-b border-ink/15 pb-8 mb-10">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-4">
+            <span className="text-ink">/</span> ACCOUNT
+          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="flex items-center gap-5"
+          >
+            <div className="w-14 h-14 bg-ink flex items-center justify-center">
+              <span className="font-mono text-base tracking-[0.1em] text-citrine">{initials}</span>
+            </div>
+            <div>
+              <h1 className="font-display font-medium text-3xl sm:text-4xl tracking-[-0.025em] text-ink">{fullName}</h1>
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-1">{email}</p>
+            </div>
+          </motion.div>
+        </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {/* Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-ink/15 mb-12">
           {cards.map((card, i) => (
             <motion.div
               key={card.label}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
+              transition={{ duration: 0.4, delay: i * 0.06 }}
             >
               <Link
                 href={card.href}
-                className="block p-5 bg-cream border border-stone hover:border-ink transition-colors group"
+                className="block p-5 bg-cream hover:bg-beige-dark transition-colors group h-full"
               >
-                <card.icon
-                  size={20}
-                  className="text-forest mb-3 group-hover:text-forest-dark transition-colors"
-                  strokeWidth={1.5}
-                />
-                <p className="text-sm font-medium text-ink">{card.label}</p>
+                <div className="flex items-baseline justify-between mb-4">
+                  <p className="font-mono text-[10px] tracking-[0.2em] text-muted">/ {card.n}</p>
+                  <ArrowUpRight size={13} className="text-muted group-hover:text-ink transition-colors" />
+                </div>
+                <card.icon size={18} strokeWidth={1.5} className="text-ink mb-3" />
+                <p className="font-display text-lg tracking-[-0.01em] text-ink">{card.label}</p>
                 {card.count > 0 && (
-                  <p className="text-xs text-muted mt-0.5">{card.count} items</p>
+                  <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-1">
+                    {card.count} {card.count === 1 ? "item" : "items"}
+                  </p>
                 )}
               </Link>
             </motion.div>
           ))}
         </div>
 
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-serif text-xl text-ink">Recent Orders</h2>
-            <Link href="/account/orders" className="text-xs text-forest underline underline-offset-2">
-              View All
+        {/* Recent orders */}
+        <div className="mb-12">
+          <div className="flex items-end justify-between mb-5 border-b border-ink/15 pb-3">
+            <div>
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">/ Recent</p>
+              <h2 className="font-display text-2xl tracking-[-0.02em] text-ink mt-1">Orders</h2>
+            </div>
+            <Link href="/account/orders" className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink hover:text-citrine">
+              View all →
             </Link>
           </div>
           {ordersLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
-                <div key={i} className="h-20 bg-stone/40 animate-pulse" />
+                <div key={i} className="h-20 bg-beige-dark animate-pulse" />
               ))}
             </div>
           ) : orders.length > 0 ? (
-            <div className="border border-stone bg-cream divide-y divide-stone">
-              {orders.slice(0, 3).map((order) => (
+            <div className="border border-ink/15 divide-y divide-ink/10">
+              {orders.slice(0, 3).map((order, i) => (
                 <Link
                   key={order.id}
                   href={`/order/${order.id}`}
-                  className="flex items-center justify-between gap-4 p-4 hover:bg-stone/30 transition-colors"
+                  className="flex items-center justify-between gap-4 p-4 hover:bg-beige-dark transition-colors group"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-ink">#{order.id.slice(0, 8)}</p>
-                    <p className="text-xs text-muted mt-1">
-                      {order.date} · {order.items.length} {order.items.length === 1 ? "item" : "items"}
-                    </p>
+                  <div className="flex items-baseline gap-4 min-w-0">
+                    <span className="font-mono text-[10px] tracking-[0.16em] text-muted">/{String(i + 1).padStart(2, "0")}</span>
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm tracking-[0.06em] text-ink">#BW-{order.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-1">
+                        {order.date} · {order.items.length} {order.items.length === 1 ? "item" : "items"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 ${statusColors[order.status]}`}>
-                      {order.status}
+                  <div className="text-right shrink-0">
+                    <span className={`font-mono text-[9px] tracking-[0.18em] uppercase px-2 py-1 ${ORDER_STATUS_STYLES[normalizeOrderStatus(order.status)]}`}>
+                      {orderStatusLabel(order.status)}
                     </span>
-                    <p className="text-sm font-semibold text-ink mt-2">{formatPrice(order.total)}</p>
+                    <p className="price text-sm font-medium text-ink mt-2">{formatPrice(order.total)}</p>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted py-8 text-center border border-stone bg-cream">
-              No orders yet. <Link href="/shop" className="text-forest underline underline-offset-2">Start shopping</Link>
+            <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted py-10 text-center border border-ink/15">
+              / No orders yet.{" "}
+              <Link href="/shop" className="text-ink underline-citrine">
+                Start shopping →
+              </Link>
             </p>
           )}
         </div>
 
-        <div className="border-t border-stone pt-6 space-y-1">
+        <RecentlyViewed />
+
+        <div className="border-t border-ink/15 pt-5 space-y-1">
           <Link
             href="/account/settings"
-            className="flex items-center gap-3 py-3 text-sm text-ink hover:text-forest transition-colors"
+            className="flex items-center gap-3 py-3 font-mono text-[11px] tracking-[0.16em] uppercase text-ink hover:text-citrine transition-colors"
           >
-            <Settings size={16} className="text-muted" />
-            Account Settings
+            <Settings size={14} className="text-muted" />
+            Account settings
           </Link>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 py-3 text-sm text-danger hover:text-red-700 transition-colors"
+            className="flex items-center gap-3 py-3 font-mono text-[11px] tracking-[0.16em] uppercase text-danger hover:text-ink transition-colors"
           >
-            <LogOut size={16} />
-            Sign Out
+            <LogOut size={14} />
+            Sign out
           </button>
         </div>
       </div>

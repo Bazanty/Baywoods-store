@@ -7,205 +7,261 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { heroImages } from "@/lib/heroImages";
 
-const HIGHLIGHTS = [
-  { value: "276", label: "lookbook frames" },
-  { value: "24h", label: "Nairobi dispatch" },
-  { value: "M-Pesa", label: "fast checkout" },
-];
+const ROTATE_MS = 6500;
+const TINT_HOLD_MS = 5000;
 
-const TICKER_ITEMS = [
-  "New arrivals weekly",
-  "Authentic pairs only",
-  "M-Pesa accepted",
-  "Curated streetwear edit",
-  "Kenya-wide delivery",
-  "Fresh campaign visuals",
-];
+
+type RGB = { r: number; g: number; b: number };
+type ColorBucket = RGB & { n: number };
+const colorCache = new Map<string, RGB | null>();
+
+function getDominantColor(src: string): Promise<RGB | null> {
+  if (colorCache.has(src)) return Promise.resolve(colorCache.get(src) ?? null);
+
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous"; 
+
+    img.onload = () => {
+      try {
+        const size = 48;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return resolve(null);
+
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+
+        const buckets = new Map<string, ColorBucket>();
+        const q = (v: number) => Math.round(v / 48) * 48;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 200) continue;
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          if (max > 234 && min > 214) continue; // skip near-white product bg
+          if (max < 30) continue; // skip near-black
+
+          const key = `${q(r)},${q(g)},${q(b)}`;
+          const bk = buckets.get(key) ?? { n: 0, r: 0, g: 0, b: 0 };
+          bk.n += 1;
+          bk.r += r;
+          bk.g += g;
+          bk.b += b;
+          buckets.set(key, bk);
+        }
+
+        const best = Array.from(buckets.values()).reduce<ColorBucket | null>(
+          (winner, bk) => (!winner || bk.n > winner.n ? bk : winner),
+          null
+        );
+
+        const result: RGB | null = best
+          ? {
+              r: Math.round(best.r / best.n),
+              g: Math.round(best.g / best.n),
+              b: Math.round(best.b / best.n),
+            }
+          : null;
+
+        colorCache.set(src, result);
+        resolve(result);
+      } catch {
+        resolve(null);
+      }
+    };
+
+    img.onerror = () => {
+      colorCache.set(src, null);
+      resolve(null);
+    };
+
+    img.src = src;
+  });
+}
+
+function toBackground(rgb: RGB): string {
+  let { r, g, b } = rgb;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  if (lum < 0.6) {
+    const lift = (0.6 - lum) * 1.05;
+    r = Math.round(r + (255 - r) * lift);
+    g = Math.round(g + (255 - g) * lift);
+    b = Math.round(b + (255 - b) * lift);
+  }
+  return `rgb(${r}, ${g}, ${b})`;
+}
 
 export default function Hero() {
   const gallery = useMemo(() => heroImages.slice(0, 36), []);
   const [active, setActive] = useState(0);
+  const [tint, setTint] = useState<string | null>(null);
 
+  // auto-rotate the lookbook
   useEffect(() => {
     if (gallery.length < 2) return;
     const id = window.setInterval(() => {
-      setActive((current) => (current + 1) % gallery.length);
-    }, 3600);
+      setActive((c) => (c + 1) % gallery.length);
+    }, ROTATE_MS);
     return () => window.clearInterval(id);
   }, [gallery.length]);
 
+  const lead = gallery.length ? gallery[active % gallery.length] : "";
+
+  useEffect(() => {
+    if (!lead) return;
+    let cancelled = false;
+    let revertId: number | undefined;
+
+    getDominantColor(lead).then((rgb) => {
+      if (cancelled) return;
+      if (!rgb) {
+        setTint(null);
+        return;
+      }
+      setTint(toBackground(rgb));
+      revertId = window.setTimeout(() => {
+        if (!cancelled) setTint(null);
+      }, TINT_HOLD_MS);
+    });
+
+    return () => {
+      cancelled = true;
+      if (revertId) window.clearTimeout(revertId);
+    };
+  }, [lead]);
+
   if (gallery.length === 0) return null;
 
-  const lead  = gallery[active % gallery.length];
-  const sideA = gallery[(active + 8)  % gallery.length];
+  const sideA = gallery[(active + 8) % gallery.length];
   const sideB = gallery[(active + 15) % gallery.length];
-  const strip = [2, 5, 11, 18, 27].map((o) => gallery[(active + o) % gallery.length]);
 
   return (
-    <section className="relative overflow-hidden bg-neutral-950 text-white">
-      <div className="container-px pt-24 lg:pt-28">
-        <div className="grid min-h-[82vh] grid-cols-1 gap-10 pb-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-12">
+    <section className="relative overflow-hidden bg-cream text-ink">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 transition-colors duration-700 ease-out"
+        style={{ backgroundColor: tint ?? "transparent" }}
+      />
 
-          {/* ── Left: copy ── */}
-          <div className="max-w-2xl">
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="section-kicker text-forest-light"
-            >
-              Drop 01 / Nairobi
-            </motion.p>
+      <div className="container-px relative z-10 pt-20 lg:pt-24">
+        {/* Top index strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-baseline justify-between border-b border-ink/15 pb-3 mb-8 lg:mb-12 font-mono text-[10px] tracking-[0.2em] uppercase text-muted"
+        >
+          <span><span className="text-ink">/ 01</span> &nbsp; DROP &mdash; FW26 / NAIROBI</span>
+          <span className="hidden sm:inline">{new Date().toLocaleDateString("en-KE", { month: "short", year: "numeric" }).toUpperCase()}</span>
+        </motion.div>
 
+        <div className="grid min-h-[78vh] grid-cols-12 gap-x-4 gap-y-8 pb-12 lg:gap-x-8 lg:items-end">
+          <div className="col-span-12 lg:col-span-7 flex flex-col">
             <motion.h1
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.05 }}
-              className="mt-5 font-serif text-5xl leading-[0.95] text-white sm:text-6xl lg:text-7xl"
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="font-display font-medium text-ink tracking-[-0.035em] leading-[0.88] text-[14vw] sm:text-[11vw] lg:text-[8.5vw] xl:text-[8rem]"
             >
-              BAYWOODS
+              Streetwear,<br />
+              <span className="relative inline-block">
+                <span className="relative z-10">assembled</span>
+                <span aria-hidden className="absolute inset-x-0 bottom-[0.18em] h-[0.32em] bg-citrine -z-0" />
+              </span>{" "}
+              <span className="text-muted/40">in</span><br />
+              Nairobi.
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.12 }}
-              className="mt-6 max-w-xl text-base leading-8 text-white/70 sm:text-lg"
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="mt-8 max-w-md text-base leading-7 text-ink/70"
             >
-              Kenyan streetwear built around real rotation pieces: sneakers,
-              heavyweight layers, clean accessories, and a checkout flow that
-              works locally.
+              Real rotation pieces — sneakers, heavyweight layers, clean accessories.
+              Built around how we actually move here.
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.18 }}
+              transition={{ duration: 0.6, delay: 0.22 }}
               className="mt-8 flex flex-col gap-3 sm:flex-row"
             >
-              <Link
-                href="/shop"
-                className="inline-flex h-12 items-center justify-center gap-2 bg-white px-6 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-100 active:scale-[0.98]"
-              >
+              <Link href="/shop" className="btn-primary group">
                 Shop the drop
-                <ArrowRight size={16} strokeWidth={2} />
+                <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link
-                href="/new-arrivals"
-                className="inline-flex h-12 items-center justify-center gap-2 border border-white/30 px-6 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 active:scale-[0.98]"
-              >
+              <Link href="/new-arrivals" className="btn-outline group">
                 New arrivals
-                <ArrowUpRight size={16} strokeWidth={2} />
+                <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.24 }}
-              className="mt-10 grid max-w-xl grid-cols-3 border-y border-white/10"
-            >
-              {HIGHLIGHTS.map((item) => (
-                <div key={item.label} className="py-5 pr-4">
-                  <p className="text-2xl font-semibold text-white">{item.value}</p>
-                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </motion.div>
           </div>
 
-          {/* ── Right: image gallery ── */}
+          {/* Right: image stack */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.12 }}
-            className="grid grid-cols-5 gap-3"
+            transition={{ duration: 0.75, delay: 0.1 }}
+            className="col-span-12 lg:col-span-5 grid grid-cols-3 gap-2 self-stretch"
           >
-            {/* Lead + side pair */}
-            <div className="col-span-5 grid grid-cols-5 gap-3 lg:col-span-4">
-              <div className="relative col-span-5 aspect-[4/5] overflow-hidden bg-white/5 sm:col-span-3">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={lead}
-                    initial={{ opacity: 0, scale: 1.02 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.99 }}
-                    transition={{ duration: 0.45 }}
-                    className="absolute inset-0"
-                  >
-                    <Image
-                      src={lead}
-                      alt="Baywoods lookbook"
-                      fill
-                      priority
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 38vw"
-                      className="object-cover"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-                <div className="absolute inset-x-0 bottom-0 border-t border-white/15 bg-ink/75 px-4 py-3 backdrop-blur">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
-                    Lookbook frame {(active % 9) + 1}
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-span-5 grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-1">
-                <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
-                  <Image
-                    src={sideA}
-                    alt="Streetwear detail"
-                    fill
-                    sizes="(max-width: 640px) 50vw, 18vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
-                  <Image
-                    src={sideB}
-                    alt="Sneaker detail"
-                    fill
-                    sizes="(max-width: 640px) 50vw, 18vw"
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom strip — hidden on mobile to reduce clutter */}
-            <div className="col-span-5 hidden grid-cols-5 gap-3 sm:grid">
-              {strip.map((src, i) => (
-                <div
-                  key={`${src}-${i}`}
-                  className="relative aspect-square overflow-hidden bg-white/5"
+            <div className="col-span-3 sm:col-span-2 relative aspect-[4/5] overflow-hidden bg-beige-dark border border-ink/10">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={lead}
+                  initial={{ opacity: 0, y: -56 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 28 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0"
                 >
                   <Image
-                    src={src}
-                    alt={`Baywoods campaign ${i + 1}`}
+                    src={lead}
+                    alt="Baywoods lookbook"
                     fill
-                    sizes="20vw"
+                    priority
+                    sizes="(max-width: 1024px) 60vw, 35vw"
                     className="object-cover"
                   />
-                </div>
-              ))}
+                </motion.div>
+              </AnimatePresence>
+              {/* meta strip */}
+              <div className="absolute top-3 left-3 font-mono text-[10px] tracking-[0.2em] uppercase text-cream bg-ink/80 backdrop-blur-sm px-2 py-1">
+                FR · {String((active % 9) + 1).padStart(2, "0")}
+              </div>
+            </div>
+
+            <div className="col-span-3 sm:col-span-1 grid grid-cols-2 sm:grid-cols-1 gap-2">
+              <div className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-beige-dark border border-ink/10">
+                <Image
+                  src={sideA}
+                  alt="Streetwear detail"
+                  fill
+                  sizes="(max-width: 640px) 50vw, 18vw"
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-beige-dark border border-ink/10">
+                <Image
+                  src={sideB}
+                  alt="Sneaker detail"
+                  fill
+                  sizes="(max-width: 640px) 50vw, 18vw"
+                  className="object-cover"
+                />
+              </div>
             </div>
           </motion.div>
-        </div>
-      </div>
-
-      {/* Ticker */}
-      <div className="border-t border-white/10 bg-beige text-ink">
-        <div className="overflow-hidden py-4">
-          <div className="flex min-w-max animate-ticker gap-8 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted hover:[animation-play-state:paused]">
-            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-              <span key={`${item}-${i}`} className="flex items-center gap-8">
-                {item}
-                <span className="h-1 w-1 bg-forest" />
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </section>

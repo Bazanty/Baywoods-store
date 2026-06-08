@@ -12,18 +12,19 @@ Shoes (sneakers, loafers, boots), hoodies, jorts (denim shorts), joggers, sweatp
 - Shoes: EU sizing 38–45. True to size unless stated on the product page.
 
 **Shipping:**
-- Kenya-wide delivery: 2–5 business days (Nairobi usually 1–2 days).
-- Shipping fee calculated at checkout based on location.
-- Orders above a certain threshold may qualify for free shipping — customers should check the cart.
+- Standard delivery: 3–7 business days Kenya-wide. Express: 1–2 business days.
+- Shipping fee calculated at checkout based on location and selected method.
+- Free shipping on orders over KSh 5,000.
 
 **Returns & exchanges:**
-- 7-day return window from delivery date.
+- 14-day return window from delivery date.
 - Items must be unworn, unwashed, with original tags.
 - Exchange or store credit issued; no cash refunds unless item is faulty.
 - Customer contacts support via the Contact page to initiate a return.
 
 **Payments:**
-- M-Pesa (STK push — customer gets a prompt on their phone) and Stripe (card).
+- M-Pesa STK push. The customer gets a prompt on their phone.
+- Card payments are not available right now.
 - No cash on delivery currently.
 
 **General guidance:**

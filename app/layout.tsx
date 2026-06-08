@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import StoreShell from "@/components/layout/StoreShell";
 
-const cormorant = Cormorant_Garamond({
+const display = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-cormorant",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
   display: "swap",
 });
 
-const inter = Inter({
+const sans = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -85,7 +92,7 @@ const themeScript = `(function(){try{var t=localStorage.getItem('bw_theme');var 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       {/* Runs before paint to prevent flash of wrong theme */}
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

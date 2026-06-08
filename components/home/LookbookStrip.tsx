@@ -13,17 +13,15 @@ export default function LookbookStrip() {
   return (
     <section className="mt-28 overflow-hidden">
       {/* Header */}
-      <div className="container-px mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker mb-2">Lookbook</p>
+      <div className="container-px mb-8 grid grid-cols-12 items-end gap-4 border-b border-ink/15 pb-6">
+        <div className="col-span-12 sm:col-span-9">
           <h2 className="section-title">The culture, documented.</h2>
         </div>
         <Link
           href="/shop"
-          className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-forest transition-colors hover:text-forest-dark"
+          className="col-span-12 sm:col-span-3 sm:justify-self-end inline-flex items-center gap-1 font-mono text-[10px] tracking-[0.2em] uppercase text-ink hover:text-citrine transition-colors"
         >
-          Shop all
-          <ArrowUpRight size={14} />
+          Shop all <ArrowUpRight size={12} />
         </Link>
       </div>
 

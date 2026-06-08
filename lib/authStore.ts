@@ -53,7 +53,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       options: { redirectTo: `${window.location.origin}/account` },
     });
     set({ loading: false });
-    return error ? error.message : null;
+    if (error) {
+      const msg = error.message ?? "";
+      if (msg.toLowerCase().includes("provider is not enabled") || msg.toLowerCase().includes("unsupported provider")) {
+        return "Google sign-in is not configured yet. Please use email and password.";
+      }
+      return msg;
+    }
+    return null;
   },
 
   signUp: async ({ email, password, firstName, lastName, phone }) => {

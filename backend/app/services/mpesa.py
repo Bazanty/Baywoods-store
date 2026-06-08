@@ -1,4 +1,4 @@
-"""Safaricom Daraja API — mirrors lib/mpesa.ts logic."""
+"""Safaricom Daraja API helpers for the optional FastAPI service."""
 import base64
 import re
 from datetime import datetime
@@ -52,11 +52,11 @@ async def initiate_stk_push(phone: str, amount: int, order_id: str, description:
     settings = get_settings()
     token = await get_access_token()
 
-    shortcode = settings.mpesa_shortcode if settings.is_production else SANDBOX_SHORTCODE
-    passkey = settings.mpesa_passkey if settings.is_production else SANDBOX_PASSKEY
+    shortcode = settings.mpesa_shortcode if settings.mpesa_is_production else SANDBOX_SHORTCODE
+    passkey = settings.mpesa_passkey if settings.mpesa_is_production else SANDBOX_PASSKEY
     ts = _timestamp()
     pwd = _password(shortcode, passkey, ts)
-    tx_type = "CustomerBuyGoodsOnline" if settings.is_production else "CustomerPayBillOnline"
+    tx_type = "CustomerBuyGoodsOnline" if settings.mpesa_is_production else "CustomerPayBillOnline"
 
     body = {
         "BusinessShortCode": shortcode,
@@ -87,8 +87,8 @@ async def query_stk_push(checkout_request_id: str) -> dict:
     settings = get_settings()
     token = await get_access_token()
 
-    shortcode = settings.mpesa_shortcode if settings.is_production else SANDBOX_SHORTCODE
-    passkey = settings.mpesa_passkey if settings.is_production else SANDBOX_PASSKEY
+    shortcode = settings.mpesa_shortcode if settings.mpesa_is_production else SANDBOX_SHORTCODE
+    passkey = settings.mpesa_passkey if settings.mpesa_is_production else SANDBOX_PASSKEY
     ts = _timestamp()
     pwd = _password(shortcode, passkey, ts)
 

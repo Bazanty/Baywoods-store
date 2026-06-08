@@ -19,11 +19,8 @@ class Settings(BaseSettings):
     mpesa_shortcode: str = "5234789"
     mpesa_passkey: str = ""
     mpesa_callback_url: str = ""
+    mpesa_environment: str = "sandbox"
     mpesa_mock: bool = False
-
-    # Stripe
-    stripe_secret_key: str = ""
-    stripe_webhook_secret: str = ""
 
     # Email (Resend)
     resend_api_key: str = ""
@@ -46,11 +43,15 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        return self.environment == "production"
+        return self.environment.lower() == "production"
+
+    @property
+    def mpesa_is_production(self) -> bool:
+        return self.mpesa_environment.lower() == "production"
 
     @property
     def mpesa_base_url(self) -> str:
-        if self.is_production:
+        if self.mpesa_is_production:
             return "https://api.safaricom.co.ke"
         return "https://sandbox.safaricom.co.ke"
 

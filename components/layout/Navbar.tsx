@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/lib/store";
@@ -46,7 +47,7 @@ const navLinks = [
       },
     ],
   },
-  { label: "New Arrivals", href: "/new-arrivals" },
+  { label: "New", href: "/new-arrivals" },
   { label: "Sale", href: "/sale" },
   { label: "About", href: "/about" },
 ];
@@ -67,7 +68,7 @@ export default function Navbar() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -94,22 +95,28 @@ export default function Navbar() {
     <>
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-          scrolled ? "bg-beige/95 backdrop-blur-sm shadow-[0_1px_0_0_rgb(var(--c-stone))]" : "bg-transparent"
+          "fixed top-0 left-0 right-0 z-50 transition-colors duration-200 border-b",
+          scrolled
+            ? "bg-cream border-ink/15"
+            : "bg-cream/80 backdrop-blur-[2px] border-transparent"
         )}
       >
         <div className="container-px">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="font-serif text-xl lg:text-2xl font-semibold tracking-wider text-ink"
-            >
-              BAYWOODS
+          <div className="flex items-center justify-between h-14 lg:h-16">
+            {/* Logo — brand mark */}
+            <Link href="/" className="flex items-center group" aria-label="Baywoods — home">
+              <Image
+                src="/second.png"
+                alt="Baywoods"
+                width={500}
+                height={500}
+                priority
+                className="h-8 w-auto lg:h-10"
+              />
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden lg:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-7">
               {navLinks.map((link) =>
                 link.mega ? (
                   <div
@@ -118,27 +125,30 @@ export default function Navbar() {
                     onMouseEnter={() => setMegaOpen(true)}
                     onMouseLeave={() => setMegaOpen(false)}
                   >
-                    <button className="flex items-center gap-1 text-sm font-medium tracking-wide text-ink/80 hover:text-ink transition-colors">
+                    <button
+                      className={cn(
+                        "font-mono text-[11px] tracking-[0.16em] uppercase transition-colors py-2",
+                        megaOpen ? "text-ink" : "text-ink/70 hover:text-ink"
+                      )}
+                    >
                       {link.label}
-                      <ChevronDown
-                        size={14}
-                        className={cn("transition-transform duration-200", megaOpen && "rotate-180")}
-                      />
                     </button>
 
                     <AnimatePresence>
                       {megaOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 8 }}
+                          initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[480px] bg-cream border border-stone p-8 shadow-xl"
+                          exit={{ opacity: 0, y: 6 }}
+                          transition={{ duration: 0.18, ease: [0.25, 1, 0.5, 1] }}
+                          className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[540px] bg-cream border border-ink/15 p-8"
                         >
-                          <div className="grid grid-cols-3 gap-8">
-                            {link.columns?.map((col) => (
+                          <div className="grid grid-cols-3 gap-10">
+                            {link.columns?.map((col, idx) => (
                               <div key={col.title}>
-                                <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-4">
+                                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-4">
+                                  <span className="text-ink">0{idx + 1}</span>
+                                  {" / "}
                                   {col.title}
                                 </p>
                                 <ul className="space-y-2.5">
@@ -147,7 +157,7 @@ export default function Navbar() {
                                       <Link
                                         href={item.href}
                                         onClick={() => setMegaOpen(false)}
-                                        className="text-sm text-ink/70 hover:text-forest transition-colors"
+                                        className="font-display text-base text-ink/80 hover:text-ink hover:underline-citrine transition-all"
                                       >
                                         {item.label}
                                       </Link>
@@ -165,7 +175,7 @@ export default function Navbar() {
                   <Link
                     key={link.label}
                     href={link.href}
-                    className="text-sm font-medium tracking-wide text-ink/80 hover:text-ink transition-colors"
+                    className="font-mono text-[11px] tracking-[0.16em] uppercase text-ink/70 hover:text-ink transition-colors py-2"
                   >
                     {link.label}
                   </Link>
@@ -174,62 +184,57 @@ export default function Navbar() {
             </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-1">
-              {/* Theme toggle */}
+            <div className="flex items-center gap-0.5">
               <ThemeToggle />
 
-              {/* Search */}
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2.5 text-ink/70 hover:text-ink transition-colors"
+                className="p-2 text-ink/70 hover:text-ink transition-colors"
                 aria-label="Search"
               >
-                <Search size={18} />
+                <Search size={16} strokeWidth={1.75} />
               </button>
 
-              {/* Wishlist */}
               <Link
                 href="/account/wishlist"
-                className="p-2.5 text-ink/70 hover:text-ink transition-colors hidden sm:block"
+                className="p-2 text-ink/70 hover:text-ink transition-colors hidden sm:block"
                 aria-label="Wishlist"
               >
-                <Heart size={18} />
+                <Heart size={16} strokeWidth={1.75} />
               </Link>
 
-              {/* Account */}
               <Link
                 href={user ? "/account" : "/auth/signin"}
-                className="p-2.5 text-ink/70 hover:text-ink transition-colors hidden sm:block"
+                className="p-2 text-ink/70 hover:text-ink transition-colors hidden sm:block"
                 aria-label="Account"
               >
-                <User size={18} />
+                <User size={16} strokeWidth={1.75} />
               </Link>
 
-              {/* Cart */}
               <button
                 onClick={openCart}
-                className="relative p-2.5 text-ink/70 hover:text-ink transition-colors"
+                className="relative p-2 text-ink/70 hover:text-ink transition-colors"
                 aria-label="Cart"
               >
-                <ShoppingBag size={18} />
+                <ShoppingBag size={16} strokeWidth={1.75} />
                 {mounted && itemCount > 0 && (
                   <motion.span
                     key={itemCount}
-                    initial={{ scale: 0.6 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-forest text-white text-[10px] font-semibold rounded-full flex items-center justify-center"
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-ink text-citrine font-mono text-[10px] font-medium flex items-center justify-center"
                   >
                     {itemCount > 9 ? "9+" : itemCount}
                   </motion.span>
                 )}
               </button>
 
-              {/* Mobile menu toggle */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="p-2.5 text-ink/70 hover:text-ink transition-colors lg:hidden"
+                className="p-2 text-ink/70 hover:text-ink transition-colors lg:hidden"
+                aria-label="Menu"
               >
-                {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+                {mobileOpen ? <X size={16} /> : <Menu size={16} />}
               </button>
             </div>
           </div>
@@ -242,30 +247,26 @@ export default function Navbar() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="border-t border-stone overflow-hidden bg-cream"
+              transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+              className="border-t border-ink/15 overflow-hidden bg-cream"
             >
               <div className="container-px py-4">
-                <form
-                  onSubmit={(e) => {
-                    submitSearch(e);
-                  }}
-                  className="flex items-center gap-3"
-                >
-                  <Search size={16} className="text-muted shrink-0" />
+                <form onSubmit={submitSearch} className="flex items-center gap-3">
+                  <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">FIND</span>
+                  <Search size={14} className="text-muted shrink-0" />
                   <input
                     ref={searchRef}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search shoes, hoodies, caps..."
-                    className="flex-1 bg-transparent text-ink text-sm outline-none placeholder:text-muted"
+                    className="flex-1 bg-transparent text-ink text-base outline-none placeholder:text-muted font-display"
                   />
                   <button
                     type="button"
                     onClick={() => setSearchOpen(false)}
                     className="text-muted hover:text-ink transition-colors"
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
                 </form>
               </div>
@@ -282,73 +283,84 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-ink/30 z-40 lg:hidden"
+              className="fixed inset-0 bg-ink/40 z-40 lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 w-80 bg-cream z-50 lg:hidden flex flex-col"
+              transition={{ type: "spring", damping: 32, stiffness: 320 }}
+              className="fixed top-0 left-0 bottom-0 w-[88%] max-w-sm bg-cream z-50 lg:hidden flex flex-col border-r border-ink/15"
             >
-              <div className="flex items-center justify-between p-6 border-b border-stone">
-                <span className="font-serif text-xl tracking-wider">BAYWOODS</span>
-                <button onClick={() => setMobileOpen(false)}>
-                  <X size={18} />
+              <div className="flex items-center justify-between px-6 py-5 border-b border-ink/15">
+                <Image src="/second.png" alt="Baywoods" width={500} height={500} className="h-9 w-auto" />
+                <button onClick={() => setMobileOpen(false)} className="p-1">
+                  <X size={16} />
                 </button>
               </div>
-              <form onSubmit={submitSearch} className="p-6 border-b border-stone">
-                <div className="flex items-center gap-3 bg-beige border border-stone px-3 py-2.5">
-                  <Search size={15} className="text-muted shrink-0" />
+
+              <form onSubmit={submitSearch} className="px-6 py-4 border-b border-ink/15">
+                <div className="flex items-center gap-3 border-b border-ink/30 pb-2">
+                  <Search size={14} className="text-muted shrink-0" />
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search products"
+                    placeholder="Search"
                     className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                   />
                 </div>
               </form>
-              <nav className="flex-1 overflow-y-auto p-6 space-y-1">
-                {navLinks.map((link) => (
-                  <div key={link.label}>
+
+              <nav className="flex-1 overflow-y-auto px-6 py-4">
+                {navLinks.map((link, i) => (
+                  <div key={link.label} className="border-b border-ink/10 py-3">
                     <Link
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className="block py-3 text-base font-medium text-ink border-b border-stone/50 hover:text-forest transition-colors"
+                      className="flex items-baseline gap-3 group"
                     >
-                      {link.label}
+                      <span className="font-mono text-[10px] tracking-[0.2em] text-muted">
+                        0{i + 1}
+                      </span>
+                      <span className="font-display text-2xl tracking-[-0.02em] text-ink group-hover:underline-citrine">
+                        {link.label}
+                      </span>
                     </Link>
-                    {link.mega &&
-                      link.columns?.flatMap((col) =>
-                        col.items.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setMobileOpen(false)}
-                            className="block py-2 pl-4 text-sm text-muted hover:text-forest transition-colors"
-                          >
-                            {item.label}
-                          </Link>
-                        ))
-                      )}
+                    {link.mega && (
+                      <div className="mt-2 pl-9 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                        {link.columns?.flatMap((col) =>
+                          col.items.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setMobileOpen(false)}
+                              className="text-xs text-muted hover:text-ink transition-colors"
+                            >
+                              {item.label}
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </nav>
-              <div className="p-6 border-t border-stone flex gap-4">
+
+              <div className="px-6 py-4 border-t border-ink/15 grid grid-cols-2 gap-3">
                 <Link
                   href="/account"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 text-sm text-ink/70 hover:text-ink"
+                  className="flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase text-ink border border-ink py-2.5 hover:bg-ink hover:text-cream transition-colors"
                 >
-                  <User size={16} /> Account
+                  <User size={12} /> Account
                 </Link>
                 <Link
                   href="/account/wishlist"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 text-sm text-ink/70 hover:text-ink"
+                  className="flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase text-ink border border-ink py-2.5 hover:bg-ink hover:text-cream transition-colors"
                 >
-                  <Heart size={16} /> Wishlist
+                  <Heart size={12} /> Wishlist
                 </Link>
               </div>
             </motion.aside>

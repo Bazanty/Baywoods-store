@@ -3,15 +3,17 @@ import { supabase } from "@/lib/supabase/client";
 import ProductForm from "@/components/admin/ProductForm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditProductPage({ params }: Props) {
+  const { id } = await params;
   const { data: p, error } = await supabase
     .from("products")
     .select(`
-      id, name, slug, description, short_description,
+      id, name, slug, description, short_description, material_care,
       base_price, compare_price, sku, is_featured, is_active,
+      verification_status, verification_notes,
       categories!category_id ( slug ),
       product_images ( url, is_primary, sort_order ),
       inventory ( quantity, reserved ),
@@ -20,7 +22,7 @@ export default async function EditProductPage({ params }: Props) {
         variant_options ( option_name, option_value )
       )
     `)
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !p) notFound();
@@ -43,13 +45,17 @@ export default async function EditProductPage({ params }: Props) {
     if (colorName && colorHex) colorsMap.set(colorName, colorHex);
   }
 
-  const stock = (p.inventory as any[])?.[0];
+  const stockQuantity = ((p.inventory as any[]) ?? []).reduce(
+    (sum, row) => sum + Number(row.quantity ?? 0) - Number(row.reserved ?? 0),
+    0
+  );
   const cat = p.categories as any;
 
   const initial = {
     name: p.name,
     description: p.description ?? "",
     shortDescription: p.short_description ?? "",
+    materialCare: (p as any).material_care ?? "",
     categorySlug: cat?.slug ?? "accessories",
     basePrice: String(p.base_price),
     comparePrice: p.compare_price ? String(p.compare_price) : "",
@@ -59,14 +65,19 @@ export default async function EditProductPage({ params }: Props) {
     images,
     sizes: Array.from(sizesSet),
     colors: Array.from(colorsMap.entries()).map(([name, hex]) => ({ name, hex })),
-    stockQuantity: String(stock ? stock.quantity - stock.reserved : 0),
+    stockQuantity: String(stockQuantity),
+    verificationStatus: p.verification_status ?? "PENDING",
+    verificationNotes: p.verification_notes ?? "",
   };
 
   return (
-    <div className="px-8 py-10">
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl text-ink">Edit Product</h1>
-        <p className="text-sm text-muted mt-0.5 font-mono">{p.slug}</p>
+    <div className="px-6 lg:px-10 py-10">
+      <div className="mb-8 border-b border-ink/15 pb-6 max-w-5xl">
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-3">
+          <span className="text-ink">/</span> PRODUCTS &nbsp;→ &nbsp;EDIT
+        </p>
+        <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.92] text-ink text-4xl sm:text-5xl">Edit product.</h1>
+        <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-3">/ {p.slug}</p>
       </div>
       <ProductForm productId={p.id} initial={initial} />
     </div>

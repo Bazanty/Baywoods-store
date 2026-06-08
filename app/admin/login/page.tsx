@@ -42,26 +42,24 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F4F2] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <span className="font-serif text-2xl tracking-wider text-ink">BAYWOODS</span>
-          <p className="text-xs text-muted tracking-[0.18em] uppercase mt-1">Admin Panel</p>
+        <div className="mb-10 text-center">
+          <span className="font-display text-xl tracking-[-0.02em] font-semibold text-ink">BAYWOODS</span>
+          <p className="font-mono text-[10px] text-muted tracking-[0.2em] uppercase mt-2">/ Admin panel</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white border border-stone px-8 py-10 space-y-5"
+          className="border border-ink/20 px-8 py-10 space-y-5"
         >
-          <div className="flex items-center justify-center w-10 h-10 bg-ink/5 rounded-full mx-auto mb-2">
-            <Lock size={16} className="text-ink" strokeWidth={1.5} />
+          <div className="flex items-center justify-center w-10 h-10 bg-ink mx-auto mb-2">
+            <Lock size={15} className="text-citrine" strokeWidth={1.75} />
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-muted mb-2">
-              Admin Password
-            </label>
-            <div className="relative">
+            <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted mb-2">/ Admin password</p>
+            <div className="relative border-b border-ink/30 focus-within:border-ink">
               <input
                 ref={inputRef}
                 type={showPw ? "text" : "password"}
@@ -70,30 +68,32 @@ export default function AdminLoginPage() {
                 placeholder="Enter your password"
                 required
                 autoFocus
-                className="w-full bg-cream border border-stone text-ink text-sm px-4 py-3 pr-10 outline-none focus:border-ink transition-colors placeholder:text-muted"
+                className="w-full bg-transparent text-ink text-sm py-3 pr-8 outline-none placeholder:text-muted"
               />
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
                 tabIndex={-1}
               >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="text-xs text-danger font-medium">{error}</p>
+            <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-danger border-l-2 border-danger pl-3 py-2">
+              / {error}
+            </p>
           )}
 
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full bg-ink text-white text-sm font-medium py-3 hover:bg-ink/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-ink text-cream font-mono text-[11px] tracking-[0.2em] uppercase py-3.5 hover:bg-forest-dark hover:text-citrine transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading && <Loader2 size={14} className="animate-spin" />}
-            {loading ? "Verifying..." : "Sign In"}
+            {loading && <Loader2 size={12} className="animate-spin" />}
+            {loading ? "Verifying…" : "Sign in →"}
           </button>
         </form>
       </div>

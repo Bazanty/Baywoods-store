@@ -12,29 +12,36 @@ interface ColorSelectorProps {
 export default function ColorSelector({ colors, selected, onSelect }: ColorSelectorProps) {
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <label className="label-base">Color</label>
-        <span className="text-xs text-muted">{selected.name}</span>
+      <div className="flex items-baseline gap-3 mb-3">
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted">
+          <span className="text-ink">01</span> / Colour
+        </p>
+        <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-ink">
+          {selected.name}
+        </span>
       </div>
-      <div className="flex gap-2.5">
-        {colors.map((color) => (
-          <button
-            key={color.name}
-            onClick={() => onSelect(color)}
-            title={color.name}
-            className={cn(
-              "w-8 h-8 rounded-full border-2 transition-all duration-150 relative",
-              selected.name === color.name
-                ? "border-ink scale-110"
-                : "border-transparent hover:border-stone"
-            )}
-            style={{ backgroundColor: color.hex }}
-          >
-            {color.name === "White" || color.hex === "#FFFFFF" ? (
-              <span className="absolute inset-0 rounded-full border border-stone/40" />
-            ) : null}
-          </button>
-        ))}
+      <div className="flex gap-1.5">
+        {colors.map((color) => {
+          const active = selected.name === color.name;
+          return (
+            <button
+              key={color.name}
+              onClick={() => onSelect(color)}
+              title={color.name}
+              className={cn(
+                "w-9 h-9 transition-all duration-150 relative border",
+                active
+                  ? "border-ink ring-1 ring-ink ring-offset-2 ring-offset-cream"
+                  : "border-ink/25 hover:border-ink"
+              )}
+              style={{ backgroundColor: color.hex }}
+            >
+              {color.name === "White" || color.hex === "#FFFFFF" ? (
+                <span className="absolute inset-0 border border-ink/15" />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -17,9 +17,10 @@ const VALID_CATEGORIES: { slug: Category; label: string }[] = [
 ];
 
 export async function generateMetadata(
-  { params }: { params: { category: string } }
+  { params }: { params: Promise<{ category: string }> }
 ): Promise<Metadata> {
-  const meta = VALID_CATEGORIES.find((c) => c.slug === params.category);
+  const { category } = await params;
+  const meta = VALID_CATEGORIES.find((c) => c.slug === category);
   if (!meta) return { title: "Not Found" };
 
   const title = `${meta.label} - Baywoods`;
@@ -29,12 +30,13 @@ export async function generateMetadata(
     description: desc,
     openGraph: { title, description: desc, type: "website" },
     twitter:   { card: "summary", title, description: desc },
-    alternates: { canonical: `/shop/${params.category}` },
+    alternates: { canonical: `/shop/${category}` },
   };
 }
 
-export default async function CategoryPage({ params }: { params: { category: string } }) {
-  const catMeta = VALID_CATEGORIES.find((c) => c.slug === params.category);
+export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  const { category } = await params;
+  const catMeta = VALID_CATEGORIES.find((c) => c.slug === category);
   if (!catMeta) notFound();
 
   const products = await getProductsByCategoryServer(catMeta.slug);

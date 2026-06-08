@@ -2,7 +2,9 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { CartItem, Product, ProductColor } from "./types";
+import { supabase } from "./supabase/client";
 import {
   fetchWishlist,
   addToWishlist,
@@ -14,6 +16,7 @@ interface CartStore {
   isOpen: boolean;
   wishlist: string[];
   _userId: string | null;
+  _wishlistChannel: RealtimeChannel | null;
   addItem: (product: Product, size: string, color: ProductColor) => void;
   removeItem: (productId: string, size: string, colorName: string) => void;
   updateQuantity: (productId: string, size: string, colorName: string, qty: number) => void;
@@ -35,6 +38,7 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       wishlist: [],
       _userId: null,
+      _wishlistChannel: null,
 
       addItem: (product, size, color) => {
         const existing = get().items.find(
@@ -120,7 +124,15 @@ export const useCartStore = create<CartStore>()(
       isWishlisted: (productId) => get().wishlist.includes(productId),
 
       loadWishlist: async (userId) => {
-        set({ _userId: userId });
+        // Tear down any prior subscription before starting a new one — this
+        // guards against duplicate handlers when loadWishlist re-runs on
+        // auth state changes (token refresh, tab focus, etc.).
+        const prior = get()._wishlistChannel;
+        if (prior) {
+          await supabase.removeChannel(prior);
+        }
+        set({ _userId: userId, _wishlistChannel: null });
+
         try {
           const remote = await fetchWishlist(userId);
           const local = get().wishlist;
@@ -131,9 +143,45 @@ export const useCartStore = create<CartStore>()(
         } catch {
           // keep local wishlist as fallback
         }
+
+        // Subscribe to remote wishlist mutations so changes on another device
+        // appear here without a manual refresh. Realtime must be enabled for
+        // the wishlists table in Supabase for these events to fire.
+        const channel = supabase
+          .channel(`wishlist:${userId}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "wishlists", filter: `user_id=eq.${userId}` },
+            (payload) => {
+              const productId = (payload.new as { product_id?: string })?.product_id;
+              if (!productId) return;
+              set((s) =>
+                s.wishlist.includes(productId)
+                  ? s
+                  : { wishlist: [...s.wishlist, productId] }
+              );
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "wishlists", filter: `user_id=eq.${userId}` },
+            (payload) => {
+              const productId = (payload.old as { product_id?: string })?.product_id;
+              if (!productId) return;
+              set((s) => ({ wishlist: s.wishlist.filter((id) => id !== productId) }));
+            }
+          )
+          .subscribe();
+        set({ _wishlistChannel: channel });
       },
 
-      clearUser: () => set({ _userId: null }),
+      clearUser: () => {
+        const channel = get()._wishlistChannel;
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+        set({ _userId: null, _wishlistChannel: null });
+      },
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 

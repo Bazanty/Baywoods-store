@@ -83,7 +83,7 @@ export default function CookiesPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-serif text-xl text-ink">{cat.category}</h3>
                     {!cat.canDisable && (
-                      <span className="text-[10px] font-semibold tracking-wide uppercase bg-forest text-white px-2 py-0.5">
+                      <span className="text-[10px] font-semibold tracking-wide uppercase bg-ink text-citrine px-2 py-0.5">
                         Required
                       </span>
                     )}

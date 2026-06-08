@@ -52,7 +52,7 @@ export default function NewCouponForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 text-sm bg-ink text-white px-5 py-2.5 hover:bg-ink/90 transition-colors"
+        className="flex items-center gap-2 text-sm bg-ink text-cream px-5 py-2.5 hover:bg-ink/90 transition-colors"
       >
         <Plus size={14} />
         New Coupon
@@ -61,7 +61,7 @@ export default function NewCouponForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-cream rounded p-6 space-y-4">
       <p className="text-sm font-medium text-ink">Create Coupon</p>
 
       <div className="grid grid-cols-2 gap-4">
@@ -150,14 +150,14 @@ export default function NewCouponForm() {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-xs border border-ink text-ink px-4 py-2 hover:bg-ink hover:text-white transition-colors"
+          className="text-xs border border-ink text-ink px-4 py-2 hover:bg-ink hover:text-cream transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="text-xs bg-forest text-white px-4 py-2 hover:bg-forest-dark transition-colors disabled:opacity-50"
+          className="text-xs bg-ink text-cream px-4 py-2 hover:bg-forest-dark transition-colors disabled:opacity-50"
         >
           {isPending ? "Creating…" : "Create Coupon"}
         </button>

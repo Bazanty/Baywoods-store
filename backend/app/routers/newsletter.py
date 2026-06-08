@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 
-from app.services.supabase_client import get_db
+from app.services.supabase_client import get_admin_db
 
 router = APIRouter()
 
@@ -13,15 +13,15 @@ class NewsletterRequest(BaseModel):
 
 @router.post("")
 def subscribe(body: NewsletterRequest):
-    db = get_db()
+    db = get_admin_db()
+    email = str(body.email).strip().lower()
 
-    existing = db.table("newsletter_subscribers").select("id").eq("email", body.email).execute()
+    existing = db.table("newsletter_subscribers").select("id").eq("email", email).limit(1).execute()
     if existing.data:
         return {"success": True, "message": "Already subscribed"}
 
     result = db.table("newsletter_subscribers").insert({
-        "email": body.email,
-        "name":  body.name,
+        "email": email,
     }).execute()
 
     if not result.data:

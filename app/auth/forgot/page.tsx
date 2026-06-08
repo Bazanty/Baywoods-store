@@ -41,39 +41,42 @@ export default function ForgotPasswordPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link href="/" className="font-serif text-2xl tracking-wider text-ink block mb-10 text-center">
-              BAYWOODS
+            <Link href="/" className="font-display text-xl tracking-[-0.02em] font-semibold text-ink block mb-12 text-center">
+              BAYWOODS <span className="font-mono text-[10px] tracking-[0.18em] text-muted ml-1">/ NRB</span>
             </Link>
 
             <Link
               href="/auth/signin"
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors mb-6"
+              className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted hover:text-ink transition-colors mb-6"
             >
-              <ArrowLeft size={13} />
+              <ArrowLeft size={11} />
               Back to sign in
             </Link>
 
-            <h1 className="font-serif text-3xl text-ink mb-2">Reset Password</h1>
-            <p className="text-sm text-muted mb-8">
-              Enter your email and we&apos;ll send you a reset link.
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-3">/ RESET</p>
+            <h1 className="font-display font-medium text-4xl tracking-[-0.025em] leading-[0.96] text-ink mb-3">
+              Forgot password.
+            </h1>
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mb-8">
+              / Enter your email — we&apos;ll send a reset link.
             </p>
 
             {sent ? (
-              <div className="bg-forest/10 border border-forest/20 px-4 py-5 text-sm text-forest">
-                <p className="font-medium mb-1">Check your inbox</p>
-                <p className="text-forest/80">
-                  A reset link was sent to <strong>{email}</strong>. It expires in 1 hour.
+              <div className="border-l-2 border-citrine pl-4 py-3">
+                <p className="font-display text-lg tracking-[-0.01em] text-ink mb-2">Check your inbox.</p>
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
+                  / Reset link sent to <strong className="text-ink">{email}</strong>. Expires in 1 hour.
                 </p>
                 <button
                   type="button"
                   onClick={() => setSent(false)}
-                  className="mt-4 text-xs font-medium text-forest underline underline-offset-2"
+                  className="mt-4 font-mono text-[10px] tracking-[0.18em] uppercase text-ink underline-citrine"
                 >
-                  Use a different email
+                  Use a different email →
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <Input
                   label="Email"
                   type="email"
@@ -84,13 +87,13 @@ export default function ForgotPasswordPage() {
                 />
 
                 {error && (
-                  <p className="text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
-                    {error}
+                  <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-danger border-l-2 border-danger pl-3 py-2">
+                    / {error}
                   </p>
                 )}
 
                 <Button type="submit" loading={loading} className="w-full" size="lg">
-                  Send Reset Link
+                  Send reset link →
                 </Button>
               </form>
             )}

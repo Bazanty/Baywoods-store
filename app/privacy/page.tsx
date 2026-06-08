@@ -14,7 +14,7 @@ const sections = [
     heading: "Information We Collect",
     body: [
       "When you create an account we collect your name, email address, phone number, and password (stored as a secure hash). We never store your raw password.",
-      "When you place an order we collect your shipping address, payment method details, and order history. Card payments are processed by Stripe — we do not see or store full card numbers. M-Pesa payments are processed through Safaricom's Daraja API.",
+      "When you place an order we collect your shipping address, M-Pesa payment details, and order history. M-Pesa payments are processed through Safaricom's Daraja API.",
       "We automatically collect certain technical data when you use our site: IP address, browser type, referring URL, pages viewed, and device type. This helps us improve the site and diagnose issues.",
     ],
   },
@@ -33,7 +33,6 @@ const sections = [
     id: "sharing",
     heading: "Who We Share Your Data With",
     body: [
-      "Stripe — for card payment processing. Subject to Stripe's Privacy Policy.",
       "Safaricom / M-Pesa (via Daraja API) — for mobile money processing.",
       "Resend — for transactional and marketing emails.",
       "Africa's Talking — for SMS notifications.",

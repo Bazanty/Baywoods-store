@@ -341,6 +341,108 @@ export async function sendContactConfirmationEmail(data: {
   });
 }
 
+export async function sendPaymentFailedEmail(data: {
+  orderId: string;
+  email: string;
+  customerName: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+  const shortRef = data.orderId.slice(0, 8).toUpperCase();
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com";
+
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Payment failed for order #${shortRef}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#F5F0E8;font-family:Inter,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:32px 16px">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
+        <tr><td style="padding:32px 40px;border-bottom:1px solid #E2DDD6;text-align:center">
+          <p style="font-family:Georgia,serif;font-size:24px;letter-spacing:4px;color:#1E293B;margin:0">BAYWOODS</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="font-family:Georgia,serif;font-size:22px;color:#1E293B;margin:0 0 8px">Payment unsuccessful</p>
+          <p style="font-size:14px;color:#64748b;margin:0 0 24px">
+            Hi ${data.customerName.split(" ")[0]}, your payment for order <span style="font-family:monospace;font-weight:700;color:#1E293B">#${shortRef}</span> could not be processed.
+          </p>
+          <p style="font-size:14px;color:#64748b;margin:0 0 24px">
+            No charge was made. Your items have been released - please try again or contact support if M-Pesa confirmed a debit.
+          </p>
+          <div style="text-align:center;margin-top:8px">
+            <a href="${baseUrl}/shop" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">RETURN TO SHOP</a>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:24px">
+            Need help? <a href="mailto:hello@baywoodsstore.com" style="color:#2D6A4F">hello@baywoodsstore.com</a>
+          </p>
+        </td></tr>
+        <tr><td style="padding:24px 40px;border-top:1px solid #E2DDD6;text-align:center">
+          <p style="font-size:12px;color:#94a3b8;margin:0">Baywoods Store · Nairobi, Kenya</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Restock notification — sent when an out-of-stock item is replenished
+// ---------------------------------------------------------------------------
+export async function sendRestockEmail(data: {
+  email: string;
+  productName: string;
+  productUrl: string;
+  variantName?: string | null;
+  imageUrl?: string | null;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+  const variant = data.variantName ? `<p style="font-size:13px;color:#64748b;margin:0 0 18px">${escapeHtml(data.variantName)}</p>` : "";
+  const image = data.imageUrl
+    ? `<img src="${data.imageUrl}" alt="${escapeHtml(data.productName)}" width="540" style="display:block;width:100%;max-width:540px;height:auto;border:1px solid #E2DDD6;margin:0 0 24px">`
+    : "";
+
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Back in stock — ${data.productName}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#F5F0E8;font-family:Inter,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:32px 16px">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
+        <tr><td style="padding:32px 40px;border-bottom:1px solid #E2DDD6;text-align:center">
+          <p style="font-family:Georgia,serif;font-size:24px;letter-spacing:4px;color:#1E293B;margin:0">BAYWOODS</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="font-family:Georgia,serif;font-size:22px;color:#1E293B;margin:0 0 8px">It's back.</p>
+          <p style="font-size:14px;color:#64748b;margin:0 0 24px">
+            ${escapeHtml(data.productName)} is back in stock. Grab one before it sells out again.
+          </p>
+          ${image}
+          <p style="font-family:Georgia,serif;font-size:18px;color:#1E293B;margin:0 0 4px">${escapeHtml(data.productName)}</p>
+          ${variant}
+          <div style="text-align:center;margin-top:24px">
+            <a href="${data.productUrl}" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">SHOP NOW</a>
+          </div>
+        </td></tr>
+        <tr><td style="padding:24px 40px;border-top:1px solid #E2DDD6;text-align:center">
+          <p style="font-size:12px;color:#94a3b8;margin:0">Baywoods Store · Nairobi, Kenya</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Admin — new order notification
 // ---------------------------------------------------------------------------
@@ -369,7 +471,7 @@ export async function sendAdminOrderNotification(data: {
   await getResend().emails.send({
     from: FROM,
     to: adminEmail,
-    subject: `New Order #${shortRef} — ${formatPrice(data.total)} via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "Card"}`,
+    subject: `New Order #${shortRef} — ${formatPrice(data.total)} via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "payment"}`,
     html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:24px 16px"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#FAFAF6;border:1px solid #E2DDD6">
@@ -379,7 +481,7 @@ export async function sendAdminOrderNotification(data: {
 </td></tr>
 <tr><td style="padding:28px 32px">
 <p style="font-size:22px;font-family:Georgia,serif;color:#1E293B;margin:0 0 4px">Order #${shortRef}</p>
-<p style="font-size:13px;color:#64748b;margin:0 0 20px">${data.customerName} · ${escapeHtml(data.email)} · via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "Card"}</p>
+<p style="font-size:13px;color:#64748b;margin:0 0 20px">${data.customerName} · ${escapeHtml(data.email)} · via ${data.paymentMethod === "mpesa" ? "M-Pesa" : "payment"}</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px">${itemRows}</table>
 <p style="font-size:16px;font-weight:700;color:#1E293B;border-top:2px solid #1E293B;padding-top:10px;margin:0">Total: ${formatPrice(data.total)}</p>
 <p style="font-size:12px;color:#64748b;margin:12px 0 0">Ship to: ${escapeHtml(data.shippingAddress)}</p>

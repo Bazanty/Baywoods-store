@@ -4,6 +4,8 @@ out/
 tsconfig.tsbuildinfo
 .claude/
 *.log
+__pycache__/
+*.py[cod]
 
 # Environment
 .env

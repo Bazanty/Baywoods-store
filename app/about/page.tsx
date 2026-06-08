@@ -37,7 +37,7 @@ export default function AboutPage() {
           sizes="100vw"
           priority
         />
-        <div className="absolute inset-0 bg-ink/50" />
+        <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -119,7 +119,7 @@ export default function AboutPage() {
         </div>
 
         {/* Numbers */}
-        <div className="bg-ink text-white p-10 lg:p-16 mb-20">
+        <div className="bg-ink text-cream p-10 lg:p-16 mb-20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
             {[
               { value: "2024", label: "Founded" },
@@ -128,8 +128,8 @@ export default function AboutPage() {
               { value: "4.8★", label: "Average Rating" },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="font-serif text-4xl text-white">{stat.value}</p>
-                <p className="text-xs text-white/50 mt-2 tracking-widest uppercase">
+                <p className="font-serif text-4xl text-cream">{stat.value}</p>
+                <p className="text-xs text-cream/55 mt-2 tracking-widest uppercase">
                   {stat.label}
                 </p>
               </div>

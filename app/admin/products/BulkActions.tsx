@@ -87,7 +87,7 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, slug, category…"
-            className="w-full text-xs border border-stone bg-white pl-7 pr-7 py-2 text-ink outline-none focus:border-ink placeholder:text-muted"
+            className="w-full text-xs border border-stone bg-cream pl-7 pr-7 py-2 text-ink outline-none focus:border-ink placeholder:text-muted"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink">
@@ -98,7 +98,7 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="text-xs border border-stone bg-white px-2.5 py-2 text-ink outline-none focus:border-ink"
+          className="text-xs border border-stone bg-cream px-2.5 py-2 text-ink outline-none focus:border-ink"
         >
           <option value="all">All ({products.length})</option>
           <option value="active">Active ({products.filter(p => p.isActive).length})</option>
@@ -117,21 +117,21 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
           <button
             onClick={handleBulkPublish}
             disabled={isPending}
-            className="text-xs bg-forest text-white px-3 py-1 hover:bg-forest-dark transition-colors disabled:opacity-50"
+            className="text-xs bg-ink text-cream px-3 py-1 hover:bg-forest-dark transition-colors disabled:opacity-50"
           >
             Publish
           </button>
           <button
             onClick={handleBulkDraft}
             disabled={isPending}
-            className="text-xs border border-ink text-ink px-3 py-1 hover:bg-ink hover:text-white transition-colors disabled:opacity-50"
+            className="text-xs border border-ink text-ink px-3 py-1 hover:bg-ink hover:text-cream transition-colors disabled:opacity-50"
           >
             Draft
           </button>
           <button
             onClick={handleBulkDelete}
             disabled={isPending}
-            className="text-xs text-danger border border-danger/40 px-3 py-1 hover:bg-danger hover:text-white transition-colors disabled:opacity-50"
+            className="text-xs text-danger border border-danger/40 px-3 py-1 hover:bg-danger hover:text-cream transition-colors disabled:opacity-50"
           >
             Delete
           </button>
@@ -183,7 +183,6 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
               </td>
               <td className="px-4 py-3">
                 {p.thumb ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.thumb} alt={p.name} className="w-10 h-10 object-cover rounded bg-stone-light" />
                 ) : (
                   <div className="w-10 h-10 bg-stone-light rounded flex items-center justify-center">

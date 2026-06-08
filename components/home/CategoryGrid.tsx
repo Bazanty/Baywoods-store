@@ -13,7 +13,7 @@ interface CategoryItem {
   label: string;
   img: string;
   summary: string;
-  className: string;
+  span: string;
 }
 
 const BASE_CATEGORIES: CategoryItem[] = [
@@ -21,47 +21,38 @@ const BASE_CATEGORIES: CategoryItem[] = [
     slug: "shoes",
     label: "Sneakers",
     img: productImages.nike[0],
-    summary: "Daily pairs, statement Jordans, and clean runners.",
-    className: "md:col-span-2 md:row-span-2",
+    summary: "Daily pairs, statement Jordans, clean runners.",
+    span: "md:col-span-2 md:row-span-2",
   },
   {
     slug: "hoodies",
     label: "Hoodies",
     img: productImages.nike[12],
-    summary: "Heavyweight fleece and relaxed city layers.",
-    className: "",
+    summary: "Heavyweight fleece, city layers.",
+    span: "",
   },
   {
     slug: "joggers",
     label: "Joggers",
     img: productImages["new-balance"][5],
-    summary: "Soft rotation pieces for everyday movement.",
-    className: "",
+    summary: "Soft rotation pieces.",
+    span: "",
   },
   {
     slug: "caps",
     label: "Caps",
     img: productImages.vans[3],
-    summary: "Finishing pieces for low-effort fits.",
-    className: "",
+    summary: "Finishing pieces.",
+    span: "",
   },
   {
     slug: "accessories",
     label: "Accessories",
     img: productImages.adidas[2],
-    summary: "Belts, extras, and final details.",
-    className: "",
+    summary: "Belts, extras, final details.",
+    span: "",
   },
 ];
-
-const stagger = {
-  animate: { transition: { staggerChildren: 0.07 } },
-};
-
-const item = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-};
 
 export default function CategoryGrid() {
   const [cats, setCats] = useState<CategoryItem[]>(BASE_CATEGORIES);
@@ -97,7 +88,7 @@ export default function CategoryGrid() {
             label: cat.name,
             img: primary ?? fallback.img,
             summary: fallback.summary,
-            className: fallback.className,
+            span: fallback.span,
           };
         })
       );
@@ -108,49 +99,69 @@ export default function CategoryGrid() {
 
   return (
     <section className="container-px mt-20 lg:mt-24">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker mb-2">Shop by category</p>
+      {/* Magazine header */}
+      <div className="mb-10 grid grid-cols-12 items-end gap-6 border-b border-ink/15 pb-6">
+        <div className="col-span-12 lg:col-span-7">
           <h2 className="section-title">Start with the fit.</h2>
         </div>
-        <Link
-          href="/shop"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-forest transition-colors hover:text-forest-dark"
-        >
-          View all
-          <ArrowUpRight size={14} />
-        </Link>
+        <div className="col-span-12 lg:col-span-5 flex items-end justify-between lg:justify-end gap-6">
+          <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted max-w-[28ch]">
+            Five rails. Built for rotation, not for show.
+          </p>
+          <Link
+            href="/shop"
+            className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink hover:text-citrine inline-flex items-center gap-1 shrink-0"
+          >
+            All <ArrowUpRight size={12} />
+          </Link>
+        </div>
       </div>
 
       <motion.div
-        variants={stagger}
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-80px" }}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:auto-rows-[260px] lg:auto-rows-[300px]"
+        variants={{
+          animate: { transition: { staggerChildren: 0.06 } },
+        }}
+        className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 md:auto-rows-[260px] lg:auto-rows-[300px]"
       >
-        {cats.map((cat) => (
+        {cats.map((cat, i) => (
           <motion.article
             key={cat.slug}
-            variants={item}
-            className={`group relative min-h-[260px] overflow-hidden bg-stone-light ${cat.className}`}
+            variants={{
+              initial: { opacity: 0, y: 18 },
+              animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+            }}
+            className={`group relative min-h-[260px] overflow-hidden border border-ink/10 bg-beige-dark ${cat.span}`}
           >
             <Link href={`/shop/${cat.slug}`} className="block h-full">
               <Image
                 src={cat.img}
                 alt={cat.label}
                 fill
-                className="object-cover transition-transform duration-700 ease-out-expo group-hover:scale-105"
+                className="object-cover transition-transform duration-700 ease-out-expo group-hover:scale-[1.04]"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />
-              <div className="absolute inset-0 bg-ink/25 transition-colors group-hover:bg-ink/35" />
-              <div className="absolute inset-x-0 bottom-0 p-5">
-                <p className="font-serif text-3xl leading-none text-white">{cat.label}</p>
-                <p className="mt-2 max-w-xs text-sm leading-6 text-white/75">{cat.summary}</p>
-                <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                  Shop now
-                  <ArrowUpRight size={14} />
-                </span>
+              {/* Top-left index marker */}
+              <div className="absolute top-3 left-3 font-mono text-[10px] tracking-[0.2em] uppercase text-cream bg-ink/80 backdrop-blur-sm px-2 py-1">
+                / {String(i + 1).padStart(2, "0")}
+              </div>
+              {/* Bottom-left label block */}
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-ink/85 via-ink/40 to-transparent">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="font-display text-2xl sm:text-3xl tracking-[-0.02em] text-cream leading-none">
+                      {cat.label}
+                    </p>
+                    <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-cream/60 mt-2 max-w-[26ch]">
+                      {cat.summary}
+                    </p>
+                  </div>
+                  <span className="shrink-0 w-9 h-9 flex items-center justify-center border border-cream/30 text-cream group-hover:bg-citrine group-hover:text-ink group-hover:border-citrine transition-colors">
+                    <ArrowUpRight size={14} />
+                  </span>
+                </div>
               </div>
             </Link>
           </motion.article>

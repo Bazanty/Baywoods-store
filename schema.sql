@@ -10,11 +10,16 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- =============================================================
 
 CREATE TYPE user_role       AS ENUM ('customer', 'admin', 'staff');
-CREATE TYPE order_status    AS ENUM ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded');
+CREATE TYPE order_status    AS ENUM (
+    'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded',
+    'PENDING_PAYMENT', 'PAID', 'VERIFICATION_PENDING', 'VERIFIED', 'PACKED',
+    'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REFUNDED', 'FAILED'
+);
 CREATE TYPE payment_status  AS ENUM ('pending', 'paid', 'failed', 'refunded', 'partially_refunded');
 CREATE TYPE payment_method  AS ENUM ('mpesa', 'card', 'bank_transfer', 'paypal', 'crypto', 'cash_on_delivery');
 CREATE TYPE address_type    AS ENUM ('shipping', 'billing', 'both');
 CREATE TYPE discount_type   AS ENUM ('percentage', 'fixed');
+CREATE TYPE product_verification_status AS ENUM ('PENDING', 'VERIFIED_ORIGINAL', 'NEEDS_REVIEW', 'REJECTED');
 
 -- =============================================================
 -- USERS
@@ -104,6 +109,10 @@ CREATE TABLE products (
     weight_kg         NUMERIC(8, 3),
     is_active         BOOLEAN        NOT NULL DEFAULT TRUE,
     is_featured       BOOLEAN        NOT NULL DEFAULT FALSE,
+    verification_status product_verification_status NOT NULL DEFAULT 'PENDING',
+    verification_notes TEXT,
+    verified_at       TIMESTAMPTZ,
+    verified_by       TEXT,
     meta_title        VARCHAR(255),
     meta_description  VARCHAR(500),
     created_at        TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
@@ -212,7 +221,7 @@ CREATE TABLE orders (
     id               UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id          UUID           REFERENCES users (id) ON DELETE SET NULL,
     email            VARCHAR(255),                            -- guest checkout email
-    status           order_status   NOT NULL DEFAULT 'pending',
+    status           order_status   NOT NULL DEFAULT 'PENDING_PAYMENT',
     payment_method   payment_method,                          -- mpesa / card / etc.
     payment_status   payment_status NOT NULL DEFAULT 'pending',
     -- Address snapshot at time of order (intentionally denormalised)
@@ -234,6 +243,9 @@ CREATE TABLE orders (
     coupon_id        UUID           REFERENCES coupons (id) ON DELETE SET NULL,
     notes            TEXT,
     tracking_number  VARCHAR(150),
+    reservation_session_id TEXT,
+    payment_confirmed_at TIMESTAMPTZ,
+    failed_reason    TEXT,
     shipped_at       TIMESTAMPTZ,
     delivered_at     TIMESTAMPTZ,
     cancelled_at     TIMESTAMPTZ,
@@ -282,7 +294,13 @@ CREATE TABLE payments (
     provider_response        JSONB,                                  -- raw gateway payload
     -- M-Pesa specific
     checkout_request_id      VARCHAR(255),                            -- STK push checkout request ID
+    merchant_request_id      VARCHAR(255),
     mpesa_receipt            VARCHAR(100),                            -- e.g. "QJK3B7WCLP"
+    mpesa_phone              VARCHAR(30),
+    mpesa_amount             NUMERIC(12, 2),
+    raw_callback             JSONB,
+    callback_received_at     TIMESTAMPTZ,
+    failure_code             TEXT,
     result_desc              TEXT,                                    -- Daraja result description
     -- Stripe specific
     stripe_payment_intent_id VARCHAR(255),                            -- Stripe PaymentIntent ID
@@ -298,6 +316,7 @@ CREATE INDEX idx_payments_order     ON payments (order_id);
 CREATE INDEX idx_payments_status    ON payments (status);
 CREATE INDEX idx_payments_provider  ON payments (provider_tx_id);
 CREATE INDEX idx_payments_mpesa_cri ON payments (checkout_request_id);
+CREATE UNIQUE INDEX idx_payments_checkout_request_unique ON payments (checkout_request_id) WHERE checkout_request_id IS NOT NULL;
 CREATE INDEX idx_payments_stripe_pi ON payments (stripe_payment_intent_id);
 
 -- =============================================================

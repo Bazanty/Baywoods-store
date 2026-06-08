@@ -67,15 +67,17 @@ export default function NewArrivalsSection() {
         {/* Editorial header */}
         <div className="grid grid-cols-12 items-end gap-x-6 gap-y-6 border-b border-ink/15 pb-8">
           <div className="col-span-6 lg:col-span-1">
-            <span className="font-mono text-[11px] tracking-[0.2em] text-forest">
-              ／01
+            <span className="font-mono text-[11px] tracking-[0.2em] text-ink">
+              / 06
             </span>
           </div>
 
           <div className="col-span-12 lg:col-span-7 lg:order-2">
-            <p className="section-kicker mb-3 text-forest">Just landed</p>
-            <h2 className="text-balance text-4xl font-semibold leading-[0.95] tracking-tight text-ink sm:text-5xl lg:text-[3.75rem]">
-              Fresh on the rail<span className="text-forest">.</span>
+            <h2 className="font-display font-medium text-balance text-4xl leading-[0.94] tracking-[-0.025em] text-ink sm:text-5xl lg:text-[3.75rem]">
+              Fresh on the rail<span className="relative inline-block">
+                <span className="relative z-10">.</span>
+                <span aria-hidden className="absolute -inset-x-1 bottom-1 h-2 bg-citrine -z-0" />
+              </span>
             </h2>
           </div>
 
@@ -94,7 +96,7 @@ export default function NewArrivalsSection() {
               href="/new-arrivals"
               className="group inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink"
             >
-              <span className="border-b border-ink pb-0.5 transition-colors group-hover:border-forest group-hover:text-forest">
+              <span className="border-b border-ink pb-0.5 transition-colors group-hover:underline-citrine">
                 See all arrivals
               </span>
               <ArrowUpRight
@@ -134,8 +136,8 @@ export default function NewArrivalsSection() {
                 <div className="mb-3 flex items-baseline gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
                   <span>{String(i + 1).padStart(2, "0")}</span>
                   <span className="h-px flex-1 bg-ink/15" />
-                  <span className="text-forest opacity-0 transition-opacity duration-300 group-hover/slide:opacity-100">
-                    New
+                  <span className="text-ink font-medium opacity-0 transition-opacity duration-300 group-hover/slide:opacity-100">
+                    NEW
                   </span>
                 </div>
                 <ProductCard product={product} />
@@ -179,7 +181,7 @@ export default function NewArrivalsSection() {
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="relative h-px flex-1 bg-ink/15">
             <div
-              className="absolute inset-y-0 left-0 bg-forest transition-[width] duration-200 ease-out"
+              className="absolute inset-y-0 left-0 bg-ink transition-[width] duration-200 ease-out"
               style={{ width: `${Math.max(0.04, progress) * 100}%` }}
             />
           </div>
@@ -192,14 +194,14 @@ export default function NewArrivalsSection() {
             <button
               onClick={() => scrollBy(-1)}
               aria-label="Scroll left"
-              className="flex h-11 w-11 items-center justify-center border border-ink/20 bg-cream text-ink transition-all duration-300 hover:border-forest hover:bg-forest hover:text-cream"
+              className="flex h-11 w-11 items-center justify-center border border-ink/20 bg-cream text-ink transition-all duration-300 hover:border-ink hover:bg-ink hover:text-citrine"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               onClick={() => scrollBy(1)}
               aria-label="Scroll right"
-              className="flex h-11 w-11 items-center justify-center border border-ink/20 bg-cream text-ink transition-all duration-300 hover:border-forest hover:bg-forest hover:text-cream"
+              className="flex h-11 w-11 items-center justify-center border border-ink/20 bg-cream text-ink transition-all duration-300 hover:border-ink hover:bg-ink hover:text-citrine"
             >
               <ChevronRight size={16} />
             </button>

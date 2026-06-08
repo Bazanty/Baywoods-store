@@ -61,29 +61,32 @@ export default function ResetPasswordPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link href="/" className="font-serif text-2xl tracking-wider text-ink block mb-10 text-center">
-              BAYWOODS
+            <Link href="/" className="font-display text-xl tracking-[-0.02em] font-semibold text-ink block mb-12 text-center">
+              BAYWOODS <span className="font-mono text-[10px] tracking-[0.18em] text-muted ml-1">/ NRB</span>
             </Link>
 
-            <h1 className="font-serif text-3xl text-ink mb-2">New Password</h1>
-            <p className="text-sm text-muted mb-8">Choose a strong password for your account.</p>
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-3">/ NEW PASSWORD</p>
+            <h1 className="font-display font-medium text-4xl tracking-[-0.025em] leading-[0.96] text-ink mb-3">
+              Choose a new one.
+            </h1>
+            <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mb-8">/ Pick something strong.</p>
 
             {checkingSession ? (
-              <div className="h-28 bg-stone/40 animate-pulse" />
+              <div className="h-28 bg-beige-dark animate-pulse" />
             ) : !hasSession ? (
-              <div className="bg-red-50 border border-red-100 px-4 py-5 text-sm text-danger">
-                <p className="font-medium mb-1">Reset link expired</p>
-                <p className="text-danger/80 mb-4">
-                  Open the latest reset link from your email, or request a new one.
+              <div className="border-l-2 border-danger pl-4 py-3">
+                <p className="font-display text-lg tracking-[-0.01em] text-ink mb-2">Reset link expired.</p>
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mb-4">
+                  / Open the latest reset link from your email, or request a new one.
                 </p>
-                <Link href="/auth/forgot" className="text-xs font-medium underline underline-offset-2">
-                  Request new link
+                <Link href="/auth/forgot" className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink underline-citrine">
+                  Request new link →
                 </Link>
               </div>
             ) : done ? (
-              <div className="bg-forest/10 border border-forest/20 px-4 py-5 text-sm text-forest">
-                <p className="font-medium mb-1">Password updated</p>
-                <p className="text-forest/80">Redirecting you to sign in...</p>
+              <div className="border-l-2 border-citrine pl-4 py-3">
+                <p className="font-display text-lg tracking-[-0.01em] text-ink mb-2">Password updated.</p>
+                <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted">/ Redirecting to sign in…</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,13 +102,13 @@ export default function ResetPasswordPage() {
                   <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
-                    className="absolute right-3 bottom-3.5 text-muted hover:text-ink transition-colors"
+                    className="absolute right-0 bottom-3 text-muted hover:text-ink transition-colors"
                   >
-                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
                 <Input
-                  label="Confirm Password"
+                  label="Confirm password"
                   type={showPw ? "text" : "password"}
                   required
                   value={confirm}
@@ -114,13 +117,13 @@ export default function ResetPasswordPage() {
                 />
 
                 {error && (
-                  <p className="text-xs text-danger bg-red-50 border border-red-100 px-3 py-2">
-                    {error}
+                  <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-danger border-l-2 border-danger pl-3 py-2">
+                    / {error}
                   </p>
                 )}
 
                 <Button type="submit" loading={loading} className="w-full" size="lg">
-                  Update Password
+                  Update password →
                 </Button>
               </form>
             )}

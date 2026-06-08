@@ -9,7 +9,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
@@ -35,10 +34,10 @@ interface PaymentRecord {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  completed: "text-forest bg-forest/5 border-forest/20",
-  pending: "text-amber-700 bg-amber-50 border-amber-200",
-  failed: "text-danger bg-red-50 border-red-100",
-  refunded: "text-muted bg-stone/30 border-stone",
+  completed: "text-ink bg-citrine",
+  pending: "text-ink border border-ink/30",
+  failed: "text-cream bg-danger",
+  refunded: "text-muted bg-beige-dark",
 };
 
 function formatDate(dateStr: string) {
@@ -143,43 +142,44 @@ export default function PaymentMethodsPage() {
   };
 
   return (
-    <div className="pt-24 lg:pt-28 pb-24">
+    <div className="pt-20 lg:pt-24 pb-24">
       <div className="container-px py-8 max-w-2xl">
-        <div className="flex items-center gap-3 mb-10">
-          <Link href="/account" className="text-muted hover:text-ink transition-colors">
-            <ChevronLeft size={18} />
-          </Link>
-          <h1 className="font-serif text-3xl text-ink">Payment Methods</h1>
+        <Link href="/account" className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted hover:text-ink inline-flex items-center gap-1 mb-2">
+          <ChevronLeft size={12} /> Account
+        </Link>
+        <div className="border-b border-ink/15 pb-6 mb-10">
+          <p className="section-kicker mb-4">PAYMENT</p>
+          <h1 className="font-display font-medium tracking-[-0.025em] leading-[0.92] text-ink text-5xl">Methods.</h1>
         </div>
 
         {/* M-Pesa Section */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-forest/10 flex items-center justify-center">
-                <Smartphone size={16} className="text-forest" />
+              <div className="w-9 h-9 bg-ink flex items-center justify-center">
+                <Smartphone size={15} className="text-citrine" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-ink">M-Pesa Numbers</h2>
-                <p className="text-xs text-muted">Save numbers for faster checkout</p>
+                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted">/ 01</p>
+                <h2 className="font-display text-lg tracking-[-0.01em] text-ink">M-Pesa numbers</h2>
               </div>
             </div>
             {mpesaNumbers.length < 3 && !showForm && (
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 text-xs text-forest hover:text-forest-dark transition-colors"
+                className="flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine transition-colors"
               >
-                <Plus size={13} /> Add
+                <Plus size={12} /> Add →
               </button>
             )}
           </div>
 
           {mpesaNumbers.length === 0 && !showForm ? (
-            <div className="border border-dashed border-stone py-8 text-center">
-              <Smartphone size={28} className="text-stone mx-auto mb-2" strokeWidth={1} />
-              <p className="text-sm text-muted mb-3">No saved M-Pesa numbers</p>
-              <button onClick={openAdd} className="text-xs text-forest font-medium hover:text-forest-dark transition-colors">
-                Add your M-Pesa number
+            <div className="border border-dashed border-ink/25 py-10 text-center">
+              <Smartphone size={28} className="text-muted mx-auto mb-3" strokeWidth={1.25} />
+              <p className="font-display text-lg tracking-[-0.01em] text-ink mb-1">No saved numbers.</p>
+              <button onClick={openAdd} className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink hover:text-citrine underline-citrine">
+                Add your M-Pesa number →
               </button>
             </div>
           ) : (
@@ -187,15 +187,15 @@ export default function PaymentMethodsPage() {
               {mpesaNumbers.map((num, idx) => (
                 <div
                   key={idx}
-                  className="bg-cream border border-stone px-5 py-4 flex items-center justify-between"
+                  className="border border-ink/20 px-5 py-4 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-forest/10 flex items-center justify-center">
-                      <Smartphone size={14} className="text-forest" />
+                    <div className="w-8 h-8 bg-ink flex items-center justify-center">
+                      <Smartphone size={13} className="text-citrine" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-ink">{num.phone}</p>
-                      <p className="text-xs text-muted">{num.label}</p>
+                      <p className="font-mono text-sm tabular-nums text-ink">{num.phone}</p>
+                      <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mt-0.5">{num.label}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -228,10 +228,10 @@ export default function PaymentMethodsPage() {
               >
                 <form
                   onSubmit={handleSave}
-                  className="border border-stone bg-cream p-5 mt-3 space-y-4"
+                  className="border border-ink/20 bg-cream p-5 mt-3 space-y-4"
                 >
-                  <p className="text-sm font-medium text-ink">
-                    {editingIdx !== null ? "Edit Number" : "Add M-Pesa Number"}
+                  <p className="font-display text-lg tracking-[-0.01em] text-ink">
+                    {editingIdx !== null ? "Edit number." : "Add M-Pesa number."}
                   </p>
                   <Input
                     label="Phone Number"
@@ -271,74 +271,56 @@ export default function PaymentMethodsPage() {
             )}
           </AnimatePresence>
         </section>
-
-        {/* Card Section */}
-        <section className="mb-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 bg-stone/40 flex items-center justify-center">
-              <CreditCard size={16} className="text-muted" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-ink">Card Payments</h2>
-              <p className="text-xs text-muted">Pay securely with Visa or Mastercard at checkout</p>
-            </div>
-          </div>
-          <div className="border border-stone bg-cream/50 px-5 py-4 flex items-center gap-3">
-            <Check size={14} className="text-forest shrink-0" />
-            <p className="text-sm text-muted">
-              Card payments are available at checkout via Stripe. No card details are stored on our servers.
-            </p>
-          </div>
-        </section>
-
         {/* Payment History */}
         <section>
-          <h2 className="text-sm font-semibold text-ink mb-4">Recent Payments</h2>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">/ 03</p>
+          <h2 className="font-display text-2xl tracking-[-0.02em] text-ink mb-5">Recent payments.</h2>
           {paymentsLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-stone/30 animate-pulse" />
+                <div key={i} className="h-16 bg-beige-dark animate-pulse" />
               ))}
             </div>
           ) : payments.length === 0 ? (
-            <p className="text-sm text-muted text-center py-10 border border-dashed border-stone">
-              No payment history yet.{" "}
-              <Link href="/shop" className="text-forest underline underline-offset-2">
-                Start shopping
+            <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted text-center py-10 border border-dashed border-ink/25">
+              / No payment history yet.{" "}
+              <Link href="/shop" className="text-ink underline-citrine">
+                Start shopping →
               </Link>
             </p>
           ) : (
-            <div className="space-y-2">
-              {payments.map((p) => (
+            <div className="border border-ink/15 divide-y divide-ink/10">
+              {payments.map((p, i) => (
                 <Link
                   key={p.id}
                   href={`/order/${p.order_id}`}
-                  className="flex items-center justify-between bg-cream border border-stone px-5 py-4 hover:border-ink transition-colors group"
+                  className="flex items-center justify-between px-5 py-4 hover:bg-beige-dark transition-colors group"
                 >
                   <div className="flex items-center gap-3">
+                    <span className="font-mono text-[10px] tracking-[0.16em] text-muted">/{String(i + 1).padStart(2, "0")}</span>
                     {p.method === "mpesa" ? (
-                      <Smartphone size={15} className="text-forest" />
+                      <Smartphone size={14} className="text-ink" />
                     ) : (
-                      <CreditCard size={15} className="text-muted" />
+                      <CreditCard size={14} className="text-ink" />
                     )}
                     <div>
-                      <p className="text-sm font-medium text-ink">
-                        {p.method === "mpesa" ? "M-Pesa" : "Card"}{" "}
-                        <span className="text-muted font-normal">
+                      <p className="font-mono text-sm tracking-[0.06em] text-ink">
+                        {p.method === "mpesa" ? "M-PESA" : "CARD"}{" "}
+                        <span className="text-muted">
                           {p.mpesa_receipt ? `· ${p.mpesa_receipt}` : ""}
                         </span>
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-1">
                         {formatDate(p.paid_at ?? p.created_at)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-ink">
+                    <p className="price text-sm font-medium text-ink">
                       {formatPrice(p.amount)}
                     </p>
                     <span
-                      className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 border ${
+                      className={`inline-block font-mono text-[9px] tracking-[0.18em] uppercase px-1.5 py-0.5 mt-1 ${
                         STATUS_STYLE[p.status] ?? STATUS_STYLE.pending
                       }`}
                     >

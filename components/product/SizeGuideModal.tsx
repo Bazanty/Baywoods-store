@@ -38,86 +38,93 @@ export default function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[70]"
+            className="fixed inset-0 bg-ink/50 z-[70]"
           />
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xl mx-auto bg-cream z-[80] overflow-y-auto max-h-[85vh]"
+            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-2xl mx-auto bg-cream z-[80] overflow-y-auto max-h-[85vh] border border-ink"
           >
-            <div className="flex items-center justify-between p-6 border-b border-stone sticky top-0 bg-cream">
-              <h2 className="font-serif text-xl text-ink">Size Guide</h2>
-              <button onClick={onClose} className="text-muted hover:text-ink transition-colors">
-                <X size={18} />
+            <div className="flex items-center justify-between p-6 border-b border-ink/20 sticky top-0 bg-cream">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted">/ Reference</p>
+                <h2 className="font-display text-2xl tracking-[-0.02em] text-ink mt-1">Size guide</h2>
+              </div>
+              <button onClick={onClose} className="w-9 h-9 border border-ink/25 text-ink hover:bg-ink hover:text-cream transition-colors flex items-center justify-center">
+                <X size={16} />
               </button>
             </div>
 
-            <div className="p-6 space-y-8">
+            <div className="p-6 space-y-10">
               {/* Clothing */}
               <div>
-                <p className="text-xs font-semibold tracking-widest uppercase text-muted mb-4">
-                  Clothing (cm)
+                <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted mb-4">
+                  <span className="text-ink">01</span> / Clothing (cm)
                 </p>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-stone">
-                      {["Size", "Chest", "Waist", "Hip"].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left text-xs font-semibold text-muted pb-2 pr-4"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clothingSizes.map((row) => (
-                      <tr key={row.size} className="border-b border-stone/50">
-                        <td className="py-2.5 pr-4 font-medium text-ink">{row.size}</td>
-                        <td className="py-2.5 pr-4 text-muted">{row.chest}</td>
-                        <td className="py-2.5 pr-4 text-muted">{row.waist}</td>
-                        <td className="py-2.5 text-muted">{row.hip}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-ink">
+                        {["Size", "Chest", "Waist", "Hip"].map((h) => (
+                          <th
+                            key={h}
+                            className="text-left font-mono text-[10px] tracking-[0.18em] uppercase text-muted pb-3 pr-6"
+                          >
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {clothingSizes.map((row) => (
+                        <tr key={row.size} className="border-b border-ink/10">
+                          <td className="py-3 pr-6 font-mono text-sm tracking-[0.06em] text-ink">{row.size}</td>
+                          <td className="py-3 pr-6 font-mono text-xs tabular-nums text-ink/70">{row.chest}</td>
+                          <td className="py-3 pr-6 font-mono text-xs tabular-nums text-ink/70">{row.waist}</td>
+                          <td className="py-3 font-mono text-xs tabular-nums text-ink/70">{row.hip}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Shoes */}
               <div>
-                <p className="text-xs font-semibold tracking-widest uppercase text-muted mb-4">
-                  Shoes
+                <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted mb-4">
+                  <span className="text-ink">02</span> / Shoes
                 </p>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-stone">
-                      {["EU", "US", "UK"].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left text-xs font-semibold text-muted pb-2 pr-4"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shoeConversions.map((row) => (
-                      <tr key={row.eu} className="border-b border-stone/50">
-                        <td className="py-2.5 pr-4 font-medium text-ink">{row.eu}</td>
-                        <td className="py-2.5 pr-4 text-muted">{row.us}</td>
-                        <td className="py-2.5 text-muted">{row.uk}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-ink">
+                        {["EU", "US", "UK"].map((h) => (
+                          <th
+                            key={h}
+                            className="text-left font-mono text-[10px] tracking-[0.18em] uppercase text-muted pb-3 pr-6"
+                          >
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {shoeConversions.map((row) => (
+                        <tr key={row.eu} className="border-b border-ink/10">
+                          <td className="py-3 pr-6 font-mono text-sm tabular-nums text-ink">{row.eu}</td>
+                          <td className="py-3 pr-6 font-mono text-xs tabular-nums text-ink/70">{row.us}</td>
+                          <td className="py-3 font-mono text-xs tabular-nums text-ink/70">{row.uk}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <p className="text-xs text-muted">
-                If you&apos;re between sizes, we recommend sizing up. For more help, contact us via WhatsApp or chat.
+              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted leading-relaxed border-t border-ink/15 pt-4">
+                / Between sizes? Size up. WhatsApp the team for personal sizing help.
               </p>
             </div>
           </motion.div>
