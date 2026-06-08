@@ -16,6 +16,10 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY ?? "placeholder");
 }
 
+function siteUrl() {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://baywoods.co.ke";
+}
+
 export interface OrderEmailData {
   orderId: string;
   customerName: string;
@@ -95,7 +99,7 @@ export async function sendOrderConfirmation(data: OrderEmailData) {
           </div>
           <!-- CTA -->
           <div style="text-align:center;margin-top:32px">
-            <a href="${process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com"}/account/orders" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">TRACK YOUR ORDER</a>
+            <a href="${siteUrl()}/account/orders" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">TRACK YOUR ORDER</a>
           </div>
         </td></tr>
         <!-- Footer -->
@@ -118,7 +122,7 @@ export async function sendShippingUpdateEmail(data: {
   trackingNumber: string;
 }) {
   const shortRef = data.orderId.slice(0, 8).toUpperCase();
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com";
+  const baseUrl = siteUrl();
 
   await getResend().emails.send({
     from: FROM,
@@ -163,7 +167,7 @@ export async function sendDeliveredEmail(data: {
   customerName: string;
 }) {
   const shortRef = data.orderId.slice(0, 8).toUpperCase();
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com";
+  const baseUrl = siteUrl();
 
   await getResend().emails.send({
     from: FROM,
@@ -214,7 +218,7 @@ export async function sendAbandonedCartEmail(params: {
         </tr>`
     )
     .join("");
-  const base = process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com";
+  const base = siteUrl();
 
   await getResend().emails.send({
     from: FROM,
@@ -270,7 +274,7 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
           <p style="font-family:Georgia,serif;font-size:22px;color:#1E293B;margin:0 0 16px">Welcome, ${firstName}.</p>
           <p style="font-size:14px;color:#64748b;line-height:1.6;margin:0 0 24px">Your Baywoods account is ready. Explore the latest drops, save your wishlist, and check out faster with M-Pesa.</p>
           <div style="text-align:center;margin-top:24px">
-            <a href="${process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com"}/shop" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">SHOP NOW</a>
+            <a href="${siteUrl()}/shop" style="display:inline-block;background:#2D6A4F;color:#fff;font-size:13px;font-weight:600;padding:14px 32px;text-decoration:none;letter-spacing:1px">SHOP NOW</a>
           </div>
         </td></tr>
         <tr><td style="padding:24px 40px;border-top:1px solid #E2DDD6;text-align:center">
@@ -295,10 +299,7 @@ export async function sendContactConfirmationEmail(data: {
   const firstName = escapeHtml(data.name.split(/\s+/)[0] || data.name);
   const subject = escapeHtml(data.subject);
   const message = escapeHtml(data.message).replace(/\n/g, "<br>");
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXTAUTH_URL ??
-    "https://baywoodsstore.com";
+  const baseUrl = siteUrl();
 
   await getResend().emails.send({
     from: FROM,
@@ -348,7 +349,7 @@ export async function sendPaymentFailedEmail(data: {
 }) {
   if (!process.env.RESEND_API_KEY) return;
   const shortRef = data.orderId.slice(0, 8).toUpperCase();
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://baywoodsstore.com";
+  const baseUrl = siteUrl();
 
   await getResend().emails.send({
     from: FROM,

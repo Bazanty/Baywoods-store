@@ -38,12 +38,20 @@ export function isSafaricomIp(ip: string | null): boolean {
   return isKnownSafaricomIp(ip);
 }
 
-// Lightweight in-memory rate limiter.
-// For multi-instance deployments swap this for Upstash Redis — same interface.
+// ---------------------------------------------------------------------------
+// Rate limiter — Upstash Redis (production) with in-memory fallback (dev)
+//
+// Set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN in .env.local to use
+// the Redis-backed sliding-window limiter across multiple serverless instances.
+// Without those env vars the in-memory fallback is used, which is fine for
+// local dev but resets on every cold start in production.
+// ---------------------------------------------------------------------------
+
+// --- In-memory fallback -------------------------------------------------
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 
-export function rateLimit(
+function rateLimitInMemory(
   key: string,
   limit: number,
   windowMs: number
@@ -75,3 +83,74 @@ setInterval(() => {
     if (bucket.resetAt < now) buckets.delete(key);
   }
 }, 60_000).unref?.();
+
+// --- Upstash path -------------------------------------------------------
+// Lazily instantiated so imports don't fail when the packages are absent
+// or env vars are unset.
+
+type RateLimitResult = { ok: boolean; remaining: number; retryAfter: number };
+
+let upstashEnabled: boolean | null = null;
+// Cache Ratelimit instances by "limit:windowMs" to avoid recreating per request.
+const upstashLimiters = new Map<string, unknown>();
+
+async function rateLimitUpstash(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  try {
+    // Dynamic imports so the build doesn't break if the packages aren't installed.
+    const { Ratelimit } = await import("@upstash/ratelimit");
+    const { Redis } = await import("@upstash/redis");
+
+    const cacheKey = `${limit}:${windowMs}`;
+    if (!upstashLimiters.has(cacheKey)) {
+      const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
+      const durationSecs = Math.max(1, Math.round(windowMs / 1000));
+      upstashLimiters.set(
+        cacheKey,
+        new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(limit, `${durationSecs} s`),
+          prefix: "bw_rl",
+        })
+      );
+    }
+
+    const limiter = upstashLimiters.get(cacheKey) as InstanceType<
+      typeof Ratelimit
+    >;
+    const { success, remaining, reset } = await limiter.limit(key);
+    const retryAfter = success ? 0 : Math.max(0, Math.ceil((reset - Date.now()) / 1000));
+    return { ok: success, remaining, retryAfter };
+  } catch (err) {
+    // If Upstash is misconfigured or unreachable, fall back gracefully.
+    console.warn("[rateLimit] Upstash error, falling back to in-memory:", err);
+    return rateLimitInMemory(key, limit, windowMs);
+  }
+}
+
+// --- Public API ---------------------------------------------------------
+
+export async function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  if (upstashEnabled === null) {
+    upstashEnabled = !!(
+      process.env.UPSTASH_REDIS_REST_URL &&
+      process.env.UPSTASH_REDIS_REST_TOKEN
+    );
+  }
+
+  if (upstashEnabled) {
+    return rateLimitUpstash(key, limit, windowMs);
+  }
+
+  return Promise.resolve(rateLimitInMemory(key, limit, windowMs));
+}

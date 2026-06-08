@@ -12,7 +12,7 @@ function getAdmin() {
 export async function POST(req: NextRequest) {
   // Rate-limit: 30 votes per IP per minute to discourage automation.
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`helpful:${ip}`, 30, 60_000);
+  const rl = await rateLimit(`helpful:${ip}`, 30, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

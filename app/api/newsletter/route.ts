@@ -5,7 +5,7 @@ import { getClientIp, rateLimit } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`newsletter:${ip}`, 5, 60_000);
+  const rl = await rateLimit(`newsletter:${ip}`, 5, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
