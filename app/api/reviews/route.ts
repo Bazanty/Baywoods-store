@@ -7,7 +7,7 @@ const MAX_BODY_LENGTH = 2000;
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`review:${ip}`, 8, 60_000);
+  const rl = await rateLimit(`review:${ip}`, 8, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many review attempts. Please wait a moment." },

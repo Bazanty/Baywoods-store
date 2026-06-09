@@ -39,7 +39,7 @@ export async function POST(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`cancel:${ip}`, 10, 60_000);
+  const rl = await rateLimit(`cancel:${ip}`, 10, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many cancel attempts. Wait a moment." },

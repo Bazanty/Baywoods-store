@@ -6,7 +6,7 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`restock:${ip}`, 8, 60_000);
+  const rl = await rateLimit(`restock:${ip}`, 8, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

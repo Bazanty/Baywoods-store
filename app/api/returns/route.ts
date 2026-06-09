@@ -16,7 +16,7 @@ const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`return:${ip}`, 5, 60_000);
+  const rl = await rateLimit(`return:${ip}`, 5, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many return requests. Wait a moment." },

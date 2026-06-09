@@ -13,7 +13,7 @@ function getAdmin() {
 // Email must match the one used at checkout — this is our access check.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`track:${ip}`, 20, 60_000);
+  const rl = await rateLimit(`track:${ip}`, 20, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Too many lookups" }, { status: 429 });
   }

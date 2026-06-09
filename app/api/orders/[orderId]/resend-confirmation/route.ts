@@ -40,7 +40,7 @@ export async function POST(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`resend:${ip}`, 3, 60_000);
+  const rl = await rateLimit(`resend:${ip}`, 3, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many resend attempts. Wait a minute." },

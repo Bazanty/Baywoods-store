@@ -18,7 +18,7 @@ function getAdmin() {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`reserve:${ip}`, 15, 60_000);
+  const rl = await rateLimit(`reserve:${ip}`, 15, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many reservation attempts. Wait a moment." },

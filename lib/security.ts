@@ -121,9 +121,7 @@ async function rateLimitUpstash(
       );
     }
 
-    const limiter = upstashLimiters.get(cacheKey) as InstanceType<
-      typeof Ratelimit
-    >;
+    const limiter = upstashLimiters.get(cacheKey) as InstanceType<typeof Ratelimit>;
     const { success, remaining, reset } = await limiter.limit(key);
     const retryAfter = success ? 0 : Math.max(0, Math.ceil((reset - Date.now()) / 1000));
     return { ok: success, remaining, retryAfter };

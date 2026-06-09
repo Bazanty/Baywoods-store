@@ -37,7 +37,7 @@ async function failOrder(db: ReturnType<typeof getAdmin>, orderId: string, reaso
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req) ?? "unknown";
-    const rl = rateLimit(`stk:${ip}`, 5, 60_000);
+    const rl = await rateLimit(`stk:${ip}`, 5, 60_000);
     if (!rl.ok) {
       return NextResponse.json(
         { error: "Too many payment attempts. Please wait a moment." },

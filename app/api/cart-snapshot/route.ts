@@ -6,7 +6,7 @@ import { getClientIp, rateLimit } from "@/lib/security";
 // so we can email them if they bail out. Upserts by email so one row per user.
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req) ?? "unknown";
-  const rl = rateLimit(`snapshot:${ip}`, 20, 60_000);
+  const rl = await rateLimit(`snapshot:${ip}`, 20, 60_000);
   if (!rl.ok) return NextResponse.json({ error: "rate limited" }, { status: 429 });
 
   const { email, items, subtotal, userId } = await req.json();
