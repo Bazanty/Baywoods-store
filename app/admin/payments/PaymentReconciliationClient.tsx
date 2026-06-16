@@ -44,7 +44,6 @@ interface Payment {
 interface Props {
   payments: Payment[];
   diagnostics: MpesaDiagnostics;
-  safaricomIpCount: number;
 }
 
 type Filter = "all" | "needs_action" | "pending" | "failed" | "paid";
@@ -77,7 +76,6 @@ function paymentStatusClass(status: string) {
 export default function PaymentReconciliationClient({
   payments,
   diagnostics,
-  safaricomIpCount,
 }: Props) {
   const [filter, setFilter] = useState<Filter>("needs_action");
   const [messages, setMessages] = useState<Record<string, { ok: boolean; message: string }>>({});
@@ -140,7 +138,7 @@ export default function PaymentReconciliationClient({
           <StatusLine ok={diagnostics.callbackUrlOk} text={diagnostics.callbackUrlOk ? "Looks valid" : diagnostics.callbackUrlIssues.join(" ")} />
         </div>
         <div className="bg-cream border border-ink/10 p-5">
-          <p className="text-xs uppercase tracking-wider text-muted mb-1">Daraja Mode</p>
+          <p className="text-xs uppercase tracking-wider text-muted mb-1">Lipana Mode</p>
           <p className="text-sm font-medium text-ink">
             {diagnostics.environment} {diagnostics.mockMode ? "/ mock" : ""}
           </p>
@@ -150,13 +148,13 @@ export default function PaymentReconciliationClient({
           />
         </div>
         <div className="bg-cream border border-ink/10 p-5">
-          <p className="text-xs uppercase tracking-wider text-muted mb-1">Callback IP Check</p>
+          <p className="text-xs uppercase tracking-wider text-muted mb-1">Webhook Signature</p>
           <p className="text-sm font-medium text-ink">
-            {diagnostics.skipIpCheck ? "Skipped" : "Enforced"} / {safaricomIpCount} known IPs
+            {diagnostics.skipSignatureCheck ? "Skipped" : "Required"}
           </p>
           <StatusLine
-            ok={!diagnostics.skipIpCheck}
-            text={diagnostics.skipIpCheck ? "Only use this for local testing" : "Safaricom IP allowlist active"}
+            ok={!diagnostics.skipSignatureCheck}
+            text={diagnostics.skipSignatureCheck ? "Only use this for local testing" : "Lipana webhook signing active"}
           />
         </div>
       </section>
@@ -277,7 +275,7 @@ export default function PaymentReconciliationClient({
                       onClick={() => runAction(payment.id, () => queryMpesaPayment(payment.id))}
                       className="inline-flex items-center gap-1.5 text-xs border border-stone px-3 py-1.5 text-ink hover:border-ink disabled:opacity-40"
                     >
-                      <RefreshCw size={12} /> Query Safaricom
+                      <RefreshCw size={12} /> Query Lipana
                     </button>
                     <button
                       type="button"

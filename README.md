@@ -17,7 +17,7 @@ The `backend/` FastAPI service is **optional and not in the request path**. It i
 - Next.js 14 App Router
 - React 18 and Tailwind CSS
 - Supabase Auth, Postgres, RLS, and RPC functions
-- M-Pesa Daraja STK push
+- M-Pesa STK push through Lipana
 - Resend email and Africa's Talking SMS
 - Cloudinary product/admin uploads
 - Optional FastAPI service under `backend/`
@@ -46,9 +46,9 @@ Required minimum environment for the storefront:
 For local M-Pesa development, keep:
 
 ```env
-MPESA_ENVIRONMENT=sandbox
-MPESA_MOCK=true
-MPESA_SKIP_IP_CHECK=true
+LIPANA_ENVIRONMENT=sandbox
+LIPANA_MOCK=true
+LIPANA_SKIP_SIGNATURE_CHECK=false
 ```
 
 Card payments are not active in the storefront. M-Pesa is the production checkout path.
@@ -84,16 +84,16 @@ uvicorn app.main:app --reload --port 8000
 
 - Deploy the Next.js app as the main production service.
 - Configure Vercel Cron with `CRON_SECRET` for abandoned cart and reservation cleanup routes.
-- Set `MPESA_CALLBACK_URL` to the deployed Next.js callback route unless you intentionally migrate M-Pesa to FastAPI.
-- Keep `MPESA_ENVIRONMENT=production` only in production with real Daraja credentials.
+- Set `LIPANA_WEBHOOK_URL` in the Lipana dashboard to the deployed Next.js callback route.
+- Keep `LIPANA_ENVIRONMENT=production` only in production with a live Lipana secret key.
 - Keep `backend/` separate unless you are ready to migrate frontend calls to an external API base URL.
 
 ## M-Pesa Production Checks
 
 Use `/admin/payments` after deployment to verify the live M-Pesa setup:
 
-- `MPESA_CALLBACK_URL` must be a public HTTPS URL ending in `/api/mpesa/callback`.
-- `MPESA_MOCK` should be off in production.
-- `MPESA_SKIP_IP_CHECK` should be off after Safaricom callback delivery is verified.
-- Run one low-value STK push, confirm the callback reaches `/api/mpesa/callback`, then check that the payment has a receipt and the order moves to `PAID`.
-- If a payment stays pending, use the reconciliation actions in `/admin/payments` to query Safaricom, replay a saved callback, or manually confirm only after verifying the receipt in the M-Pesa portal.
+- `LIPANA_WEBHOOK_URL` must be a public HTTPS URL ending in `/api/mpesa/callback`.
+- `LIPANA_SECRET_KEY` and `LIPANA_WEBHOOK_SECRET` must be configured.
+- `LIPANA_MOCK` and `LIPANA_SKIP_SIGNATURE_CHECK` should be off in production.
+- Run one low-value STK push, confirm the Lipana webhook reaches `/api/mpesa/callback`, then check that the payment has a receipt and the order moves to `PAID`.
+- If a payment stays pending, use the reconciliation actions in `/admin/payments` to query Lipana, replay a saved webhook, or manually confirm only after verifying the receipt in the M-Pesa portal.

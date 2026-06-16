@@ -1,7 +1,6 @@
-// Critical flow: the M-Pesa STK callback (which finalizes payment and triggers
-// the variant stock decrement in `finalize_mpesa_payment`) only runs for
-// requests originating from Safaricom's documented callback IPs. These tests
-// cover that authentication gate and the client-IP extraction it depends on.
+// Legacy Daraja fallback: old M-Pesa STK callbacks only run for requests
+// originating from Safaricom's documented callback IPs. Lipana webhooks use
+// HMAC signatures instead, covered in `tests/lipana.test.ts`.
 //
 // Note: the stock decrement itself lives in the `finalize_mpesa_payment` /
 // `consume_reservations` Postgres functions and needs an integration database

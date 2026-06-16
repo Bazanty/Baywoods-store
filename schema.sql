@@ -301,7 +301,7 @@ CREATE TABLE payments (
     raw_callback             JSONB,
     callback_received_at     TIMESTAMPTZ,
     failure_code             TEXT,
-    result_desc              TEXT,                                    -- Daraja result description
+    result_desc              TEXT,                                    -- payment provider result description
     -- Stripe specific
     stripe_payment_intent_id VARCHAR(255),                            -- Stripe PaymentIntent ID
     --

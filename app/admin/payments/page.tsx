@@ -1,6 +1,5 @@
 import { requireAdmin } from "@/lib/adminAuth";
 import { getMpesaDiagnostics } from "@/lib/mpesaDiagnostics";
-import { SAFARICOM_CALLBACK_IP_LIST } from "@/lib/security";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import PaymentReconciliationClient from "./PaymentReconciliationClient";
 
@@ -58,7 +57,6 @@ export default async function AdminPaymentsPage() {
       <PaymentReconciliationClient
         payments={payments as any}
         diagnostics={diagnostics}
-        safaricomIpCount={SAFARICOM_CALLBACK_IP_LIST.length}
       />
     </div>
   );

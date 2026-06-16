@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { mpesaResultMessage } from "@/lib/mpesaResult";
-import { queryStkPush } from "@/lib/mpesa";
+import { formatPhone, normalizeLipanaPaymentPayload, queryStkPush } from "@/lib/mpesa";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 type ActionResult = { ok: boolean; message: string };
@@ -81,10 +81,10 @@ export async function queryMpesaPayment(paymentId: string): Promise<ActionResult
     return { ok: false, message: "This payment has no checkout request ID." };
   }
   if (String(payment.checkout_request_id).startsWith("mock_")) {
-    return { ok: false, message: "Mock payments cannot be queried from Safaricom." };
+    return { ok: false, message: "Mock payments cannot be queried from Lipana." };
   }
 
-  const result = await queryStkPush(payment.checkout_request_id);
+  const result = await queryStkPush(payment.checkout_request_id, payment.merchant_request_id);
   const resultCode = result.ResultCode == null ? null : String(result.ResultCode);
   const resultDesc = result.ResultDesc ?? "The request is being processed";
 
@@ -96,7 +96,7 @@ export async function queryMpesaPayment(paymentId: string): Promise<ActionResult
     return {
       ok: true,
       message:
-        "Safaricom reports this STK request as successful. Wait for the callback, replay a saved callback, or manually confirm with the verified M-Pesa receipt.",
+        "Lipana reports this STK request as successful. Wait for the webhook, replay a saved webhook, or manually confirm with the verified M-Pesa receipt.",
     };
   }
 
@@ -108,7 +108,7 @@ export async function queryMpesaPayment(paymentId: string): Promise<ActionResult
     receipt: null,
     phone: payment.mpesa_phone ?? null,
     amount: Number(payment.mpesa_amount ?? payment.amount),
-    raw: result,
+    raw: result.Raw ?? result,
   });
 
   revalidatePath("/admin/payments");
@@ -120,9 +120,36 @@ export async function replaySavedMpesaCallback(paymentId: string): Promise<Actio
   await requireAdmin();
 
   const payment = await getPayment(paymentId);
+  const lipanaPayment = normalizeLipanaPaymentPayload(payment.raw_callback);
+  if (lipanaPayment) {
+    if (!lipanaPayment.resultCode) {
+      return { ok: false, message: "Saved Lipana webhook is not terminal yet." };
+    }
+
+    const checkoutRequestId = lipanaPayment.checkoutRequestId ?? payment.checkout_request_id;
+    if (!checkoutRequestId) {
+      return { ok: false, message: "Saved Lipana webhook has no checkout request ID." };
+    }
+
+    const applied = await finalizeMpesaPayment({
+      checkoutRequestId,
+      merchantRequestId: lipanaPayment.merchantRequestId ?? payment.merchant_request_id ?? null,
+      resultCode: lipanaPayment.resultCode,
+      resultDesc: lipanaPayment.resultDesc,
+      receipt: lipanaPayment.receipt,
+      phone: lipanaPayment.phone ? formatPhone(lipanaPayment.phone) : payment.mpesa_phone ?? null,
+      amount: lipanaPayment.amount ?? Number(payment.mpesa_amount ?? payment.amount),
+      raw: payment.raw_callback,
+    });
+
+    revalidatePath("/admin/payments");
+    revalidatePath("/admin/orders");
+    return applied;
+  }
+
   const callback = payment.raw_callback?.Body?.stkCallback;
   if (!callback?.CheckoutRequestID) {
-    return { ok: false, message: "No saved Daraja callback payload is available for this payment." };
+    return { ok: false, message: "No saved Lipana webhook or legacy Daraja callback payload is available for this payment." };
   }
 
   const metadata = callback.CallbackMetadata?.Item;

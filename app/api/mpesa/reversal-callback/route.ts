@@ -11,8 +11,8 @@ function getAdmin() {
   );
 }
 
-// Safaricom expects a 200 even on internal failure — otherwise they retry,
-// and a partially-applied refund is worse than a silent log line.
+// Legacy Daraja reversal callbacks expect a 200 even on internal failure,
+// otherwise they retry and a partially-applied refund is worse than a log line.
 const ACK = NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
 
 function paramValue(items: any[] | undefined, name: string): string | null {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import { initiateStkPush, formatPhone } from "@/lib/mpesa";
+import { initiateStkPush, formatPhone, isPaymentMockEnabled } from "@/lib/mpesa";
 import { getClientIp, rateLimit } from "@/lib/security";
 
 function getAdmin() {
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Payment amount does not match order total" }, { status: 400 });
     }
 
-    if (process.env.MPESA_MOCK === "true") {
+    if (isPaymentMockEnabled()) {
       const checkoutRequestId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const merchantRequestId = "mock-merchant-req";
 
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       merchant_request_id: result.MerchantRequestID,
       mpesa_phone: formatted,
       mpesa_amount: Number(order.total),
-      provider_response: result,
+      provider_response: result.ProviderResponse ?? result,
     });
 
     if (paymentError) {

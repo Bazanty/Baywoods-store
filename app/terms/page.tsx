@@ -30,7 +30,7 @@ const sections = [
     heading: "Orders & Payment",
     body: [
       "All prices are displayed in Kenyan Shillings (KES) and include VAT where applicable.",
-      "We accept M-Pesa via Safaricom Daraja STK Push. Payment is required in full at the time of placing your order.",
+      "We accept M-Pesa STK Push through Lipana. Payment is required in full at the time of placing your order.",
       "An order confirmation email does not constitute acceptance of your order. Acceptance occurs when we dispatch the goods and send you a shipping confirmation.",
       "We reserve the right to cancel or refuse any order if stock is unavailable, payment cannot be verified, or we suspect fraudulent activity. In such cases a full refund will be issued.",
       "Coupon codes are single-use per account unless stated otherwise, cannot be combined, and have no cash value.",

@@ -83,7 +83,7 @@ export default async function ReturnsPage() {
               )}
               {r.refundStatus === "pending" && (
                 <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted mt-2">
-                  / Awaiting Safaricom confirmation. Inventory and order status will update on success.
+                  / Awaiting provider confirmation. Inventory and order status will update on success.
                 </p>
               )}
             </div>

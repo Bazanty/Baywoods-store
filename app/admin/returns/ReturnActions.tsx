@@ -105,13 +105,13 @@ export default function ReturnActions({ id, status, refundStatus, mpesaRefundCon
           </button>
           {!mpesaRefundConfigured && (
             <p className="text-[10px] text-muted w-48 text-right leading-snug">
-              Auto-refund needs MPESA_INITIATOR_NAME, MPESA_SECURITY_CREDENTIAL and the two reversal URLs.
+              Auto-refund is not available on the Lipana adapter yet. Use manual refund recording.
             </p>
           )}
         </>
       )}
 
-      {/* Retry section — shown when Daraja accepted the request but the async
+      {/* Retry section — shown when the provider accepted the request but the async
           callback came back with a failure. The server action allows retrying
           in this state (refund_status: failed, status: refunded). */}
       {status === "refunded" && refundStatus === "failed" && mpesaRefundConfigured && (

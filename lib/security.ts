@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 
-// Safaricom Daraja documented egress IPs for STK callbacks.
-// Keep this list in sync with https://developer.safaricom.co.ke docs.
+// Legacy Daraja callback IPs, kept only for pre-Lipana in-flight payments.
 const SAFARICOM_CALLBACK_IPS = new Set([
   "196.201.214.200",
   "196.201.214.206",

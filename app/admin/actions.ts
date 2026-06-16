@@ -894,7 +894,7 @@ export async function actionReturnRequest(
   // refund_status from pending → success/failed.
   if (req.status === "refunded" && (action === "refund-manual" || action === "refund-auto")) {
     if (req.refund_status === "pending") {
-      throw new Error("An auto-refund is already in flight for this return — wait for Safaricom to confirm.");
+      throw new Error("An auto-refund is already in flight for this return — wait for the provider to confirm.");
     }
     if (req.refund_status === "success" || action === "refund-manual") {
       throw new Error("This return has already been refunded.");
@@ -904,10 +904,10 @@ export async function actionReturnRequest(
   const nowIso = new Date().toISOString();
 
   // -----------------------------------------------------------------
-  // Auto refund via Safaricom Daraja Reversal API
+  // Auto refund via provider reversal API
   // -----------------------------------------------------------------
   // The actual inventory restore + order flip happen in the result callback
-  // once Safaricom confirms the reversal succeeded. We only mark the return
+  // once the provider confirms the reversal succeeded. We only mark the return
   // as 'refunded' (status) and refund_status='pending' here. The admin sees
   // an in-flight indicator until the callback resolves it.
   if (action === "refund-auto") {
@@ -974,7 +974,7 @@ export async function actionReturnRequest(
       throw new Error(reversal.ResponseDescription);
     }
 
-    // Daraja accepted the request. Mark refunded + pending until the async
+    // Provider accepted the request. Mark refunded + pending until the async
     // callback returns. Inventory/order updates wait for that confirmation.
     await db()
       .from("return_requests")

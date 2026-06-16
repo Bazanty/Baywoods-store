@@ -445,7 +445,7 @@ export async function sendRestockEmail(data: {
 }
 
 // ---------------------------------------------------------------------------
-// M-Pesa refund confirmation — sent after Daraja reversal callback succeeds
+// M-Pesa refund confirmation - sent after a provider refund callback succeeds
 // ---------------------------------------------------------------------------
 export async function sendRefundSuccessEmail(data: {
   email: string;

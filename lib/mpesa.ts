@@ -1,51 +1,111 @@
+import { createHmac, timingSafeEqual } from "crypto";
+
 /**
- * Safaricom Daraja API helpers.
- * Supports both sandbox and production based on NODE_ENV.
+ * M-Pesa payment helpers backed by Lipana.
  *
- * Required env vars:
- *   MPESA_CONSUMER_KEY
- *   MPESA_CONSUMER_SECRET
- *   MPESA_SHORTCODE        – Till or Paybill number
- *   MPESA_PASSKEY          – Lipa Na M-Pesa passkey (from Daraja portal)
- *   MPESA_CALLBACK_URL     – Public HTTPS URL Safaricom POSTs results to
+ * The storefront still uses the internal "mpesa" payment method and database
+ * columns. This adapter maps Lipana's transaction IDs and webhook payloads into
+ * the existing STK contract used by the checkout and reconciliation
+ * code.
+ *
+ * Required env vars for live Lipana payments:
+ *   LIPANA_SECRET_KEY
+ *   LIPANA_WEBHOOK_SECRET
+ *   LIPANA_ENVIRONMENT=sandbox|production
+ *   LIPANA_WEBHOOK_URL=https://your-domain.vercel.app/api/mpesa/callback
  */
 
-const isProd = process.env.MPESA_ENVIRONMENT === "production";
+const LIPANA_PRODUCTION_BASE = "https://api.lipana.dev/v1";
+const LIPANA_SANDBOX_BASE = "https://api-sandbox.lipana.dev/v1";
 
-const BASE = isProd
-  ? "https://api.safaricom.co.ke"
-  : "https://sandbox.safaricom.co.ke";
+type LipanaEnvironment = "sandbox" | "production";
 
-// Safaricom sandbox test credentials — only used when NODE_ENV !== "production"
-const SANDBOX_SHORTCODE = "174379";
-const SANDBOX_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
 
-export async function getAccessToken(): Promise<string> {
-  const key = process.env.MPESA_CONSUMER_KEY!;
-  const secret = process.env.MPESA_CONSUMER_SECRET!;
-  const credentials = Buffer.from(`${key}:${secret}`).toString("base64");
+function pickString(source: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return null;
+}
 
-  const res = await fetch(
-    `${BASE}/oauth/v1/generate?grant_type=client_credentials`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": "BaywoodsStore/1.0",
-      },
-      cache: "no-store",
+function pickNumber(source: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (value == null || value === "") continue;
+    const num = Number(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return null;
+}
+
+export function getLipanaEnvironment(): LipanaEnvironment {
+  return process.env.LIPANA_ENVIRONMENT === "production" ? "production" : "sandbox";
+}
+
+export function getLipanaBaseUrl(): string {
+  const override = process.env.LIPANA_BASE_URL?.trim();
+  if (override) return override.replace(/\/+$/, "");
+  return getLipanaEnvironment() === "production" ? LIPANA_PRODUCTION_BASE : LIPANA_SANDBOX_BASE;
+}
+
+export function isPaymentMockEnabled(): boolean {
+  return process.env.LIPANA_MOCK === "true" || process.env.MPESA_MOCK === "true";
+}
+
+function getLipanaSecretKey(): string {
+  const key = process.env.LIPANA_SECRET_KEY?.trim();
+  if (!key) {
+    throw new Error("LIPANA_SECRET_KEY is required for Lipana payments.");
+  }
+  return key;
+}
+
+async function lipanaFetch<T>(
+  path: string,
+  init: RequestInit & { idempotencyKey?: string } = {}
+): Promise<T> {
+  const { idempotencyKey, headers, ...requestInit } = init;
+  const res = await fetch(`${getLipanaBaseUrl()}${path}`, {
+    ...requestInit,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "BaywoodsStore/1.0",
+      "x-api-key": getLipanaSecretKey(),
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      ...headers,
+    },
+    cache: "no-store",
+  });
+
+  const text = await res.text();
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
     }
-  );
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`M-Pesa auth failed: ${body}`);
   }
 
-  const data = await res.json();
-  return data.access_token as string;
+  if (!res.ok) {
+    const data = asRecord(body);
+    const message = data
+      ? pickString(data, "message", "error", "detail") ?? text
+      : text || res.statusText;
+    throw new Error(`Lipana request failed (${res.status}): ${message}`);
+  }
+
+  const data = asRecord(body);
+  return ((data && "data" in data ? data.data : body) ?? {}) as T;
 }
 
 /**
@@ -66,6 +126,27 @@ export interface StkPushResult {
   ResponseCode: string;
   ResponseDescription: string;
   CustomerMessage: string;
+  LipanaTransactionID?: string;
+  ProviderResponse?: unknown;
+}
+
+interface LipanaStkPushResponse {
+  id?: string;
+  _id?: string;
+  transactionId?: string;
+  checkoutRequestID?: string;
+  checkoutRequestId?: string;
+  checkout_request_id?: string;
+  merchantRequestID?: string;
+  merchantRequestId?: string;
+  responseCode?: string;
+  ResponseCode?: string;
+  responseDescription?: string;
+  ResponseDescription?: string;
+  customerMessage?: string;
+  CustomerMessage?: string;
+  message?: string;
+  status?: string;
 }
 
 export async function initiateStkPush(opts: {
@@ -74,136 +155,144 @@ export async function initiateStkPush(opts: {
   orderId: string;
   description: string;
 }): Promise<StkPushResult> {
-  const token = await getAccessToken();
-  const isProd = process.env.MPESA_ENVIRONMENT === "production";
-  const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
-  const passkey = isProd ? process.env.MPESA_PASSKEY! : SANDBOX_PASSKEY;
-  const callbackUrl = process.env.MPESA_CALLBACK_URL!;
-
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[^0-9]/g, "")
-    .slice(0, 14);
-  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
-
-  // Sandbox only supports CustomerPayBillOnline; production Till uses CustomerBuyGoodsOnline
-  const transactionType = isProd ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline";
-
-  const body = {
-    BusinessShortCode: shortcode,
-    Password: password,
-    Timestamp: timestamp,
-    TransactionType: transactionType,
-    Amount: Math.ceil(opts.amount),
-    PartyA: formatPhone(opts.phone),
-    PartyB: shortcode,
-    PhoneNumber: formatPhone(opts.phone),
-    CallBackURL: callbackUrl,
-    AccountReference: `BW-${opts.orderId}`,
-    TransactionDesc: opts.description.slice(0, 13),
-  };
-
-  const res = await fetch(`${BASE}/mpesa/stkpush/v1/processrequest`, {
+  const amount = Math.ceil(opts.amount);
+  const response = await lipanaFetch<LipanaStkPushResponse>("/transactions/push-stk", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "User-Agent": "BaywoodsStore/1.0",
-    },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      phone: `+${formatPhone(opts.phone)}`,
+      amount,
+      accountReference: `BW-${opts.orderId}`,
+      transactionDesc: opts.description,
+    }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`STK push failed: ${err}`);
+  const transactionId =
+    response.transactionId ?? response.id ?? response._id ?? response.merchantRequestID ?? response.merchantRequestId;
+  const checkoutRequestId =
+    response.checkoutRequestID ?? response.checkoutRequestId ?? response.checkout_request_id ?? transactionId;
+  const responseCode = response.responseCode ?? response.ResponseCode ?? "0";
+  const responseDescription =
+    response.responseDescription ??
+    response.ResponseDescription ??
+    response.message ??
+    "STK push initiated successfully.";
+  const customerMessage =
+    response.customerMessage ??
+    response.CustomerMessage ??
+    response.message ??
+    "STK push sent to your phone. Please complete the payment on your phone.";
+
+  if (!checkoutRequestId || !transactionId) {
+    throw new Error("Lipana did not return a usable transaction ID.");
   }
 
-  return res.json();
+  return {
+    MerchantRequestID: transactionId,
+    CheckoutRequestID: checkoutRequestId,
+    ResponseCode: String(responseCode),
+    ResponseDescription: responseDescription,
+    CustomerMessage: customerMessage,
+    LipanaTransactionID: transactionId,
+    ProviderResponse: response,
+  };
 }
 
-// -----------------------------------------------------------------------
-// Transaction Reversal (B2C refund)
-// -----------------------------------------------------------------------
-// Reverses a successful M-Pesa transaction back to the customer's account.
-// Async: Safaricom acks the request synchronously, then fires the result to
-// the configured ResultURL minutes (sometimes longer) later.
-//
-// Required env vars on top of the standard MPESA_* set:
-//   MPESA_INITIATOR_NAME             — operator username with reversal privilege
-//   MPESA_SECURITY_CREDENTIAL        — initiator password encrypted with the
-//                                       Safaricom RSA cert (NOT the plain pwd)
-//   MPESA_REVERSAL_RESULT_URL        — public HTTPS URL Safaricom POSTs to
-//   MPESA_REVERSAL_TIMEOUT_URL       — public HTTPS URL for queue timeouts
-//   MPESA_REVERSAL_RECEIVER_TYPE     — "11" for Till, "4" for Paybill (default "11")
-//
-// Sandbox initiator + credential values (only used when MPESA_ENVIRONMENT != production):
-//   Initiator name: testapi
-//   SecurityCredential: Safaricom999!*! encrypted with the sandbox cert; or
-//   set MPESA_SECURITY_CREDENTIAL to the pre-encrypted blob from the portal.
+export interface NormalizedLipanaPayment {
+  provider: "lipana";
+  event: string | null;
+  transactionId: string | null;
+  merchantRequestId: string | null;
+  checkoutRequestId: string | null;
+  resultCode: string;
+  resultDesc: string;
+  receipt: string | null;
+  phone: string | null;
+  amount: number | null;
+  status: string | null;
+  raw: unknown;
+}
 
-export function isReversalConfigured(): boolean {
-  return (
-    !!process.env.MPESA_INITIATOR_NAME &&
-    !!process.env.MPESA_SECURITY_CREDENTIAL &&
-    !!process.env.MPESA_REVERSAL_RESULT_URL &&
-    !!process.env.MPESA_REVERSAL_TIMEOUT_URL
+export function lipanaStatusToResultCode(status: string | null, event?: string | null): string {
+  const normalizedStatus = status?.toLowerCase() ?? "";
+  const normalizedEvent = event?.toLowerCase() ?? "";
+
+  if (
+    normalizedEvent === "payment.success" ||
+    normalizedStatus === "success" ||
+    normalizedStatus === "paid" ||
+    normalizedStatus === "completed"
+  ) {
+    return "0";
+  }
+  if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") return "1032";
+  if (
+    normalizedEvent === "payment.failed" ||
+    normalizedStatus === "failed" ||
+    normalizedStatus === "error"
+  ) {
+    return "1";
+  }
+  return "";
+}
+
+function lipanaResultDescription(status: string | null, event: string | null): string {
+  const normalizedStatus = status?.toLowerCase() ?? "";
+  if (event === "payment.success" || normalizedStatus === "success" || normalizedStatus === "paid") {
+    return "Lipana confirmed the M-Pesa payment.";
+  }
+  if (event === "payment.failed" || normalizedStatus === "failed" || normalizedStatus === "error") {
+    return "Lipana reported that the M-Pesa payment failed.";
+  }
+  if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") {
+    return "M-Pesa payment was cancelled before completion.";
+  }
+  return "The request is being processed.";
+}
+
+export function normalizeLipanaPaymentPayload(payload: unknown): NormalizedLipanaPayment | null {
+  const body = asRecord(payload);
+  if (!body) return null;
+
+  const data = asRecord(body.data) ?? body;
+  const event = pickString(body, "event")?.toLowerCase() ?? null;
+  const status = pickString(data, "status")?.toLowerCase() ?? pickString(body, "status")?.toLowerCase() ?? null;
+  const transactionId = pickString(data, "transactionId", "transaction_id", "id", "_id");
+  const checkoutRequestId = pickString(
+    data,
+    "checkoutRequestID",
+    "checkoutRequestId",
+    "checkout_request_id"
   );
-}
 
-export interface ReversalResult {
-  OriginatorConversationID: string;
-  ConversationID: string;
-  ResponseCode: string;
-  ResponseDescription: string;
-}
+  if (!event && !transactionId && !checkoutRequestId) return null;
 
-export async function initiateReversal(opts: {
-  receipt: string;     // original M-Pesa receipt to reverse
-  amount: number;
-  remarks?: string;
-  orderId?: string;    // for occasion / cross-ref
-}): Promise<ReversalResult> {
-  if (!isReversalConfigured()) {
-    throw new Error("M-Pesa reversal is not configured (missing initiator / security credential / callback URLs)");
-  }
+  const resultCode = lipanaStatusToResultCode(status, event);
+  const resultDesc =
+    pickString(data, "resultDesc", "ResultDesc", "message", "responseDescription") ??
+    lipanaResultDescription(status, event);
 
-  const token = await getAccessToken();
-  const isProd = process.env.MPESA_ENVIRONMENT === "production";
-  const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
-  const receiverType = process.env.MPESA_REVERSAL_RECEIVER_TYPE ?? "11";
-
-  const body = {
-    Initiator: process.env.MPESA_INITIATOR_NAME!,
-    SecurityCredential: process.env.MPESA_SECURITY_CREDENTIAL!,
-    CommandID: "TransactionReversal",
-    TransactionID: opts.receipt,
-    Amount: Math.ceil(opts.amount),
-    ReceiverParty: shortcode,
-    RecieverIdentifierType: receiverType, // Safaricom's spelling, not ours
-    ResultURL: process.env.MPESA_REVERSAL_RESULT_URL!,
-    QueueTimeOutURL: process.env.MPESA_REVERSAL_TIMEOUT_URL!,
-    Remarks: (opts.remarks ?? "Refund").slice(0, 100),
-    Occasion: (opts.orderId ? `BW-${opts.orderId.slice(0, 8)}` : "Refund").slice(0, 100),
+  return {
+    provider: "lipana",
+    event,
+    transactionId,
+    merchantRequestId: pickString(data, "merchantRequestID", "merchantRequestId") ?? transactionId,
+    checkoutRequestId,
+    resultCode,
+    resultDesc,
+    receipt: pickString(
+      data,
+      "mpesaReceiptNumber",
+      "MpesaReceiptNumber",
+      "mpesaReceipt",
+      "mpesa_receipt",
+      "receipt",
+      "receiptNumber"
+    ),
+    phone: pickString(data, "phone", "msisdn", "PhoneNumber"),
+    amount: pickNumber(data, "amount", "mpesaAmount", "mpesa_amount"),
+    status,
+    raw: payload,
   };
-
-  const res = await fetch(`${BASE}/mpesa/reversal/v1/request`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "User-Agent": "BaywoodsStore/1.0",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Reversal request failed: ${err}`);
-  }
-
-  return res.json();
 }
 
 export interface StkQueryResult {
@@ -213,40 +302,79 @@ export interface StkQueryResult {
   CheckoutRequestID: string;
   ResultCode: string;
   ResultDesc: string;
+  MpesaReceiptNumber?: string | null;
+  PhoneNumber?: string | null;
+  Amount?: number | null;
+  Raw?: unknown;
 }
 
-export async function queryStkPush(checkoutRequestId: string): Promise<StkQueryResult> {
-  const token = await getAccessToken();
-  const isProd = process.env.MPESA_ENVIRONMENT === "production";
-  const shortcode = isProd ? process.env.MPESA_SHORTCODE! : SANDBOX_SHORTCODE;
-  const passkey = isProd ? process.env.MPESA_PASSKEY! : SANDBOX_PASSKEY;
+export async function queryStkPush(
+  checkoutRequestId: string,
+  transactionId?: string | null
+): Promise<StkQueryResult> {
+  const lookupId = (transactionId || checkoutRequestId).trim();
+  if (!lookupId) throw new Error("Lipana transaction ID is required.");
 
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[^0-9]/g, "")
-    .slice(0, 14);
-  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
+  const transaction = await lipanaFetch<Record<string, unknown>>(
+    `/transactions/${encodeURIComponent(lookupId)}`,
+    { method: "GET" }
+  );
+  const normalized = normalizeLipanaPaymentPayload(transaction);
 
-  const res = await fetch(`${BASE}/mpesa/stkpushquery/v1/query`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "User-Agent": "BaywoodsStore/1.0",
-    },
-    body: JSON.stringify({
-      BusinessShortCode: shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      CheckoutRequestID: checkoutRequestId,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`STK query failed: ${err}`);
+  if (!normalized) {
+    throw new Error("Lipana returned an unrecognized transaction payload.");
   }
 
-  return res.json();
+  return {
+    ResponseCode: "0",
+    ResponseDescription: "Lipana transaction retrieved successfully.",
+    MerchantRequestID: normalized.merchantRequestId ?? lookupId,
+    CheckoutRequestID: normalized.checkoutRequestId ?? checkoutRequestId,
+    ResultCode: normalized.resultCode,
+    ResultDesc: normalized.resultDesc,
+    MpesaReceiptNumber: normalized.receipt,
+    PhoneNumber: normalized.phone,
+    Amount: normalized.amount,
+    Raw: transaction,
+  };
+}
+
+export function verifyLipanaWebhookSignature(
+  payload: string,
+  signature: string | null,
+  secret = process.env.LIPANA_WEBHOOK_SECRET
+): boolean {
+  if (!signature || !secret) return false;
+
+  const cleanSignature = signature.replace(/^sha256=/i, "").trim();
+  const expectedSignature = createHmac("sha256", secret).update(payload).digest("hex");
+
+  try {
+    return timingSafeEqual(Buffer.from(cleanSignature), Buffer.from(expectedSignature));
+  } catch {
+    return false;
+  }
+}
+
+// Lipana's public docs currently expose payouts, but not a receipt-specific
+// reversal flow for refunding a specific receipt. Keep the admin auto-refund
+// switch off until that flow is intentionally implemented.
+export function isReversalConfigured(): boolean {
+  return false;
+}
+
+export interface ReversalResult {
+  OriginatorConversationID: string;
+  ConversationID: string;
+  ResponseCode: string;
+  ResponseDescription: string;
+}
+
+export async function initiateReversal(_opts: {
+  receipt: string;
+  amount: number;
+  remarks?: string;
+  orderId?: string;
+}): Promise<ReversalResult> {
+  throw new Error("Lipana auto-refund is not implemented yet. Use the manual refund flow.");
 }

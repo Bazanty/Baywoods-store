@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import { queryStkPush } from "@/lib/mpesa";
+import { formatPhone, isPaymentMockEnabled, queryStkPush } from "@/lib/mpesa";
 import { mpesaResultMessage } from "@/lib/mpesaResult";
+import { sendPaidOrderNotifications } from "@/lib/paymentNotifications";
 
 const mockPollCount = new Map<string, number>();
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       return paymentResponse(payment);
     }
 
-    if (process.env.MPESA_MOCK === "true" || cleanCheckoutRequestId.startsWith("mock_")) {
+    if (isPaymentMockEnabled() || cleanCheckoutRequestId.startsWith("mock_")) {
       const count = (mockPollCount.get(cleanCheckoutRequestId) ?? 0) + 1;
       mockPollCount.set(cleanCheckoutRequestId, count);
 
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
       return paymentResponse(payment);
     }
 
-    const result = await queryStkPush(cleanCheckoutRequestId);
+    const result = await queryStkPush(cleanCheckoutRequestId, payment.merchant_request_id);
     const resultCode = result.ResultCode == null ? null : String(result.ResultCode);
     const resultDesc = result.ResultDesc ?? null;
 
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
         p_receipt: null,
         p_phone: payment.mpesa_phone ?? null,
         p_amount: Number(payment.mpesa_amount ?? payment.amount),
-        p_raw_callback: result,
+        p_raw_callback: result.Raw ?? result,
       });
 
       if (error) {
@@ -144,11 +145,35 @@ export async function POST(req: NextRequest) {
     }
 
     if (resultCode === "0") {
+      const { data: finalizeResult, error } = await db.rpc("finalize_mpesa_payment", {
+        p_checkout_request_id: cleanCheckoutRequestId,
+        p_merchant_request_id: result.MerchantRequestID ?? payment.merchant_request_id ?? null,
+        p_result_code: "0",
+        p_result_desc: resultDesc ?? "Lipana confirmed the M-Pesa payment.",
+        p_receipt: result.MpesaReceiptNumber ?? null,
+        p_phone: result.PhoneNumber ? formatPhone(result.PhoneNumber) : payment.mpesa_phone ?? null,
+        p_amount: result.Amount ?? Number(payment.mpesa_amount ?? payment.amount),
+        p_raw_callback: result.Raw ?? result,
+      });
+
+      if (error) {
+        Sentry.captureException(error);
+        console.error("[mpesa query] failed to persist successful payment:", error);
+        return paymentResponse(payment, {
+          resultCode: "0",
+          callbackPending: true,
+          resultDesc: "Lipana confirmed the payment. Waiting for the webhook to update the order.",
+        });
+      }
+
+      if (finalizeResult?.ok && !finalizeResult.duplicate && finalizeResult.payment_status === "paid") {
+        await sendPaidOrderNotifications(db, cleanCheckoutRequestId);
+      }
+
+      payment = await readPayment(db, cleanCheckoutRequestId);
       return paymentResponse(payment, {
         resultCode: "0",
-        callbackPending: true,
-        resultDesc:
-          "M-Pesa has accepted the payment. Waiting for the secure callback to confirm the order.",
+        resultDesc: resultDesc ?? "Lipana confirmed the M-Pesa payment.",
       });
     }
 

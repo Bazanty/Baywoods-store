@@ -15,7 +15,7 @@ const faqs = [
   {
     id: "mpesa",
     q: "Can I pay with M-Pesa?",
-    a: "Yes! We support M-Pesa via Safaricom Daraja STK Push. You'll receive a payment prompt on your phone at checkout. Till Number: 5234789.",
+    a: "Yes! We support M-Pesa STK Push through Lipana. You'll receive a payment prompt on your phone at checkout.",
   },
   {
     id: "returns",
