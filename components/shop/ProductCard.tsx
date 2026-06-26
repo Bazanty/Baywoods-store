@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, Plus, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import { formatPrice, getDiscountPercent, cn } from "@/lib/utils";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, resolveVariant } from "@/lib/store";
 import Badge from "@/components/ui/Badge";
 
 interface ProductCardProps {
@@ -20,21 +21,36 @@ const cardVariant = {
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const { toggleWishlist, isWishlisted, addItem } = useCartStore();
   const wishlisted = isWishlisted(product.id);
-  const primaryImage = product.images[0];
-  const secondaryImage = product.images[1];
-  const hasSecondImage = Boolean(secondaryImage);
+  // One card → one image. The product's own primary shot, sourced by product.id
+  // via the query layer — never an index-matched gallery extra.
+  const mainImage = product.images[0];
   const discount = product.salePrice
     ? getDiscountPercent(product.price, product.salePrice)
     : null;
 
+  // A card can only safely add to cart when the variant is unambiguous. If the
+  // shopper has a real size/colour choice to make, send them to the detail page
+  // to pick one rather than guessing a default.
+  const needsChoice = product.sizes.length > 1 || product.colors.length > 1;
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
-    const defaultSize = product.sizes[Math.floor(product.sizes.length / 2)] ?? "One Size";
+    if (needsChoice) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
+    const defaultSize = product.sizes[0] ?? "One Size";
     const defaultColor = product.colors[0] ?? { name: "Default", hex: "#1E293B" };
-    addItem(product, defaultSize, defaultColor);
+    const variant = resolveVariant(product, defaultSize, defaultColor.name);
+    if ((product.variants?.length ?? 0) > 0 && !variant) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
+    addItem(product, defaultSize, defaultColor, variant);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -49,37 +65,21 @@ export default function ProductCard({ product }: ProductCardProps) {
       onMouseLeave={() => setHovered(false)}
       className="group relative"
     >
-      <div className="relative aspect-square bg-beige-dark overflow-hidden border border-ink/10">
+      <div className="relative aspect-square bg-beige-dark overflow-hidden rounded-2xl border border-cream/10 transition-colors duration-300 group-hover:border-gold/40">
         <Link href={`/product/${product.slug}`} className="absolute inset-0 z-0">
-          {primaryImage ? (
-            <>
-              <Image
-                src={primaryImage}
-                alt={product.name}
-                width={500}
-                height={500}
-                quality={90}
-                className={cn(
-                  "w-full h-full object-cover transition-all duration-500 ease-out-expo",
-                  hovered && hasSecondImage ? "opacity-0 scale-[1.04]" : "opacity-100 scale-100"
-                )}
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
-              />
-              {hasSecondImage && secondaryImage && (
-                <Image
-                  src={secondaryImage}
-                  alt={`${product.name} alternate view`}
-                  width={500}
-                  height={500}
-                  quality={90}
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out-expo",
-                    hovered ? "opacity-100 scale-100" : "opacity-0 scale-[1.04]"
-                  )}
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
-                />
+          {mainImage ? (
+            <Image
+              src={mainImage}
+              alt={product.name}
+              width={500}
+              height={500}
+              quality={90}
+              className={cn(
+                "w-full h-full object-cover transition-transform duration-500 ease-out-expo",
+                hovered ? "scale-[1.04]" : "scale-100"
               )}
-            </>
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 33vw, 25vw"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-beige-dark">
               <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted/60">
@@ -123,10 +123,19 @@ export default function ProductCard({ product }: ProductCardProps) {
             initial={false}
             animate={{ y: hovered ? 0 : "100%" }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-0 left-0 right-0 z-10 bg-ink text-cream py-2.5 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase hover:bg-citrine hover:text-ink transition-colors"
+            className="absolute bottom-0 left-0 right-0 z-10 bg-ink text-cream py-2.5 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase hover:bg-gold hover:text-cream transition-colors"
           >
-            <Plus size={11} strokeWidth={2.5} />
-            Quick add
+            {needsChoice ? (
+              <>
+                <SlidersHorizontal size={11} strokeWidth={2.5} />
+                Select options
+              </>
+            ) : (
+              <>
+                <Plus size={11} strokeWidth={2.5} />
+                Add to Cart
+              </>
+            )}
           </motion.button>
         )}
 

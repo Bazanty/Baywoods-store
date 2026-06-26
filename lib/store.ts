@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { CartItem, Product, ProductColor } from "./types";
+import { CartItem, Product, ProductColor, ProductVariant } from "./types";
 import { supabase } from "./supabase/client";
 import {
   fetchWishlist,
@@ -11,15 +11,52 @@ import {
   removeFromWishlist,
 } from "./supabase/wishlist";
 
+// A cart line is identified by the variant it resolves to — that's the single
+// source of truth for inventory and pricing. Variant-less products (or carts
+// persisted before variants existed) fall back to the product+size+colour
+// triple so they still de-dupe sensibly.
+export function cartLineKey(
+  item: Pick<CartItem, "variantId" | "product" | "size" | "color">
+): string {
+  if (item.variantId) return `v:${item.variantId}`;
+  return `p:${item.product.id}:${item.size}:${item.color.name}`;
+}
+
+// Resolve the variant for a (size, colour) selection. Only constrains the axes
+// the product actually varies on, so a size-only product isn't forced to match
+// the "Default" colour sentinel (which would silently yield no variant).
+export function resolveVariant(
+  product: Product,
+  size: string,
+  colorName: string
+): ProductVariant | undefined {
+  return product.variants?.find(
+    (v) =>
+      (product.sizes.length === 0 || (v.size ?? "") === size) &&
+      (product.colors.length === 0 || (v.colorName ?? "") === colorName)
+  );
+}
+
+// Images carry no colour/variant FK in the DB, so a positional colour→image
+// index is only trustworthy when there's exactly one image per colour.
+// Otherwise the index is noise and we fall back to the primary image.
+function pickLineImage(product: Product, color: ProductColor): string | undefined {
+  if (product.colors.length > 1 && product.images.length === product.colors.length) {
+    const idx = product.colors.findIndex((c) => c.name === color.name);
+    if (idx >= 0 && product.images[idx]) return product.images[idx];
+  }
+  return product.images[0];
+}
+
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
   wishlist: string[];
   _userId: string | null;
   _wishlistChannel: RealtimeChannel | null;
-  addItem: (product: Product, size: string, color: ProductColor) => void;
-  removeItem: (productId: string, size: string, colorName: string) => void;
-  updateQuantity: (productId: string, size: string, colorName: string, qty: number) => void;
+  addItem: (product: Product, size: string, color: ProductColor, variant?: ProductVariant) => void;
+  removeItem: (item: CartItem) => void;
+  updateQuantity: (item: CartItem, qty: number) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -40,63 +77,47 @@ export const useCartStore = create<CartStore>()(
       _userId: null,
       _wishlistChannel: null,
 
-      addItem: (product, size, color) => {
-        const existing = get().items.find(
-          (i) =>
-            i.product.id === product.id &&
-            i.size === size &&
-            i.color.name === color.name
-        );
-        if (existing) {
-          set((s) => ({
-            items: s.items.map((i) =>
-              i.product.id === product.id &&
-              i.size === size &&
-              i.color.name === color.name
-                ? { ...i, quantity: i.quantity + 1 }
-                : i
-            ),
-          }));
-        } else {
-          // Resolve the matching variant row so the order route can decrement
-          // the right inventory bucket. Falls back to undefined for products
-          // that only carry base inventory.
-          const variantId = product.variants?.find(
-            (v) =>
-              (v.size ?? "") === size &&
-              (v.colorName ?? "") === color.name
-          )?.id
-            ?? product.variants?.find(
-              (v) => v.size === size || v.colorName === color.name
-            )?.id;
-          set((s) => ({
-            items: [...s.items, { product, size, color, quantity: 1, variantId }],
-          }));
-        }
-        set({ isOpen: true });
+      addItem: (product, size, color, variant) => {
+        // The selected variant is the source of truth. Trust the one the product
+        // page resolved; only fall back to matching here for older callers.
+        const resolved = variant ?? resolveVariant(product, size, color.name);
+        const draft: CartItem = {
+          product,
+          size,
+          color,
+          quantity: 1,
+          variantId: resolved?.id,
+          selectedImage: pickLineImage(product, color),
+        };
+        const key = cartLineKey(draft);
+
+        set((s) => {
+          const existing = s.items.find((i) => cartLineKey(i) === key);
+          return {
+            items: existing
+              ? s.items.map((i) =>
+                  cartLineKey(i) === key ? { ...i, quantity: i.quantity + 1 } : i
+                )
+              : [...s.items, draft],
+            isOpen: true,
+          };
+        });
       },
 
-      removeItem: (productId, size, colorName) => {
-        set((s) => ({
-          items: s.items.filter(
-            (i) =>
-              !(i.product.id === productId && i.size === size && i.color.name === colorName)
-          ),
-        }));
+      removeItem: (item) => {
+        const key = cartLineKey(item);
+        set((s) => ({ items: s.items.filter((i) => cartLineKey(i) !== key) }));
       },
 
-      updateQuantity: (productId, size, colorName, qty) => {
+      updateQuantity: (item, qty) => {
         if (qty < 1) {
-          get().removeItem(productId, size, colorName);
+          get().removeItem(item);
           return;
         }
+        const key = cartLineKey(item);
         set((s) => ({
           items: s.items.map((i) =>
-            i.product.id === productId &&
-            i.size === size &&
-            i.color.name === colorName
-              ? { ...i, quantity: qty }
-              : i
+            cartLineKey(i) === key ? { ...i, quantity: qty } : i
           ),
         }));
       },

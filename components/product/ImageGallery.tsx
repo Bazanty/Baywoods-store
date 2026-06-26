@@ -22,7 +22,7 @@ export default function ImageGallery({ images, productName }: ImageGalleryProps)
         <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto no-scrollbar lg:max-h-[520px]">
           {images.map((src, i) => (
             <button
-              key={i}
+              key={src}
               onClick={() => setActive(i)}
               className={cn(
                 "relative shrink-0 w-14 h-14 overflow-hidden border transition-colors group",

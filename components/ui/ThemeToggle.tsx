@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import Switch from "@/components/ui/Switch";
 
 export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
@@ -12,23 +12,22 @@ export default function ThemeToggle() {
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  const toggle = () => {
-    const next = !dark;
+  const toggle = (next: boolean) => {
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     try { localStorage.setItem("bw_theme", next ? "dark" : "light"); } catch { /* */ }
   };
 
-  // Render a same-size placeholder to avoid layout shift before hydration
-  if (!mounted) return <span className="w-9 h-9 inline-block" />;
+  // Same-size placeholder to avoid layout shift before hydration.
+  if (!mounted) return <span className="inline-block w-10 h-[22px]" />;
 
   return (
-    <button
-      onClick={toggle}
-      className="p-2.5 text-ink/70 hover:text-ink transition-colors"
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {dark ? <Sun size={18} /> : <Moon size={18} />}
-    </button>
+    <Switch
+      size="sm"
+      checked={dark}
+      onChange={toggle}
+      ariaLabel={dark ? "Switch to light mode" : "Switch to dark mode"}
+      className="mr-1"
+    />
   );
 }

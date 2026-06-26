@@ -52,10 +52,17 @@ function minutesSince(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
 }
 
+function isManualTill(payment: Payment): boolean {
+  return !!payment.checkout_request_id?.startsWith("manual_");
+}
+
 function paymentIssue(payment: Payment): string | null {
   const order = payment.orders;
   if (payment.status === "paid" && order?.payment_status !== "paid") {
     return "Paid payment, order not marked paid";
+  }
+  if (isManualTill(payment) && payment.status === "pending") {
+    return "Verify in M-Pesa Business — then confirm";
   }
   if (payment.status === "pending" && minutesSince(payment.created_at) >= 15) {
     return "Callback delayed or payment stuck pending";
@@ -138,23 +145,27 @@ export default function PaymentReconciliationClient({
           <StatusLine ok={diagnostics.callbackUrlOk} text={diagnostics.callbackUrlOk ? "Looks valid" : diagnostics.callbackUrlIssues.join(" ")} />
         </div>
         <div className="bg-cream border border-ink/10 p-5">
-          <p className="text-xs uppercase tracking-wider text-muted mb-1">Lipana Mode</p>
+          <p className="text-xs uppercase tracking-wider text-muted mb-1">Daraja Mode</p>
           <p className="text-sm font-medium text-ink">
             {diagnostics.environment} {diagnostics.mockMode ? "/ mock" : ""}
           </p>
           <StatusLine
             ok={diagnostics.productionReady}
-            text={diagnostics.productionReady ? "Production-ready settings" : "Review before production"}
+            text={diagnostics.productionReady ? "Production-ready" : "Review before going live"}
           />
         </div>
         <div className="bg-cream border border-ink/10 p-5">
-          <p className="text-xs uppercase tracking-wider text-muted mb-1">Webhook Signature</p>
+          <p className="text-xs uppercase tracking-wider text-muted mb-1">Credentials</p>
           <p className="text-sm font-medium text-ink">
-            {diagnostics.skipSignatureCheck ? "Skipped" : "Required"}
+            {Object.values(diagnostics.credentials).every(Boolean) ? "All set" : "Incomplete"}
           </p>
           <StatusLine
-            ok={!diagnostics.skipSignatureCheck}
-            text={diagnostics.skipSignatureCheck ? "Only use this for local testing" : "Lipana webhook signing active"}
+            ok={Object.values(diagnostics.credentials).every(Boolean)}
+            text={
+              Object.values(diagnostics.credentials).every(Boolean)
+                ? "Key, secret, shortcode, passkey present"
+                : "One or more Daraja credentials are missing"
+            }
           />
         </div>
       </section>
@@ -223,6 +234,11 @@ export default function PaymentReconciliationClient({
                       <span className={`text-[11px] px-2 py-0.5 font-medium ${ORDER_STATUS_STYLES[orderStatus]}`}>
                         {orderStatusLabel(orderStatus)}
                       </span>
+                      {isManualTill(payment) && (
+                        <span className="text-[11px] px-2 py-0.5 font-medium bg-citrine/30 text-ink">
+                          Manual Till
+                        </span>
+                      )}
                       {issue && (
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 bg-danger/10 text-danger">
                           <AlertTriangle size={11} /> {issue}
@@ -275,7 +291,7 @@ export default function PaymentReconciliationClient({
                       onClick={() => runAction(payment.id, () => queryMpesaPayment(payment.id))}
                       className="inline-flex items-center gap-1.5 text-xs border border-stone px-3 py-1.5 text-ink hover:border-ink disabled:opacity-40"
                     >
-                      <RefreshCw size={12} /> Query Lipana
+                      <RefreshCw size={12} /> Query Daraja
                     </button>
                     <button
                       type="button"
@@ -306,6 +322,7 @@ export default function PaymentReconciliationClient({
                       <input
                         name="receipt"
                         placeholder="Verified receipt"
+                        defaultValue={payment.mpesa_receipt ?? ""}
                         className="text-xs border border-stone bg-cream px-2.5 py-1.5 text-ink outline-none focus:border-ink"
                       />
                       <input

@@ -3,6 +3,9 @@ import { getMpesaDiagnostics } from "@/lib/mpesaDiagnostics";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import PaymentReconciliationClient from "./PaymentReconciliationClient";
 
+const MANUAL_MODE = process.env.NEXT_PUBLIC_MPESA_MANUAL === "true";
+const MPESA_TILL = process.env.NEXT_PUBLIC_MPESA_TILL?.trim() || "5386846";
+
 export const dynamic = "force-dynamic";
 
 async function getMpesaPayments() {
@@ -53,6 +56,19 @@ export default async function AdminPaymentsPage() {
           / Callback diagnostics and payment reconciliation
         </p>
       </div>
+
+      {MANUAL_MODE && (
+        <div className="mb-6 border border-citrine bg-citrine/10 px-5 py-4">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-ink mb-1">
+            / Manual Buy Goods mode active — STK push disabled
+          </p>
+          <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted leading-relaxed">
+            Customers pay via M-Pesa Buy Goods → Till <span className="text-ink">{MPESA_TILL}</span> and submit their confirmation code at checkout.
+            Each order below marked <strong className="text-ink">Manual Till</strong> needs you to verify the code in your{" "}
+            <strong className="text-ink">M-Pesa Business</strong> notifications, then hit <strong className="text-ink">Confirm paid</strong>.
+          </p>
+        </div>
+      )}
 
       <PaymentReconciliationClient
         payments={payments as any}

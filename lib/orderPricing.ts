@@ -42,6 +42,9 @@ export interface CreateOrderPayload {
   items: ClientOrderItem[];
   sessionId?: string;
   couponCode?: string;
+  // Manual M-Pesa mode: the confirmation code the customer pasted after paying
+  // the Buy Goods Till. Recorded against a pending payment for admin review.
+  mpesaCode?: string;
 }
 
 export interface ResolvedItem {

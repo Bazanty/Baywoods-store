@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         p_checkout_request_id: cleanCheckoutRequestId,
         p_merchant_request_id: result.MerchantRequestID ?? payment.merchant_request_id ?? null,
         p_result_code: "0",
-        p_result_desc: resultDesc ?? "Lipana confirmed the M-Pesa payment.",
+        p_result_desc: resultDesc ?? "Daraja confirmed the M-Pesa payment.",
         p_receipt: result.MpesaReceiptNumber ?? null,
         p_phone: result.PhoneNumber ? formatPhone(result.PhoneNumber) : payment.mpesa_phone ?? null,
         p_amount: result.Amount ?? Number(payment.mpesa_amount ?? payment.amount),
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
         return paymentResponse(payment, {
           resultCode: "0",
           callbackPending: true,
-          resultDesc: "Lipana confirmed the payment. Waiting for the webhook to update the order.",
+          resultDesc: "Daraja confirmed the payment. Waiting for the callback to update the order.",
         });
       }
 
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       payment = await readPayment(db, cleanCheckoutRequestId);
       return paymentResponse(payment, {
         resultCode: "0",
-        resultDesc: resultDesc ?? "Lipana confirmed the M-Pesa payment.",
+        resultDesc: resultDesc ?? "Daraja confirmed the M-Pesa payment.",
       });
     }
 

@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
 import { getClientIp, rateLimit } from "@/lib/security";
 import { signOrderToken } from "@/lib/orderAccessToken";
+import { formatPhone, isManualMpesaEnabled, isLikelyMpesaCode } from "@/lib/mpesa";
 import {
   recomputeOrder,
   validateReservedStock,
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       paymentMethod,
       items,
       sessionId,
+      mpesaCode,
     } = payload;
 
     if (!items?.length) {
@@ -52,6 +54,18 @@ export async function POST(req: NextRequest) {
     }
     if (paymentMethod !== "mpesa") {
       return NextResponse.json({ error: "Only M-Pesa checkout is currently supported." }, { status: 400 });
+    }
+
+    // In manual mode the customer must hand us the Till confirmation code up
+    // front — it's the only thread linking their payment to this order until an
+    // admin verifies it.
+    const manualMode = isManualMpesaEnabled();
+    const normalizedCode = mpesaCode?.trim().toUpperCase() ?? "";
+    if (manualMode && !isLikelyMpesaCode(normalizedCode)) {
+      return NextResponse.json(
+        { error: "Enter the M-Pesa confirmation code from your payment SMS (e.g. QJK3B7WCLP)." },
+        { status: 400 }
+      );
     }
 
     const db = getAdmin();
@@ -134,6 +148,30 @@ export async function POST(req: NextRequest) {
       await db.from("orders").delete().eq("id", orderId);
       await releaseReservationSession(db, sessionId);
       return NextResponse.json({ error: "Failed to create order items" }, { status: 500 });
+    }
+
+    // Manual mode: stand up a pending payment carrying the customer's claimed
+    // code so it surfaces on /admin/payments. finalize_mpesa_payment keys off
+    // checkout_request_id, so we mint a deterministic "manual_" id here that the
+    // admin confirm flow can later finalize. A payment insert hiccup shouldn't
+    // sink the order — the admin can still reconcile from the order itself.
+    if (manualMode) {
+      const { error: paymentError } = await db.from("payments").insert({
+        order_id: orderId,
+        method: "mpesa",
+        amount: resolved.total,
+        currency: "KES",
+        status: "pending",
+        checkout_request_id: `manual_${orderId}`,
+        mpesa_phone: formatPhone(phone),
+        mpesa_amount: resolved.total,
+        mpesa_receipt: normalizedCode,
+        result_desc: "Customer-submitted M-Pesa code — verify against M-Pesa Business notifications before confirming.",
+      });
+      if (paymentError) {
+        Sentry.captureException(paymentError);
+        console.error("[orders] manual payment insert error:", paymentError);
+      }
     }
 
     const accessToken = signOrderToken(orderId);

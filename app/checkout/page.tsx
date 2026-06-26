@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Lock } from "lucide-react";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, cartLineKey } from "@/lib/store";
 import { useAuthStore } from "@/lib/authStore";
 import { formatPrice } from "@/lib/utils";
 import Input from "@/components/ui/Input";
@@ -16,6 +16,13 @@ import { KENYA_COUNTIES } from "@/lib/kenya";
 
 type Step = "shipping" | "payment" | "review";
 type MpesaStatus = "idle" | "pending" | "success" | "failed";
+
+// Manual Buy Goods checkout while STK push waits on live credentials. Read the
+// NEXT_PUBLIC_* flags directly (not via lib/mpesa, which pulls in node:crypto)
+// so the client bundle stays clean.
+const MANUAL_MPESA = process.env.NEXT_PUBLIC_MPESA_MANUAL === "true";
+const MPESA_TILL = process.env.NEXT_PUBLIC_MPESA_TILL?.trim() || "5386846";
+
 const STEPS: Step[] = ["shipping", "payment", "review"];
 const STEP_LABELS: Record<Step, string> = {
   shipping: "Shipping",
@@ -71,6 +78,8 @@ export default function CheckoutPage() {
   const [reserveError, setReserveError] = useState<string | null>(null);
   const [reserving, setReserving] = useState(false);
   const [mpesaPhoneError, setMpesaPhoneError] = useState<string | null>(null);
+  const [mpesaCode, setMpesaCode] = useState("");
+  const [mpesaCodeError, setMpesaCodeError] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | "new" | null>(null);
 
@@ -234,6 +243,7 @@ export default function CheckoutPage() {
     discountAmount: promoDiscount,
     total,
     paymentMethod: "mpesa",
+    mpesaCode: MANUAL_MPESA ? mpesaCode.trim().toUpperCase() : undefined,
     sessionId: reservedRef.current ? sessionIdRef.current : undefined,
     expectedConsumed: reservedRef.current ? reservedCountRef.current : undefined,
     couponCode: promoDiscount > 0 ? promoCode.trim().toUpperCase() : undefined,
@@ -241,7 +251,11 @@ export default function CheckoutPage() {
       productId: item.product.id,
       variantId: item.variantId ?? null,
       productName: item.product.name,
-      variantName: `${item.size} / ${item.color.name}`,
+      // Build the human label from whichever axes actually apply — drop the
+      // "Default" colour sentinel used by size-only products.
+      variantName: [item.size, item.color.name]
+        .filter((part) => part && part !== "Default")
+        .join(" / "),
       quantity: item.quantity,
     })),
   });
@@ -324,7 +338,7 @@ export default function CheckoutPage() {
             productId: i.product.id,
             name: i.product.name,
             slug: i.product.slug,
-            image: i.product.images[0],
+            image: i.selectedImage ?? i.product.images[0],
             size: i.size,
             color: i.color.name,
             quantity: i.quantity,
@@ -408,13 +422,49 @@ export default function CheckoutPage() {
     return "Enter a valid Kenyan mobile number (e.g. 0712 345 678)";
   };
 
+  // M-Pesa confirmation codes are 10 alphanumerics (e.g. QJK3B7WCLP). Accept
+  // 8-12 uppercased to tolerate format drift — the admin verifies anyway.
+  const validateMpesaCode = (code: string): string | null => {
+    const cleaned = code.trim().toUpperCase();
+    if (!cleaned) return "Enter your M-Pesa confirmation code";
+    if (!/^[A-Z0-9]{8,12}$/.test(cleaned)) return "That doesn't look like an M-Pesa code (e.g. QJK3B7WCLP)";
+    return null;
+  };
+
   const handleOrder = async () => {
     const err = validateMpesaPhone(mpesaPhone);
     if (err) {
       setMpesaPhoneError(err);
+      setStep("payment");
+      return;
+    }
+    if (MANUAL_MPESA) {
+      const codeErr = validateMpesaCode(mpesaCode);
+      if (codeErr) {
+        setMpesaCodeError(codeErr);
+        setStep("payment");
+        return;
+      }
+      await handleManualPayment();
       return;
     }
     await handleMpesaPayment();
+  };
+
+  // Manual Buy Goods flow: the customer has already paid the Till and pasted
+  // their code. We just persist the order as PENDING_PAYMENT (with the code
+  // attached) and hand them off to the order page — no STK push, no polling.
+  // An admin verifies the code and marks it PAID from /admin/payments.
+  const handleManualPayment = async () => {
+    setLoading(true);
+    setMpesaStatus("idle");
+    setMpesaMessage("");
+    const persisted = await persistOrder();
+    if (!persisted) return;
+    reservedRef.current = false;
+    setMpesaStatus("success");
+    setLoading(false);
+    goToOrder(persisted.orderId, persisted.accessToken);
   };
 
   const handleMpesaPayment = async () => {
@@ -783,6 +833,72 @@ export default function CheckoutPage() {
                   <h2 className="font-display font-medium text-3xl tracking-[-0.02em] text-ink mb-6">How you&apos;re paying.</h2>
 
                   <div className="space-y-4">
+                      {MANUAL_MPESA && (
+                        <>
+                          <div className="border border-ink/20 bg-cream p-5">
+                            <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted mb-3">/ Pay via M-Pesa — Buy Goods</p>
+                            <div className="flex items-end justify-between gap-4 pb-4 border-b border-ink/15">
+                              <div>
+                                <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted">Till number</p>
+                                <p className="font-display text-3xl tracking-[-0.02em] text-ink tabular-nums mt-1">{MPESA_TILL}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted">Amount</p>
+                                <p className="font-display text-2xl tracking-[-0.02em] text-ink tabular-nums mt-1">{formatPrice(total)}</p>
+                              </div>
+                            </div>
+                            <ol className="mt-4 space-y-2 font-mono text-[10px] tracking-[0.1em] uppercase text-ink/70 leading-relaxed list-none">
+                              <li><span className="text-ink">01 —</span> M-Pesa menu → Lipa na M-Pesa → Buy Goods and Services</li>
+                              <li><span className="text-ink">02 —</span> Till number <span className="text-ink">{MPESA_TILL}</span></li>
+                              <li><span className="text-ink">03 —</span> Amount <span className="text-ink">{formatPrice(total)}</span>, then enter your PIN</li>
+                              <li><span className="text-ink">04 —</span> Paste the M-Pesa code from the confirmation SMS below</li>
+                            </ol>
+                          </div>
+
+                          <div>
+                            <Input
+                              label="M-Pesa Phone Number (you paid from)"
+                              type="tel"
+                              value={mpesaPhone}
+                              onChange={(e) => {
+                                setMpesaPhone(e.target.value);
+                                if (mpesaPhoneError) setMpesaPhoneError(null);
+                              }}
+                              onBlur={() => setMpesaPhoneError(validateMpesaPhone(mpesaPhone))}
+                              placeholder="0712 345 678"
+                            />
+                            {mpesaPhoneError && (
+                              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger mt-2">
+                                / {mpesaPhoneError}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <Input
+                              label="M-Pesa Confirmation Code"
+                              value={mpesaCode}
+                              onChange={(e) => {
+                                setMpesaCode(e.target.value.toUpperCase());
+                                if (mpesaCodeError) setMpesaCodeError(null);
+                              }}
+                              onBlur={() => setMpesaCodeError(validateMpesaCode(mpesaCode))}
+                              placeholder="QJK3B7WCLP"
+                            />
+                            {mpesaCodeError ? (
+                              <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-danger mt-2">
+                                / {mpesaCodeError}
+                              </p>
+                            ) : (
+                              <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-muted mt-2 leading-relaxed">
+                                / We verify this against M-Pesa before dispatch. Your order is held meanwhile.
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      {!MANUAL_MPESA && (
+                      <>
                       <div className="border-l-2 border-citrine bg-cream pl-4 py-3">
                         <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-ink mb-1">/ M-Pesa STK push</p>
                         <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-muted leading-relaxed">
@@ -853,6 +969,8 @@ export default function CheckoutPage() {
                             </p>
                           )}
                         </div>
+                      )}
+                      </>
                       )}
                       {mpesaStatus === "pending" && mpesaMessage && (
                         <div className="border-l-2 border-citrine bg-cream pl-4 py-3 flex items-center gap-3">
@@ -926,8 +1044,15 @@ export default function CheckoutPage() {
                         <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted mb-2">
                           / Payment
                         </p>
-                        <p className="font-display text-base tracking-[-0.01em] text-ink uppercase">M-Pesa</p>
+                        <p className="font-display text-base tracking-[-0.01em] text-ink uppercase">
+                          {MANUAL_MPESA ? `M-Pesa · Till ${MPESA_TILL}` : "M-Pesa"}
+                        </p>
                         <p className="font-mono text-xs tabular-nums text-muted mt-1">{mpesaPhone}</p>
+                        {MANUAL_MPESA && (
+                          <p className="font-mono text-[10px] tracking-[0.16em] uppercase text-muted mt-1">
+                            Code · <span className="text-ink">{mpesaCode || "—"}</span>
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={() => setStep("payment")}
@@ -964,11 +1089,14 @@ export default function CheckoutPage() {
                       loading={loading}
                       onClick={handleOrder}
                     >
-                      Pay {formatPrice(total)} via M-Pesa
+                      {MANUAL_MPESA ? `I've paid ${formatPrice(total)} — place order` : `Pay ${formatPrice(total)} via M-Pesa`}
                     </Button>
                   </div>
                   <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-muted text-center mt-4 flex items-center justify-center gap-2">
-                    <Lock size={10} /> All transactions encrypted and secure
+                    <Lock size={10} />
+                    {MANUAL_MPESA
+                      ? "We confirm your M-Pesa code before dispatch"
+                      : "All transactions encrypted and secure"}
                   </p>
                 </motion.div>
               )}
@@ -982,10 +1110,10 @@ export default function CheckoutPage() {
 
               <ul className="space-y-4 mb-6 border-t border-ink/15 pt-4">
                 {items.map((item) => (
-                  <li key={`${item.product.id}-${item.size}-${item.color.name}`} className="flex gap-3">
+                  <li key={cartLineKey(item)} className="flex gap-3">
                     <div className="relative w-14 h-16 bg-beige-dark shrink-0 overflow-hidden border border-ink/10">
                       <Image
-                        src={item.product.images[0]}
+                        src={item.selectedImage ?? item.product.images[0]}
                         alt={item.product.name}
                         fill
                         className="object-cover"

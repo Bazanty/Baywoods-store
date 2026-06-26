@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Category, FilterState } from "@/lib/types";
+import Switch from "@/components/ui/Switch";
 
 const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "One Size"];
 const WAIST_SIZES = ["28", "30", "32", "34", "36", "38"];
@@ -73,8 +74,8 @@ function SizeGroup({ label, sizes, selected, onToggle }: {
             className={cn(
               "min-w-[2.25rem] px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase border transition-colors duration-150",
               selected.includes(size)
-                ? "bg-ink text-citrine border-ink"
-                : "border-ink/25 text-ink hover:border-ink"
+                ? "bg-gold text-cream border-gold"
+                : "border-ink/25 text-ink hover:border-gold/70"
             )}
           >
             {size}
@@ -189,7 +190,7 @@ export default function FilterSidebar({
                       type="checkbox"
                       checked={active}
                       onChange={() => toggleCategory(value)}
-                      className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
+                      className="appearance-none w-3.5 h-3.5 rounded-[3px] border border-ink/40 checked:bg-gold checked:border-gold hover:border-gold/70 cursor-pointer transition-colors"
                     />
                     <span className={cn("text-sm transition-colors", active ? "text-ink" : "text-ink/70 group-hover:text-ink")}>
                       {label}
@@ -217,7 +218,7 @@ export default function FilterSidebar({
                       type="checkbox"
                       checked={active}
                       onChange={() => toggleBrand(brand)}
-                      className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
+                      className="appearance-none w-3.5 h-3.5 rounded-[3px] border border-ink/40 checked:bg-gold checked:border-gold hover:border-gold/70 cursor-pointer transition-colors"
                     />
                     <span className={cn("text-sm transition-colors", active ? "text-ink" : "text-ink/70 group-hover:text-ink")}>
                       {brand}
@@ -251,7 +252,7 @@ export default function FilterSidebar({
                     onClick={() => toggleColor(name)}
                     className={cn(
                       "w-4 h-4 shrink-0 transition-all border",
-                      active ? "border-ink ring-1 ring-ink ring-offset-2 ring-offset-cream" : "border-ink/30 group-hover:border-ink"
+                      active ? "border-gold ring-1 ring-gold ring-offset-2 ring-offset-cream" : "border-ink/30 group-hover:border-gold/70"
                     )}
                     style={{ backgroundColor: hex }}
                     aria-pressed={active}
@@ -280,7 +281,7 @@ export default function FilterSidebar({
                 priceRange: [filters.priceRange[0], Number(e.target.value)],
               })
             }
-            className="w-full accent-ink"
+            className="w-full accent-gold"
           />
           <div className="flex justify-between font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
             <span>KSh 0</span>
@@ -290,15 +291,17 @@ export default function FilterSidebar({
       </FilterGroup>
 
       <FilterGroup n="06" title="Availability">
-        <label className="flex items-center gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
+        <div className="flex items-center justify-between gap-3">
+          <span className={cn("text-sm transition-colors", filters.inStockOnly ? "text-gold" : "text-ink/70")}>
+            In stock only
+          </span>
+          <Switch
+            size="sm"
             checked={filters.inStockOnly}
-            onChange={(e) => onChange({ ...filters, inStockOnly: e.target.checked })}
-            className="appearance-none w-3 h-3 border border-ink/40 checked:bg-ink checked:border-ink cursor-pointer"
+            onChange={(next) => onChange({ ...filters, inStockOnly: next })}
+            ariaLabel="Show in-stock items only"
           />
-          <span className="text-sm text-ink/70">In stock only</span>
-        </label>
+        </div>
       </FilterGroup>
     </aside>
   );

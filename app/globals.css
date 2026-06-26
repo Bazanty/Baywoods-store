@@ -8,34 +8,49 @@
   --font-sans:    "Inter", system-ui, sans-serif;
   --font-mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* Atelier Brutalist — Paper / Carbon / Citrine + smoke grays */
-  --c-cream:        244 241 234;   /* paper */
-  --c-beige:        237 234 224;   /* paper soft */
-  --c-beige-dark:   221 217 204;   /* smoke-1 */
-  --c-ink:           14  14  12;   /* carbon */
-  --c-forest:        14  14  12;   /* carbon (primary action) */
-  --c-forest-dark:    0   0   0;   /* pure black */
-  --c-forest-light: 220 250  56;   /* citrine — the only pop */
-  --c-forest-muted: 234 244 191;   /* citrine washed */
-  --c-stone:        220 217 207;   /* hairline rule */
-  --c-stone-light:  232 229 220;
-  --c-muted:        110 107  97;   /* smoke-deep */
-  --c-danger:       193  47  47;
+  /* Baywoods — Vintage Luxury Sportswear.
+   * Dark, inverted palette: washed brown + metallic gold + soft cream on
+   * deep espresso/black. Token names are kept (cream/ink/forest…) so the whole
+   * codebase re-themes through these vars. In this dark scheme:
+   *   cream  = dark surfaces (page + cards)
+   *   ink    = soft cream (primary text, hairlines, light fills)
+   *   forest-light / gold = the metallic accent (was citrine green)
+   */
+  --c-cream:         28  19  16;   /* #1C1310 espresso — page + card base */
+  --c-beige:         42  26  22;   /* #2A1A16 dark chocolate — raised surface */
+  --c-beige-dark:    74  47  39;   /* #4A2F27 vintage washed brown — image bg */
+  --c-ink:          243 232 210;   /* #F3E8D2 soft cream — primary text / light fills */
+  --c-forest:       243 232 210;   /* cream (light fills) */
+  --c-forest-dark:  184 137  69;   /* gold (hover on light fills) */
+  --c-forest-light: 184 137  69;   /* #B88945 metallic gold — the accent */
+  --c-forest-muted: 120  90  50;   /* bronze washed */
+  --c-stone:         64  44  37;   /* warm hairline rule */
+  --c-stone-light:   48  33  28;
+  --c-muted:        139 129 120;   /* #8B8178 muted grey — secondary text */
+  --c-danger:       224  92  92;
+
+  --c-gold:         184 137  69;   /* #B88945 metallic gold / bronze */
+  --c-gold-dark:    138 101  51;   /* deepened bronze for hovers */
 }
 
+/* The brand identity is fixed-dark, so .dark mirrors :root exactly — the theme
+ * toggle never changes the luxury palette. */
 .dark {
-  --c-cream:         12  12  10;
-  --c-beige:         20  20  18;
-  --c-beige-dark:    28  28  25;
-  --c-ink:          240 237 226;
-  --c-forest:       240 237 226;
-  --c-forest-dark:  255 255 255;
-  --c-forest-light: 220 250  56;
-  --c-forest-muted:  42  48  20;
-  --c-stone:         48  48  42;
-  --c-stone-light:   34  34  30;
-  --c-muted:        148 144 132;
+  --c-cream:         28  19  16;
+  --c-beige:         42  26  22;
+  --c-beige-dark:    74  47  39;
+  --c-ink:          243 232 210;
+  --c-forest:       243 232 210;
+  --c-forest-dark:  184 137  69;
+  --c-forest-light: 184 137  69;
+  --c-forest-muted: 120  90  50;
+  --c-stone:         64  44  37;
+  --c-stone-light:   48  33  28;
+  --c-muted:        139 129 120;
   --c-danger:       224  92  92;
+
+  --c-gold:         184 137  69;
+  --c-gold-dark:    138 101  51;
 }
 
 @layer base {
@@ -51,7 +66,8 @@
   }
 
   ::selection {
-    @apply bg-ink text-cream;
+    background: rgb(var(--c-gold));
+    color: rgb(var(--c-cream));
   }
 
   ::-webkit-scrollbar {
@@ -64,11 +80,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-ink;
+    background: rgb(var(--c-stone));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--c-forest-light));
+    background: rgb(var(--c-gold));
   }
 }
 
@@ -77,21 +93,21 @@
     @apply px-4 sm:px-6 lg:px-10 xl:px-16;
   }
 
-  /* Brutalist buttons — flat, hard edges, square corners */
+  /* Luxury buttons — rounded, bold, gold primary on dark */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-ink text-cream font-mono text-xs font-medium uppercase tracking-[0.16em] px-6 py-3.5 transition-all duration-200 hover:bg-forest-dark active:translate-y-[1px];
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold text-cream font-mono text-xs font-semibold uppercase tracking-[0.16em] px-7 py-3.5 transition-all duration-200 hover:bg-gold-dark hover:shadow-[0_8px_30px_-8px_rgba(184,137,69,0.6)] active:translate-y-[1px];
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 border border-ink text-ink font-mono text-xs font-medium uppercase tracking-[0.16em] px-6 py-3.5 transition-all duration-200 hover:bg-ink hover:text-cream active:translate-y-[1px];
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-gold/60 text-cream font-mono text-xs font-semibold uppercase tracking-[0.16em] px-7 py-3.5 transition-all duration-200 hover:border-gold hover:text-gold active:translate-y-[1px];
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 text-ink font-mono text-xs font-medium uppercase tracking-[0.16em] px-4 py-2 transition-colors duration-200 hover:text-forest-light;
+    @apply inline-flex items-center justify-center gap-2 rounded-full text-ink font-mono text-xs font-medium uppercase tracking-[0.16em] px-4 py-2 transition-colors duration-200 hover:text-gold;
   }
 
   .input-base {
-    @apply w-full bg-transparent border-0 border-b border-ink/30 text-ink text-sm px-0 py-3 outline-none transition-colors duration-150 focus:border-ink placeholder:text-muted rounded-none;
+    @apply w-full bg-transparent border-0 border-b border-ink/25 text-ink text-sm px-0 py-3 outline-none transition-colors duration-150 focus:border-gold placeholder:text-muted rounded-none;
   }
 
   .label-base {

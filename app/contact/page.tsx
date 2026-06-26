@@ -15,7 +15,7 @@ const faqs = [
   {
     id: "mpesa",
     q: "Can I pay with M-Pesa?",
-    a: "Yes! We support M-Pesa STK Push through Lipana. You'll receive a payment prompt on your phone at checkout.",
+    a: "Yes! We accept M-Pesa payments. Pay via Buy Goods to our Till and enter your confirmation code at checkout.",
   },
   {
     id: "returns",

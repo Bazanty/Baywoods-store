@@ -2,6 +2,9 @@
 const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   async headers() {
     return [
       {

@@ -146,7 +146,7 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAll}
-                className="accent-forest"
+                className="accent-gold"
               />
             </th>
             <th className="px-4 py-3.5 text-xs font-medium text-muted tracking-wider uppercase w-12" />
@@ -178,7 +178,7 @@ export default function BulkActions({ products }: { products: ProductRow[] }) {
                   type="checkbox"
                   checked={selected.has(p.id)}
                   onChange={() => toggle(p.id)}
-                  className="accent-forest"
+                  className="accent-gold"
                 />
               </td>
               <td className="px-4 py-3">

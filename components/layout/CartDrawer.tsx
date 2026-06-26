@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, cartLineKey } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartDrawer() {
@@ -99,7 +99,7 @@ export default function CartDrawer() {
                     const unit = item.product.salePrice ?? item.product.price;
                     return (
                       <li
-                        key={`${item.product.id}-${item.size}-${item.color.name}`}
+                        key={cartLineKey(item)}
                         className="flex gap-4 px-6 py-5"
                       >
                         <Link
@@ -108,7 +108,7 @@ export default function CartDrawer() {
                           className="relative w-20 h-24 bg-beige shrink-0 overflow-hidden border border-ink/10"
                         >
                           <Image
-                            src={item.product.images[0]}
+                            src={item.selectedImage ?? item.product.images[0]}
                             alt={item.product.name}
                             fill
                             className="object-cover"
@@ -125,7 +125,7 @@ export default function CartDrawer() {
                               {item.product.name}
                             </Link>
                             <button
-                              onClick={() => removeItem(item.product.id, item.size, item.color.name)}
+                              onClick={() => removeItem(item)}
                               className="text-muted hover:text-danger transition-colors shrink-0 mt-1"
                               aria-label="Remove"
                             >
@@ -138,7 +138,7 @@ export default function CartDrawer() {
                           <div className="flex items-center justify-between mt-auto pt-3">
                             <div className="flex items-center border border-ink/30">
                               <button
-                                onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity - 1)}
+                                onClick={() => updateQuantity(item, item.quantity - 1)}
                                 className="w-7 h-7 flex items-center justify-center text-ink hover:bg-ink hover:text-cream transition-colors"
                                 aria-label="Decrease"
                               >
@@ -148,7 +148,7 @@ export default function CartDrawer() {
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity + 1)}
+                                onClick={() => updateQuantity(item, item.quantity + 1)}
                                 className="w-7 h-7 flex items-center justify-center text-ink hover:bg-ink hover:text-cream transition-colors"
                                 aria-label="Increase"
                               >
