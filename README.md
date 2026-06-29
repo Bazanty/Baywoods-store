@@ -17,8 +17,8 @@ The `backend/` FastAPI service is **optional and not in the request path**. It i
 - Next.js 14 App Router
 - React 18 and Tailwind CSS
 - Supabase Auth, Postgres, RLS, and RPC functions
-- M-Pesa STK push through Lipana
-- Resend email and Africa's Talking SMS
+- M-Pesa STK push through the direct Safaricom Daraja API
+- Resend email and Twilio WhatsApp notifications
 - Cloudinary product/admin uploads
 - Optional FastAPI service under `backend/`
 
@@ -46,10 +46,18 @@ Required minimum environment for the storefront:
 For local M-Pesa development, keep:
 
 ```env
-LIPANA_ENVIRONMENT=sandbox
-LIPANA_MOCK=true
-LIPANA_SKIP_SIGNATURE_CHECK=false
+MPESA_ENVIRONMENT=sandbox
+MPESA_MOCK=true
+# Manual Buy Goods Till fallback (active until live Daraja credentials are issued)
+NEXT_PUBLIC_MPESA_MANUAL=true
+NEXT_PUBLIC_MPESA_TILL=5386846
 ```
+
+With `NEXT_PUBLIC_MPESA_MANUAL=true`, checkout shows a Buy Goods Till and the
+customer pastes their confirmation code; the order is saved `PENDING_PAYMENT`
+and an admin confirms it from `/admin/payments`. Set it to `false` (and supply
+live Daraja credentials) to reactivate the automated STK push flow. When
+`MPESA_MOCK=true` the real Daraja STK push call is skipped entirely for local dev.
 
 Card payments are not active in the storefront. M-Pesa is the production checkout path.
 
@@ -83,17 +91,30 @@ uvicorn app.main:app --reload --port 8000
 ## Deployment Notes
 
 - Deploy the Next.js app as the main production service.
-- Configure Vercel Cron with `CRON_SECRET` for abandoned cart and reservation cleanup routes.
-- Set `LIPANA_WEBHOOK_URL` in the Lipana dashboard to the deployed Next.js callback route.
-- Keep `LIPANA_ENVIRONMENT=production` only in production with a live Lipana secret key.
+- Configure Vercel Cron with `CRON_SECRET` for abandoned cart and reservation cleanup routes (see `vercel.json`). The cron routes reject any request whose `Authorization: Bearer` header does not match `CRON_SECRET`.
+- Set `MPESA_CALLBACK_URL` to the deployed callback route and register it as the STK callback in the Daraja portal.
+- Set `MPESA_ENVIRONMENT=production` only in production, with live `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, and `MPESA_PASSKEY`.
 - Keep `backend/` separate unless you are ready to migrate frontend calls to an external API base URL.
 
-## M-Pesa Production Checks
+## M-Pesa Production Checks (Daraja)
 
-Use `/admin/payments` after deployment to verify the live M-Pesa setup:
+The store ships with the manual Buy Goods Till flow enabled
+(`NEXT_PUBLIC_MPESA_MANUAL=true`). To go live with automated STK push you must
+have real Daraja credentials and run a real low-value STK push — this cannot be
+verified without a live Safaricom account. Steps:
 
-- `LIPANA_WEBHOOK_URL` must be a public HTTPS URL ending in `/api/mpesa/callback`.
-- `LIPANA_SECRET_KEY` and `LIPANA_WEBHOOK_SECRET` must be configured.
-- `LIPANA_MOCK` and `LIPANA_SKIP_SIGNATURE_CHECK` should be off in production.
-- Run one low-value STK push, confirm the Lipana webhook reaches `/api/mpesa/callback`, then check that the payment has a receipt and the order moves to `PAID`.
-- If a payment stays pending, use the reconciliation actions in `/admin/payments` to query Lipana, replay a saved webhook, or manually confirm only after verifying the receipt in the M-Pesa portal.
+- Provide live `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, and `MPESA_PASSKEY` from the Daraja portal.
+- `MPESA_CALLBACK_URL` must be a public HTTPS URL ending in `/api/mpesa/callback`.
+- Set `MPESA_ENVIRONMENT=production` and `MPESA_MOCK=false`; flip `NEXT_PUBLIC_MPESA_MANUAL=false` to reactivate STK push.
+- The callback route trusts Safaricom's published IP ranges (`isSafaricomIp` in `lib/security.ts`) rather than a shared HMAC secret, so no webhook secret is required in production. `MPESA_WEBHOOK_SECRET` / `verifyDarajaWebhookSecret` are kept for reference only and are not wired into the live callback.
+- Run one low-value STK push, confirm the Daraja callback reaches `/api/mpesa/callback`, then check that the payment has a receipt and the order moves to `PAID`.
+- If a payment stays pending, use the reconciliation actions in `/admin/payments` to query Daraja, replay a saved callback, or manually confirm only after verifying the receipt in the M-Pesa Business portal.
+
+> **Auto-refund / reversal is intentionally disabled.** `isReversalConfigured()`
+> in `lib/mpesa.ts` returns `false` and `initiateReversal()` throws, so the
+> "Auto-refund via M-Pesa" button in `/admin/returns` is hidden. All refunds go
+> through the **manual** path, which restores inventory and flips the order to
+> `REFUNDED`. Wiring live reversals needs Daraja B2C/reversal credentials
+> (`InitiatorName`, `SecurityCredential`, result/timeout callback URLs) that are
+> not yet provisioned; the result callback at `/api/mpesa/reversal-callback` is
+> already implemented and waiting for them.

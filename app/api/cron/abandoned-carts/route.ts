@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendAbandonedCartEmail } from "@/lib/email";
 
-// Invoke this from Vercel Cron (hourly). Auth'd by a shared secret so it can't
-// be triggered by arbitrary POSTers and spam customer inboxes.
+// Invoke this from Vercel Cron (daily — see vercel.json). Auth'd by a shared
+// secret so it can't be triggered by arbitrary POSTers and spam customer inboxes.
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!secret || secret !== process.env.CRON_SECRET) {

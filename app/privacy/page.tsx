@@ -35,7 +35,7 @@ const sections = [
     body: [
       "Safaricom M-Pesa (via Daraja) — for mobile money processing.",
       "Resend — for transactional and marketing emails.",
-      "Africa's Talking — for SMS notifications.",
+      "Twilio — for WhatsApp order and shipping notifications.",
       "Cloudinary — for storing product and user-uploaded images.",
       "Supabase — our database and authentication provider, hosted on AWS.",
       "We do not sell, rent, or trade your personal data to third parties for their own marketing.",

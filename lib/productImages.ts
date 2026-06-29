@@ -160,3 +160,4 @@ export const productImages: Record<string, string[]> = {
     "https://res.cloudinary.com/dltbrta8h/image/upload/v1775887427/baywoodstore/timberland/wy3l54kbbjjgdme8sgg4.jpg"
   ]
 };
+ 
