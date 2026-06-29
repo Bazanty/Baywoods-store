@@ -1,6 +1,5 @@
-// Legacy Daraja fallback: old M-Pesa STK callbacks only run for requests
-// originating from Safaricom's documented callback IPs. Lipana webhooks use
-// HMAC signatures instead, covered in `tests/lipana.test.ts`.
+// Daraja STK callbacks only run for requests originating from Safaricom's
+// documented callback IP allowlist (see lib/security.ts isSafaricomIp).
 //
 // Note: the stock decrement itself lives in the `finalize_mpesa_payment` /
 // `consume_reservations` Postgres functions and needs an integration database

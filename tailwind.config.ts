@@ -15,6 +15,10 @@ const config: Config = {
           dark: "rgb(var(--c-beige-dark) / <alpha-value>)",
         },
         cream: "rgb(var(--c-cream) / <alpha-value>)",
+        gold: {
+          DEFAULT: "rgb(var(--c-gold) / <alpha-value>)",
+          dark: "rgb(var(--c-gold-dark) / <alpha-value>)",
+        },
         forest: {
           DEFAULT: "rgb(var(--c-forest) / <alpha-value>)",
           dark: "rgb(var(--c-forest-dark) / <alpha-value>)",

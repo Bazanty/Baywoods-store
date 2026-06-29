@@ -105,7 +105,7 @@ export default function ReturnActions({ id, status, refundStatus, mpesaRefundCon
           </button>
           {!mpesaRefundConfigured && (
             <p className="text-[10px] text-muted w-48 text-right leading-snug">
-              Auto-refund is not available on the Lipana adapter yet. Use manual refund recording.
+              Auto-refund via Daraja is not configured yet. Use manual refund recording.
             </p>
           )}
         </>

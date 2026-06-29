@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -8,6 +8,10 @@ import { motion } from "framer-motion";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useAuthStore } from "@/lib/authStore";
+
+// Hide Google sign-up until the Supabase Google provider has a valid Client
+// ID/secret. Set NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true once configured.
+const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
 
 export default function SignUpPage() {
   const [showPw, setShowPw] = useState(false);
@@ -20,6 +24,11 @@ export default function SignUpPage() {
     phone: "",
     password: "",
   });
+
+  // Defer the build-time-flagged Google block to after mount so server HTML and
+  // the first client render match (no hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const { signUp, signInWithOAuth, loading } = useAuthStore();
   const router = useRouter();
@@ -164,7 +173,7 @@ export default function SignUpPage() {
               </form>
             )}
 
-            {!success && (
+            {!success && mounted && GOOGLE_AUTH_ENABLED && (
               <>
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">

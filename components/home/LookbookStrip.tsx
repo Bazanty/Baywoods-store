@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
+import { CldImage } from "next-cloudinary";
 import { heroImages } from "@/lib/heroImages";
+import { featuredImages } from "@/lib/featuredMedia";
 
 // Pick a curated spread from the lookbook — vary the offsets for visual mix
 const PICKS = [7, 14, 22, 31, 44, 55, 67, 80, 91, 103].map((i) => heroImages[i % heroImages.length]);
@@ -27,6 +29,30 @@ export default function LookbookStrip() {
 
       {/* Scrollable strip — bleeds full width, snaps on mobile */}
       <div className="flex gap-3 overflow-x-auto scroll-px-4 snap-x snap-mandatory pl-4 sm:pl-6 lg:pl-10 xl:pl-16 pr-4 sm:pr-6 lg:pr-10 xl:pr-16 no-scrollbar pb-2">
+        {/* Newly uploaded drop — a curated lead, served through Cloudinary.
+            Full set lives in lib/featuredMedia.ts. */}
+        {featuredImages.slice(0, 12).map((img, i) => (
+          <motion.div
+            key={img.publicId}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.55, delay: Math.min(i, 4) * 0.07, ease: [0.22, 1, 0.36, 1] }}
+            className="relative shrink-0 snap-start overflow-hidden bg-stone-light"
+            style={{ width: "clamp(200px, 28vw, 320px)", aspectRatio: "3/4" }}
+          >
+            <CldImage
+              src={img.publicId}
+              alt={img.alt}
+              fill
+              crop="fill"
+              gravity="auto"
+              sizes="(max-width: 640px) 56vw, (max-width: 1024px) 28vw, 320px"
+              className="object-cover transition-transform duration-700 hover:scale-[1.04]"
+            />
+          </motion.div>
+        ))}
+
         {PICKS.map((src, i) => (
           <motion.div
             key={src}

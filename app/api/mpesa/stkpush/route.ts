@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import { initiateStkPush, formatPhone, isPaymentMockEnabled } from "@/lib/mpesa";
+import { initiateStkPush, formatPhone, isPaymentMockEnabled, isManualMpesaEnabled } from "@/lib/mpesa";
 import { getClientIp, rateLimit } from "@/lib/security";
 
 function getAdmin() {
@@ -36,6 +36,16 @@ async function failOrder(db: ReturnType<typeof getAdmin>, orderId: string, reaso
 
 export async function POST(req: NextRequest) {
   try {
+    // STK push is intentionally parked while we run manual Buy Goods checkout.
+    // The implementation below stays intact and reactivates the moment
+    // NEXT_PUBLIC_MPESA_MANUAL is flipped off and live credentials are in place.
+    if (isManualMpesaEnabled()) {
+      return NextResponse.json(
+        { error: "M-Pesa STK push is currently disabled. Pay via the Buy Goods Till and submit your confirmation code." },
+        { status: 409 }
+      );
+    }
+
     const ip = getClientIp(req) ?? "unknown";
     const rl = await rateLimit(`stk:${ip}`, 5, 60_000);
     if (!rl.ok) {
@@ -127,7 +137,7 @@ export async function POST(req: NextRequest) {
       merchant_request_id: result.MerchantRequestID,
       mpesa_phone: formatted,
       mpesa_amount: Number(order.total),
-      provider_response: result.ProviderResponse ?? result,
+      provider_response: result,
     });
 
     if (paymentError) {

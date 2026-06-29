@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-// Legacy Daraja callback IPs, kept only for pre-Lipana in-flight payments.
+// Safaricom Daraja callback IP allowlist.
 const SAFARICOM_CALLBACK_IPS = new Set([
   "196.201.214.200",
   "196.201.214.206",

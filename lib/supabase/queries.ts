@@ -30,7 +30,7 @@ export type RawProduct = {
   verified_by?: string | null;
   created_at: string;
   categories: { slug: string; name: string; parent: { slug: string } | null } | null;
-  product_images: { url: string; is_primary: boolean; sort_order: number }[];
+  product_images: { url: string; is_primary: boolean; sort_order: number; alt_text: string | null }[];
   inventory: { quantity: number; reserved: number }[];
   product_variants: {
     id: string;
@@ -47,13 +47,27 @@ export type RawProduct = {
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function mapProduct(raw: RawProduct): Product {
-  // Images — primary first, then by sort_order
-  const images = [...raw.product_images]
+  // Drop round-robin "pollution" rows. The attach-lookbook / attach-remaining
+  // scripts scattered unrelated Cloudinary shots across products keyed only by
+  // array index, stamping alt_text = product.slug on a non-primary row. Legit
+  // images use alt_text "<name> — N" or NULL and never equal the slug, so this
+  // filter removes exactly the misattached images while the DB cleanup migration
+  // catches up. A primary row is always trusted.
+  const ownImages = (raw.product_images ?? []).filter(
+    (img) => img.is_primary || img.alt_text !== raw.slug
+  );
+
+  // Images — primary first, then by sort_order, then by url for a stable
+  // tie-break. De-dupe by URL so a product never piles the same shot twice.
+  const seen = new Set<string>();
+  const images = [...ownImages]
     .sort((a, b) => {
       if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
-      return a.sort_order - b.sort_order;
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      return a.url < b.url ? -1 : 1;
     })
-    .map((i) => i.url);
+    .map((i) => i.url)
+    .filter((url) => (seen.has(url) ? false : (seen.add(url), true)));
 
   // Sizes + colors from active variants' options
   const sizesSet = new Set<string>();
@@ -145,7 +159,7 @@ export const PRODUCT_SELECT_WITHOUT_VERIFICATION = `
   is_featured,
   created_at,
   categories!category_id ( slug, name, parent:categories!parent_id ( slug ) ),
-  product_images ( url, is_primary, sort_order ),
+  product_images ( url, is_primary, sort_order, alt_text ),
   inventory ( quantity, reserved ),
   product_variants (
     id,
@@ -170,7 +184,7 @@ export const PRODUCT_SELECT = `
   verified_by,
   created_at,
   categories!category_id ( slug, name, parent:categories!parent_id ( slug ) ),
-  product_images ( url, is_primary, sort_order ),
+  product_images ( url, is_primary, sort_order, alt_text ),
   inventory ( quantity, reserved ),
   product_variants (
     id,

@@ -1,4 +1,5 @@
 import Hero from "@/components/home/Hero";
+import VideoStrip from "@/components/home/VideoStrip";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import TrendingSection from "@/components/home/TrendingSection";
 import CollectionBanner from "@/components/home/CollectionBanner";
@@ -12,6 +13,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <VideoStrip />
       <CategoryGrid />
       <TrendingSection />
       <CollectionBanner />

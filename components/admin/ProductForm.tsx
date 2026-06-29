@@ -8,6 +8,7 @@ import type { ProductVerificationStatus } from "@/lib/types";
 import ImageUploader from "./ImageUploader";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import Switch from "@/components/ui/Switch";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils";
 
@@ -400,31 +401,29 @@ export default function ProductForm({ productId, initial }: Props) {
 
       {/* Settings */}
       <Section title="Settings">
-        <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => set("isActive", e.target.checked)}
-              className="w-4 h-4 accent-forest"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
             <span className="text-sm text-ink">
               Active{" "}
               <span className="text-muted">- visible in the store</span>
             </span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.isFeatured}
-              onChange={(e) => set("isFeatured", e.target.checked)}
-              className="w-4 h-4 accent-forest"
+            <Switch
+              checked={form.isActive}
+              onChange={(next) => set("isActive", next)}
+              ariaLabel="Product is active and visible in the store"
             />
+          </div>
+          <div className="flex items-center justify-between gap-4">
             <span className="text-sm text-ink">
               Featured{" "}
               <span className="text-muted">- shows &ldquo;Hot&rdquo; badge, appears in trending</span>
             </span>
-          </label>
+            <Switch
+              checked={form.isFeatured}
+              onChange={(next) => set("isFeatured", next)}
+              ariaLabel="Product is featured"
+            />
+          </div>
         </div>
       </Section>
 

@@ -61,6 +61,7 @@ export interface CartItem {
   color: ProductColor;
   quantity: number;
   variantId?: string;
+  selectedImage?: string;
 }
 
 export interface Review {

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
-import {
-  formatPhone,
-  normalizeLipanaPaymentPayload,
-  verifyLipanaWebhookSignature,
-} from "@/lib/mpesa";
+import { formatPhone } from "@/lib/mpesa";
 import { sendPaidOrderNotifications } from "@/lib/paymentNotifications";
 import { getClientIp, isSafaricomIp } from "@/lib/security";
 
@@ -16,16 +12,14 @@ function getAdmin() {
   );
 }
 
+// Safaricom expects a 200 with this body even on internal failures — anything
+// else triggers retries, which can double-apply payments.
 const ACK = NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
 
 function metadataValue(items: any[] | undefined, name: string): string | null {
   const found = items?.find((item) => item?.Name === name);
   if (found?.Value == null) return null;
   return String(found.Value);
-}
-
-function allowUnsignedLipanaWebhook() {
-  return process.env.LIPANA_SKIP_SIGNATURE_CHECK === "true";
 }
 
 async function applyPaymentResult(params: {
@@ -68,30 +62,17 @@ async function applyPaymentResult(params: {
   }
 }
 
-async function resolveCheckoutRequestId(
-  db: ReturnType<typeof getAdmin>,
-  checkoutRequestId: string | null,
-  transactionId: string | null
-) {
-  if (checkoutRequestId) return checkoutRequestId;
-  if (!transactionId) return null;
-
-  const { data } = await db
-    .from("payments")
-    .select("checkout_request_id")
-    .eq("merchant_request_id", transactionId)
-    .maybeSingle();
-
-  return data?.checkout_request_id ? String(data.checkout_request_id) : null;
-}
-
 export async function POST(req: NextRequest) {
-  let rawBody: string;
-  let body: any;
+  // Validate the request comes from Safaricom's IP range.
+  const ip = getClientIp(req);
+  if (!isSafaricomIp(ip)) {
+    console.warn("[mpesa callback] rejected unknown IP:", ip);
+    return ACK;
+  }
 
+  let body: any;
   try {
-    rawBody = await req.text();
-    body = JSON.parse(rawBody);
+    body = await req.json();
   } catch (err) {
     Sentry.captureException(err);
     console.error("[mpesa callback] invalid JSON:", err);
@@ -99,67 +80,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const lipanaPayment = normalizeLipanaPaymentPayload(body);
-
-    if (lipanaPayment) {
-      const signature = req.headers.get("x-lipana-signature");
-      if (!verifyLipanaWebhookSignature(rawBody, signature) && !allowUnsignedLipanaWebhook()) {
-        console.warn("[mpesa callback] rejected Lipana webhook with invalid signature");
-        return NextResponse.json({ error: "Invalid Lipana webhook signature" }, { status: 401 });
-      }
-
-      if (!lipanaPayment.resultCode) {
-        return ACK;
-      }
-
-      const db = getAdmin();
-      const checkoutRequestId = await resolveCheckoutRequestId(
-        db,
-        lipanaPayment.checkoutRequestId,
-        lipanaPayment.transactionId
-      );
-
-      if (!checkoutRequestId) {
-        console.warn("[mpesa callback] Lipana webhook missing checkout request ID:", body);
-        return ACK;
-      }
-
-      await applyPaymentResult({
-        db,
-        checkoutRequestId,
-        merchantRequestId: lipanaPayment.merchantRequestId,
-        resultCode: lipanaPayment.resultCode,
-        resultDesc: lipanaPayment.resultDesc,
-        receipt: lipanaPayment.receipt,
-        phone: lipanaPayment.phone ? formatPhone(lipanaPayment.phone) : null,
-        amount: lipanaPayment.amount,
-        rawCallback: body,
-      });
-
-      return ACK;
-    }
-
-    // Legacy Daraja fallback for any in-flight payments created before the
-    // Lipana migration.
-    const ip = getClientIp(req);
-    if (!isSafaricomIp(ip)) {
-      console.warn("[mpesa callback] rejected unknown legacy callback IP:", ip);
-      return ACK;
-    }
-
     const callback = body?.Body?.stkCallback;
     if (!callback?.CheckoutRequestID) {
-      console.warn("[mpesa callback] missing CheckoutRequestID:", body);
+      console.warn("[mpesa callback] missing stkCallback or CheckoutRequestID:", body);
       return ACK;
     }
 
     const metadata = callback.CallbackMetadata?.Item;
-    const receipt = metadataValue(metadata, "MpesaReceiptNumber");
-    const amount = metadataValue(metadata, "Amount");
-    const phone = metadataValue(metadata, "PhoneNumber");
     const resultCode = String(callback.ResultCode ?? "");
     const checkoutRequestId = String(callback.CheckoutRequestID);
     const merchantRequestId = callback.MerchantRequestID ? String(callback.MerchantRequestID) : null;
+    const receipt = metadataValue(metadata, "MpesaReceiptNumber");
+    const amount = metadataValue(metadata, "Amount");
+    const rawPhone = metadataValue(metadata, "PhoneNumber");
 
     await applyPaymentResult({
       db: getAdmin(),
@@ -168,7 +101,7 @@ export async function POST(req: NextRequest) {
       resultCode,
       resultDesc: String(callback.ResultDesc ?? ""),
       receipt,
-      phone,
+      phone: rawPhone ? formatPhone(rawPhone) : null,
       amount: amount ? Number(amount) : null,
       rawCallback: body,
     });

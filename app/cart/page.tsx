@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus, X, ShoppingBag, ArrowRight, Truck, Shield, RotateCcw } from "lucide-react";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, cartLineKey } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 
 const FREE_SHIPPING_THRESHOLD = 5000;
@@ -64,7 +64,7 @@ export default function CartPage() {
             <ul className="border-y border-ink/15 divide-y divide-ink/10">
               <AnimatePresence initial={false}>
                 {items.map((item, i) => {
-                  const key = `${item.product.id}-${item.size}-${item.color.name}`;
+                  const key = cartLineKey(item);
                   const price = item.product.salePrice ?? item.product.price;
                   return (
                     <motion.li
@@ -85,7 +85,7 @@ export default function CartPage() {
                         className="relative w-24 lg:w-28 h-32 bg-beige-dark shrink-0 overflow-hidden group border border-ink/10"
                       >
                         <Image
-                          src={item.product.images[0]}
+                          src={item.selectedImage ?? item.product.images[0]}
                           alt={item.product.name}
                           fill
                           sizes="(min-width: 1024px) 112px, 96px"
@@ -115,7 +115,7 @@ export default function CartPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => removeItem(item.product.id, item.size, item.color.name)}
+                            onClick={() => removeItem(item)}
                             aria-label="Remove item"
                             className="text-muted hover:text-danger transition-colors p-1 -m-1 shrink-0"
                           >
@@ -126,7 +126,7 @@ export default function CartPage() {
                         <div className="mt-auto pt-4 flex items-center justify-between">
                           <div className="flex items-center border border-ink/30">
                             <button
-                              onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity - 1)}
+                              onClick={() => updateQuantity(item, item.quantity - 1)}
                               className="w-9 h-9 flex items-center justify-center text-ink hover:bg-ink hover:text-cream transition-colors"
                               aria-label="Decrease quantity"
                             >
@@ -136,7 +136,7 @@ export default function CartPage() {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity + 1)}
+                              onClick={() => updateQuantity(item, item.quantity + 1)}
                               className="w-9 h-9 flex items-center justify-center text-ink hover:bg-ink hover:text-cream transition-colors"
                               aria-label="Increase quantity"
                             >

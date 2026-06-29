@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -103,16 +102,11 @@ export default function Navbar() {
       >
         <div className="container-px">
           <div className="flex items-center justify-between h-14 lg:h-16">
-            {/* Logo — brand mark */}
+            {/* Logo — wordmark (cream + gold) reads cleanly on the dark header */}
             <Link href="/" className="flex items-center group" aria-label="Baywoods — home">
-              <Image
-                src="/second.png"
-                alt="Baywoods"
-                width={500}
-                height={500}
-                priority
-                className="h-8 w-auto lg:h-10"
-              />
+              <span className="font-display text-xl lg:text-2xl font-semibold uppercase tracking-[-0.02em] text-cream leading-none">
+                Bay<span className="text-gold">woods</span>
+              </span>
             </Link>
 
             {/* Desktop Nav */}
@@ -294,7 +288,9 @@ export default function Navbar() {
               className="fixed top-0 left-0 bottom-0 w-[88%] max-w-sm bg-cream z-50 lg:hidden flex flex-col border-r border-ink/15"
             >
               <div className="flex items-center justify-between px-6 py-5 border-b border-ink/15">
-                <Image src="/second.png" alt="Baywoods" width={500} height={500} className="h-9 w-auto" />
+                <span className="font-display text-xl font-semibold uppercase tracking-[-0.02em] text-cream leading-none">
+                  Bay<span className="text-gold">woods</span>
+                </span>
                 <button onClick={() => setMobileOpen(false)} className="p-1">
                   <X size={16} />
                 </button>

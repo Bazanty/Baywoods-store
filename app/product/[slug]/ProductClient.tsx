@@ -5,7 +5,7 @@ import { Heart, Shield, Truck, RefreshCw, ChevronDown, Star, Check } from "lucid
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, resolveVariant } from "@/lib/store";
 import { Product, Review } from "@/lib/types";
 import ImageGallery from "@/components/product/ImageGallery";
 import SizeSelector from "@/components/product/SizeSelector";
@@ -36,9 +36,16 @@ export default function ProductClient({ product, related, reviews }: Props) {
   const { addItem, toggleWishlist, isWishlisted } = useCartStore();
   const wishlisted = isWishlisted(product.id);
 
+  // Resolve the concrete variant for the current selection up front — this is
+  // the row that drives inventory and pricing, so the cart should never carry a
+  // line we couldn't pin to one (unless the product simply has no variants).
+  const selectedVariant = resolveVariant(product, selectedSize, selectedColor.name);
+  const hasVariants = (product.variants?.length ?? 0) > 0;
+
   const handleAddToCart = () => {
     if (!selectedSize) return;
-    addItem(product, selectedSize, selectedColor);
+    if (hasVariants && !selectedVariant) return;
+    addItem(product, selectedSize, selectedColor, selectedVariant);
     setAddedMsg(true);
     setTimeout(() => setAddedMsg(false), 2000);
   };
@@ -68,6 +75,8 @@ export default function ProductClient({ product, related, reviews }: Props) {
     ? "Out of stock"
     : !selectedSize
     ? "Select a size"
+    : hasVariants && !selectedVariant
+    ? "Unavailable in this combo"
     : "Add to bag";
 
   return (
@@ -185,7 +194,7 @@ export default function ProductClient({ product, related, reviews }: Props) {
               <div className="flex gap-2">
                 <button
                   onClick={handleAddToCart}
-                  disabled={!product.inStock || !selectedSize}
+                  disabled={!product.inStock || !selectedSize || (hasVariants && !selectedVariant)}
                   className="flex-1 h-14 bg-ink text-cream font-mono text-xs tracking-[0.18em] uppercase transition-all hover:bg-forest-dark active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
                 >
                   <AnimatePresence mode="wait">

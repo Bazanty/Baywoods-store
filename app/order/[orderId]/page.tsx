@@ -11,6 +11,8 @@ import ResendConfirmationButton from "./ResendConfirmationButton";
 
 export const dynamic = "force-dynamic";
 
+const MANUAL_MPESA = process.env.NEXT_PUBLIC_MPESA_MANUAL === "true";
+
 interface OrderPageProps {
   params: Promise<{ orderId: string }>;
   searchParams: Promise<{ t?: string }>;
@@ -143,7 +145,9 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
               </h1>
               <p className="mt-5 max-w-md text-sm leading-relaxed text-ink/70">
                 {normalizedStatus === "PENDING_PAYMENT"
-                  ? "Waiting for secure payment confirmation from M-Pesa."
+                  ? MANUAL_MPESA
+                    ? "We've received your M-Pesa code and are confirming the payment. You'll get an email once it's verified and your order moves to dispatch."
+                    : "Waiting for secure payment confirmation from M-Pesa."
                   : normalizedStatus === "FAILED"
                   ? "The payment was not completed. Contact support if money left your account."
                   : (
