@@ -29,9 +29,8 @@ export default function LookbookStrip() {
 
       {/* Scrollable strip — bleeds full width, snaps on mobile */}
       <div className="flex gap-3 overflow-x-auto scroll-px-4 snap-x snap-mandatory pl-4 sm:pl-6 lg:pl-10 xl:pl-16 pr-4 sm:pr-6 lg:pr-10 xl:pr-16 no-scrollbar pb-2">
-        {/* Newly uploaded drop — a curated lead, served through Cloudinary.
-            Full set lives in lib/featuredMedia.ts. */}
-        {featuredImages.slice(0, 12).map((img, i) => (
+        {/* Newly uploaded drop — the full recent batch, served through Cloudinary. */}
+        {featuredImages.map((img, i) => (
           <motion.div
             key={img.publicId}
             initial={{ opacity: 0, y: 16 }}
